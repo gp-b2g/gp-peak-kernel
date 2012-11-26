@@ -1,0 +1,7 @@
+
+config CELLON_HWINFO
+           tristate "cellon hwinfo Driver"
+           default y
+           help
+           This is the cellon hwinfo driver.
+
