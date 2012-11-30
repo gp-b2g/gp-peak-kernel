@@ -323,6 +323,7 @@ static struct clk_lookup msm_cmn_clk_7625a_7627a[] __initdata = {
 	CLK_LOOKUP("cam_clk",		cam_m_clk.c,	"0-0010"),
 	CLK_LOOKUP("cam_clk",		cam_m_clk.c,	"0-003c"),
 	CLK_LOOKUP("cam_clk",		cam_m_clk.c,	"0-003d"),
+	CLK_LOOKUP("cam_clk",		cam_m_clk.c,	"0-0040"),
 	CLK_LOOKUP("cam_clk",		cam_m_clk.c,	"0-0076"),
 	CLK_LOOKUP("cam_clk",		cam_m_clk.c,	"0-0078"),
 	CLK_LOOKUP("cam_clk",		cam_m_clk.c,	"0-007a"),

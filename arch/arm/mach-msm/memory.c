@@ -39,12 +39,12 @@
 #include <../../mm/mm.h>
 #include <linux/fmem.h>
 
-void *strongly_ordered_page;
-char strongly_ordered_mem[PAGE_SIZE*2-4];
+#if defined(CONFIG_ARCH_MSM7X27) || defined(CONFIG_ARCH_MSM7X27A) || defined(CONFIG_ARCH_MSM8625)
+static void *strongly_ordered_page;
+static char strongly_ordered_mem[PAGE_SIZE*2-4];
 
 void map_page_strongly_ordered(void)
 {
-#if defined(CONFIG_ARCH_MSM7X27) || defined(CONFIG_ARCH_MSM7X27A) || defined(CONFIG_ARCH_MSM8625)
 	long unsigned int phys;
 	struct map_desc map;
 
@@ -61,13 +61,14 @@ void map_page_strongly_ordered(void)
 	create_mapping(&map);
 
 	printk(KERN_ALERT "Initialized strongly ordered page successfully\n");
-#endif
 }
-EXPORT_SYMBOL(map_page_strongly_ordered);
+#else
+void map_page_strongly_ordered(void) { }
+#endif
 
+#if defined(CONFIG_ARCH_MSM7X27) || defined(CONFIG_ARCH_MSM7X27A) || defined(CONFIG_ARCH_MSM8625)
 void write_to_strongly_ordered_memory(void)
 {
-#if defined(CONFIG_ARCH_MSM7X27) || defined(CONFIG_ARCH_MSM7X27A) || defined(CONFIG_ARCH_MSM8625)
 	if (!strongly_ordered_page) {
 		if (!in_interrupt())
 			map_page_strongly_ordered();
@@ -79,8 +80,10 @@ void write_to_strongly_ordered_memory(void)
 		}
 	}
 	*(int *)MSM_STRONGLY_ORDERED_PAGE = 0;
-#endif
 }
+#else
+void write_to_strongly_ordered_memory(void) { }
+#endif
 EXPORT_SYMBOL(write_to_strongly_ordered_memory);
 
 /* These cache related routines make the assumption (if outer cache is

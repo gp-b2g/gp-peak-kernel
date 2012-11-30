@@ -459,6 +459,7 @@ static struct map_desc msm8625_io_desc[] __initdata = {
 void __init msm_map_msm8625_io(void)
 {
 	msm_map_io(msm8625_io_desc, ARRAY_SIZE(msm8625_io_desc));
+	map_page_strongly_ordered();
 }
 #else
 void __init msm_map_msm8625_io(void) { return; }

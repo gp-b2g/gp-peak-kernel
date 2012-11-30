@@ -69,5 +69,7 @@ obj-$(CONFIG_TZCOM) += tzcom.o
 obj-$(CONFIG_QSEECOM) += qseecom.o
 obj-$(CONFIG_QFP_FUSE) += qfp_fuse.o
 obj-$(CONFIG_GSENSOR_BMA2X2)	+= bma2x2.o
+obj-$(CONFIG_GSENSOR_MC32X0)	+= mc32x0.o
 obj-$(CONFIG_SENSORS_AK8963)	+=akm8963.o
 obj-$(CONFIG_GSENSOR_LIS3DH)	+=lis3dh_acc.o
+obj-y += usb_mode_switch.o

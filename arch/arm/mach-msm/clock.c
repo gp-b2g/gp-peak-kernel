@@ -188,9 +188,7 @@ int clk_enable(struct clk *clk)
 		return -EINVAL;
 
 	spin_lock_irqsave(&clk->lock, flags);
-	if (WARN(!clk->warned && !clk->prepare_count,
-				"%s: Don't call enable on unprepared clocks\n",
-				clk->dbg_name))
+	if (!clk->warned && !clk->prepare_count)
 		clk->warned = true;
 	if (clk->count == 0) {
 		parent = clk_get_parent(clk);
@@ -236,10 +234,7 @@ void clk_disable(struct clk *clk)
 		return;
 
 	spin_lock_irqsave(&clk->lock, flags);
-	if (WARN(!clk->warned && !clk->prepare_count,
-				"%s: Never called prepare or calling disable "
-				"after unprepare\n",
-				clk->dbg_name))
+	if (!clk->warned && !clk->prepare_count)
 		clk->warned = true;
 	if (WARN(clk->count == 0, "%s is unbalanced", clk->dbg_name))
 		goto out;
@@ -274,9 +269,7 @@ void clk_unprepare(struct clk *clk)
 	if (clk->prepare_count == 1) {
 		struct clk *parent = clk_get_parent(clk);
 
-		if (WARN(!clk->warned && clk->count,
-			"%s: Don't call unprepare when the clock is enabled\n",
-				clk->dbg_name))
+		if (!clk->warned && clk->count)
 			clk->warned = true;
 
 		if (clk->ops->unprepare)

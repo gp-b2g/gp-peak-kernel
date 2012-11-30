@@ -44,17 +44,17 @@ struct sdcc_gpio {
  * to size of T-flash adapters.
  */
 static struct msm_gpio sdc1_cfg_data[] = {
-	{GPIO_CFG(51, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_16MA),
+	{GPIO_CFG(51, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_14MA),
 								"sdc1_dat_3"},
-	{GPIO_CFG(52, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_16MA),
+	{GPIO_CFG(52, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_14MA),
 								"sdc1_dat_2"},
-	{GPIO_CFG(53, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_16MA),
+	{GPIO_CFG(53, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_14MA),
 								"sdc1_dat_1"},
-	{GPIO_CFG(54, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_16MA),
+	{GPIO_CFG(54, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_14MA),
 								"sdc1_dat_0"},
-	{GPIO_CFG(55, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_16MA),
+	{GPIO_CFG(55, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_14MA),
 								"sdc1_cmd"},
-	{GPIO_CFG(56, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_16MA),
+	{GPIO_CFG(56, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_14MA),
 								"sdc1_clk"},
 };
 
@@ -147,15 +147,21 @@ static struct sdcc_gpio sdcc_cfg_data[] = {
 	},
 };
 
+#ifdef CONFIG_CELLON_PRJ_C8681
+static int gpio_sdc1_hw_det = 29;
+#else
 static int gpio_sdc1_hw_det = 35;
+#endif
 static void gpio_sdc1_config(void)
 {
 	if (machine_is_msm7627a_qrd1() || machine_is_msm7627a_evb()
 					|| machine_is_msm8625_evb()
 					|| machine_is_msm7627a_qrd3()
 					|| machine_is_msm8625_skua()
-					|| machine_is_msm8625_qrd7())
+					|| machine_is_msm8625_qrd7()) 
 		gpio_sdc1_hw_det = 42;
+
+	printk("mmc: gpio_sdc1_hw_det = %d\n", gpio_sdc1_hw_det);
 }
 
 static struct regulator *sdcc_vreg_data[MAX_SDCC_CONTROLLER];
@@ -236,11 +242,6 @@ static uint32_t msm_sdcc_setup_power(struct device *dv, unsigned int vdd)
 		goto out;
 
 	rc = msm_sdcc_setup_vreg(pdev->id, !!vdd);
-#if 0
-	if (cardinit) {
-	    msleep(25);
-	}
-#endif 
 out:
 	return rc;
 }
@@ -251,7 +252,7 @@ static unsigned int msm7627a_sdcc_slot_status(struct device *dev)
 {
 	int status;
 
-	status = gpio_tlmm_config(GPIO_CFG(gpio_sdc1_hw_det, 2, GPIO_CFG_INPUT,
+	status = gpio_tlmm_config(GPIO_CFG(gpio_sdc1_hw_det, 0, GPIO_CFG_INPUT,
 				GPIO_CFG_PULL_UP, GPIO_CFG_8MA),
 				GPIO_CFG_ENABLE);
 	if (status)
@@ -270,10 +271,14 @@ static unsigned int msm7627a_sdcc_slot_status(struct device *dev)
 					machine_is_msm8625_evb()  ||
 					machine_is_msm7627a_qrd3() ||
 					machine_is_msm8625_skua() ||
-					machine_is_msm8625_qrd7())
+					machine_is_msm8625_qrd7()) {
 				status = !gpio_get_value(gpio_sdc1_hw_det);
-			else
+			} else {
 				status = gpio_get_value(gpio_sdc1_hw_det);
+#ifdef CONFIG_CELLON_PRJ_C8681
+				status = !status;
+#endif
+			}
 		}
 		gpio_free(gpio_sdc1_hw_det);
 	}
@@ -292,6 +297,7 @@ static struct mmc_platform_data sdc1_plat_data = {
 #ifdef CONFIG_MMC_MSM_CARD_HW_DETECTION
 	.status      = msm7627a_sdcc_slot_status,
 	.irq_flags   = IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
+	.is_status_gpio_active_low = 1,
 #endif
 };
 #endif

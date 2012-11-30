@@ -1269,16 +1269,4 @@ void __init paging_init(struct machine_desc *mdesc)
 
 	empty_zero_page = virt_to_page(zero_page);
 	__flush_dcache_page(NULL, empty_zero_page);
-
-#if defined(CONFIG_ARCH_MSM7X27) || defined(CONFIG_ARCH_MSM7X27A) || defined(CONFIG_ARCH_MSM8625)
-	/*
-	 * ensure that the strongly ordered page is mapped before the
-	 * first call to write_to_strongly_ordered_memory. This page
-	 * is necessary for the msm 7x27 due to hardware quirks. The
-	 * map call is made here to ensure the bootmem call is made
-	 * in the right window (after initialization, before full
-	 * allocators are initialized)
-	 */
-	map_page_strongly_ordered();
-#endif
 }

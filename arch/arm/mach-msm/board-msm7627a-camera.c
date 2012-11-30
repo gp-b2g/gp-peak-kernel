@@ -60,7 +60,7 @@ unsigned camera_id ;
 
 #ifdef CONFIG_MSM_CAMERA_V4L2
 
-#if defined(CONFIG_OV8825) || defined(CONFIG_OV2675) || defined(CONFIG_MT9E013) || defined(CONFIG_MT9V113) || defined(CONFIG_S5K3H2Y) || defined(CONFIG_S5K3H2Y_SUNNY)
+#if defined(CONFIG_OV8825) || defined(CONFIG_OV2675) || defined(CONFIG_MT9E013) || defined(CONFIG_MT9V113) || defined(CONFIG_S5K3H2Y) || defined(CONFIG_S5K3H2Y_SUNNY) || defined(CONFIG_HI542)
 static uint32_t camera_off_gpio_table[] = {
 	GPIO_CFG(15, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
 };
@@ -99,7 +99,7 @@ static struct msm_camera_gpio_conf gpio_conf_mt9v113= {
 
 
 
-#if defined(CONFIG_OV8825) || defined(CONFIG_OV2675) || defined(CONFIG_MT9E013) || defined(CONFIG_MT9V113) || defined(CONFIG_S5K3H2Y) || defined(CONFIG_S5K3H2Y_SUNNY)
+#if defined(CONFIG_OV8825) || defined(CONFIG_OV2675) || defined(CONFIG_MT9E013) || defined(CONFIG_MT9V113) || defined(CONFIG_S5K3H2Y) || defined(CONFIG_S5K3H2Y_SUNNY) || defined(CONFIG_HI542)
 static struct camera_vreg_t msm_cam_vreg[] = {
 	{"msme1", REG_LDO, 1800000, 1800000, 0},
 	{"gp2", REG_LDO, 2850000, 2850000, 0},
@@ -422,6 +422,48 @@ static struct msm_camera_sensor_info msm_camera_sensor_mt9e013_data = {
 #endif
 /*} zhuangxiaojian, C8681, 2012-07-27, add mt9e013 sensor*/
 
+#ifdef CONFIG_HI542
+static struct msm_camera_gpio_conf gpio_conf_hi542 = {
+	.camera_off_table = camera_off_gpio_table,
+	.camera_on_table = camera_on_gpio_table,
+	.gpio_no_mux = 1,
+};
+
+#if 1
+static struct msm_camera_sensor_flash_src msm_flash_src_hi542 = {
+	.flash_sr_type = MSM_CAMERA_FLASH_SRC_EXT,	
+};
+
+static struct msm_camera_sensor_flash_data flash_hi542 = {
+	.flash_type             = MSM_CAMERA_FLASH_LED,
+	.flash_src              = &msm_flash_src_hi542,
+};
+#else
+static struct msm_camera_sensor_flash_data flash_hi542 = {
+	.flash_type     = MSM_CAMERA_FLASH_NONE,
+};
+#endif
+static struct msm_camera_sensor_platform_info sensor_board_info_hi542 = {
+	.mount_angle	= 90,
+	.cam_vreg = msm_cam_vreg,
+	.num_vreg = ARRAY_SIZE(msm_cam_vreg),
+	.gpio_conf = &gpio_conf_hi542,
+};
+
+static struct msm_camera_sensor_info msm_camera_sensor_hi542_data = {
+	.sensor_name    = "hi542",
+	.sensor_reset_enable = 1,
+	.pmic_gpio_enable    = 1,
+	.sensor_reset           = GPIO_SKU3_CAM_5MP_CAMIF_RESET,
+	.sensor_pwd     = GPIO_SKU3_CAM_5MP_SHDN_N,
+	.pdata                  = &msm_camera_device_data_csi1,
+	.flash_data             = &flash_hi542,
+	.sensor_platform_info   = &sensor_board_info_hi542,
+	.csi_if                 = 1,
+	.camera_type = BACK_CAMERA_2D,
+};
+#endif
+
 #ifdef CONFIG_OV2675
 static struct msm_camera_sensor_platform_info sensor_board_info_ov2675 = {
 	.mount_angle = 270,
@@ -493,6 +535,12 @@ static void __init msm7x27a_init_cam(void)
 	sensor_board_info_mt9e013.cam_vreg = NULL;
 	sensor_board_info_mt9e013.num_vreg = 0;
 #endif
+
+#ifdef CONFIG_HI542
+	sensor_board_info_hi542.cam_vreg = NULL;
+	sensor_board_info_hi542.num_vreg = 0;
+#endif
+
 #ifdef CONFIG_OV2675
 	sensor_board_info_ov2675.cam_vreg = NULL;
 	sensor_board_info_ov2675.num_vreg = 0;
@@ -549,6 +597,13 @@ static struct i2c_board_info i2c_camera_devices[] = {
 	{
 		I2C_BOARD_INFO("mt9e013", 0x6C >> 2),
 		.platform_data = &msm_camera_sensor_mt9e013_data,
+	},
+#endif
+
+#ifdef CONFIG_HI542
+	{
+		I2C_BOARD_INFO("hi542", 0x40),
+		.platform_data = &msm_camera_sensor_hi542_data,
 	},
 #endif
 
@@ -617,6 +672,43 @@ static void evb_camera_gpio_cfg(void)
 	gpio_direction_output(GPIO_SKU3_CAM_5MP_SHDN_N, 1);
 
 	rc = gpio_request(GPIO_SKU3_CAM_5MP_CAMIF_RESET, "mt9e013");
+	if (rc < 0)
+		pr_err("##### %s: gpio_request GPIO_SKU3_CAM_5MP_CAMIF_RESET failed!",
+			 __func__);
+
+	pr_debug("##### gpio_tlmm_config %d\r\n", GPIO_SKU3_CAM_5MP_CAMIF_RESET);
+	rc = gpio_tlmm_config(GPIO_CFG(GPIO_SKU3_CAM_5MP_CAMIF_RESET, 0,
+		GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN,
+		GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+	if (rc < 0) {
+		pr_err("##### %s: unable to enable reset gpio for main camera!\n",
+			 __func__);
+		gpio_free(GPIO_SKU3_CAM_5MP_CAMIF_RESET);
+	}
+
+	gpio_direction_output(GPIO_SKU3_CAM_5MP_CAMIF_RESET, 1);
+#endif
+
+#ifdef CONFIG_HI542
+	printk("##### %s line%d: CONFIG_HI542\n",__func__,__LINE__);
+	rc = gpio_request(GPIO_SKU3_CAM_5MP_SHDN_N, "hi542");
+	if (rc < 0)
+		pr_err("##### %s: gpio_request GPIO_SKU3_CAM_5MP_SHDN_N failed!",
+			 __func__);
+
+	pr_debug("gpio_tlmm_config %d\r\n", GPIO_SKU3_CAM_5MP_SHDN_N);
+	rc = gpio_tlmm_config(GPIO_CFG(GPIO_SKU3_CAM_5MP_SHDN_N, 0,
+		GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN,
+		GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+	if (rc < 0) {
+		pr_err("##### %s:unable to enable Powr Dwn gpio for main camera!\n",
+			 __func__);
+		gpio_free(GPIO_SKU3_CAM_5MP_SHDN_N);
+	}
+
+	gpio_direction_output(GPIO_SKU3_CAM_5MP_SHDN_N, 1);
+
+	rc = gpio_request(GPIO_SKU3_CAM_5MP_CAMIF_RESET, "hi542");
 	if (rc < 0)
 		pr_err("##### %s: gpio_request GPIO_SKU3_CAM_5MP_CAMIF_RESET failed!",
 			 __func__);

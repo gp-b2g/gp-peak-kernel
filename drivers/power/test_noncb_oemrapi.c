@@ -34,6 +34,10 @@
 extern bool bma2x2_sensor_id(void);
 #endif
 
+#if defined(CONFIG_GSENSOR_MC32X0)
+extern bool mc32x0_sensor_id(void);
+#endif
+
 #if defined(CONFIG_GSENSOR_LIS3DH)
 extern bool lis3dh_sensor_id(void);
 #endif
@@ -81,8 +85,28 @@ static int oem_rapi_test_noncb_call(void)
 	strcat(input,s2);
 #endif
 
-#if defined(CONFIG_GSENSOR_BMA2X2)
+#if (defined(CONFIG_GSENSOR_BMA2X2) && defined(CONFIG_GSENSOR_MC32X0))
+	if ((bma2x2_sensor_id() == true) || (mc32x0_sensor_id() == true))
+	{
+		strcat(input,s1);
+	}
+	else
+	{
+		strcat(input,s2);
+	}
+
+#elif defined(CONFIG_GSENSOR_BMA2X2)
 	if (bma2x2_sensor_id() == true)
+	{
+		strcat(input,s1);
+	}
+	else
+	{
+		strcat(input,s2);
+	}
+
+#elif defined(CONFIG_GSENSOR_MC32X0)
+	if (mc32x0_sensor_id() == true)
 	{
 		strcat(input,s1);
 	}

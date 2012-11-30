@@ -274,7 +274,7 @@ static ssize_t state_store(struct kobject *kobj, struct kobj_attribute *attr,
 		error = hibernate();
   goto Exit;
 	}
-	printk("current %s %d\n",current->comm, current->pid);
+
 #ifdef CONFIG_SUSPEND
 	for (s = &pm_states[state]; state < PM_SUSPEND_MAX; s++, state++) {
 		if (*s && len == strlen(*s) && !strncmp(buf, *s, len))

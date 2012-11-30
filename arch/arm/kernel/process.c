@@ -580,6 +580,7 @@ EXPORT_SYMBOL(kernel_thread);
 
 unsigned long get_wchan(struct task_struct *p)
 {
+#ifdef FRAME_POINTER
 	struct stackframe frame;
 	int count = 0;
 	if (!p || p == current || p->state == TASK_RUNNING)
@@ -596,6 +597,7 @@ unsigned long get_wchan(struct task_struct *p)
 		if (!in_sched_functions(frame.pc))
 			return frame.pc;
 	} while (count ++ < 16);
+#endif  
 	return 0;
 }
 

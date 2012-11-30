@@ -41,9 +41,6 @@ int send_modem_logaddr(nzi_buf_item_type *input);
 enum {
 	OEM_RAPI_CLIENT_EVENT_NONE = 0,
 
-	OEM_RAPI_CLIENT_EVENT_ARM9_DATA_GET,//gsh add for rpc
-	OEM_RAPI_CLIENT_EVENT_ARM9_DATA_SET, 
-
 	/*
 	 * list of oem rapi client events
 	 */
@@ -54,6 +51,16 @@ enum {
 	OEM_RAPI_CLIENT_EVENT_QRDCOMPACTDUMP_NZIITEM_WRITE = 40,
 
 	OEM_RAPI_CLIENT_EVENT_DEBUG_SLEEP_MONITOR = 41,
+
+	OEM_RAPI_CLIENT_EVENT_ARM9_DATA_GET,//gsh add for rpc
+	OEM_RAPI_CLIENT_EVENT_ARM9_DATA_SET,//gsh add for rpc
+	OEM_RAPI_CLIENT_EVENT_ARM9_DATA_MAT,//herui modify for MAT fatory test
+	/* -------------------------------- */
+	OEM_RAPI_CLIENT_EVENT_ARM9_CB_REGISTER,//herui modify for fatory test
+	/* -------------------------------- */
+	OEM_RAPI_CLIENT_EVENT_ARM9_WRITE_QFUSE,
+	OEM_RAPI_CLIENT_EVENT_ARM9_READ_QFUSE,
+	/* -------------------------------- */
 
 	OEM_RAPI_CLIENT_EVENT_MAX
 

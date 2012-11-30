@@ -20,7 +20,19 @@ self driver for himax
 #include <linux/kernel.h>
 
 
+/********************************************************************
+  Modify History :
+  MID       : 20121122_01
+  Author    : Robin.Yin
+  Time      : 2012.11.22
+  Contents  : update firmware to support 5 finger number
+*********************************************************************/
+
+
+
+
 //#define __HX_DEBUG__
+#define __USB_CHARGER_STATUS__
 #ifdef __HX_DEBUG__
 
 #define dbg_printk(fmt,args...)   \
@@ -46,7 +58,14 @@ printk(KERN_INFO"himax->%s_%d:"fmt,__FUNCTION__,__LINE__,##args)
 #define HIMAX_WO_ATTR HIMAX_RO_ATTR
 #endif
 
-#define TOUCH_MAX_NUMBER 4
+//MID:20121122_01
+//begin
+#define  TOUCH_MAX_NUMBER 4
+#define  POINT_COUNT        (TOUCH_MAX_NUMBER*5) //-1
+#define  FINGER_TOTAL_SIZE    ( TOUCH_MAX_NUMBER*5 + 4) //+3
+#define  CHECKSUM_SIZE      (FINGER_TOTAL_SIZE -2)
+//end
+
 #define GPIO_OUTPUT_HI    1
 #define GPIO_OUTPUT_LO    0
 #define TOUCH_UP      0xAA
@@ -63,7 +82,7 @@ printk(KERN_INFO"himax->%s_%d:"fmt,__FUNCTION__,__LINE__,##args)
 #define HIMAX_WIDTH_MAX 10
 
 #define  point_area       16
-#define  point_count        20
+
 static struct workqueue_struct *himax_wq;
 
 struct touch_points_info {
@@ -79,18 +98,18 @@ enum {
 };
 
 static char * driver_ver [] = {
- "add firmware upgrade function",
- "add debug information to checksum tp primary data",
- "add parameter 0x01 for command 0x76",
- "fix the problem of TP report key when not touch it",
- "fix the problem of can't play angry birds game",
- "Improve the ability to resist temperature"
+ "Improve the ability to resist temperature",
+ "add 0x90 command to notifier TP IC usb charger status",
+ "update firmware to support 5 finger number",
+ " remove tp support 5 point function"
 };
+
 //#define  CONFIG_HX8526A_FW_UPDATE
 struct himax_ts_data {
     uint16_t addr;
     struct i2c_client *client;
     struct input_dev *input_dev;
+    int charger_status ;  /* 1,charger on;0:charger off*/
     int use_irq;
     unsigned int irq_count ; /* irq counts */
     char himax_state ;/*active,deep sleep */
@@ -113,7 +132,7 @@ struct himax_ts_data {
 static void himax_ts_reset(struct himax_platform_data *pdata);
 static int  himax_ts_poweron(struct himax_ts_data * ts);
 #ifdef CONFIG_HX8526A_FW_UPDATE
-#define FW_VER_NAME   "Himax_FW_Truly_Cellon_V10-0_2012-10-26_1605.i"
+#define FW_VER_NAME   "Himax_FW_Truly_Cellon_V12_2012-11-06_1403.i"
 #define FW_VER_MAJ_FLASH_ADDR       33 //0x0085
 #define FW_VER_MAJ_FLASH_LENG       1
 #define FW_VER_MIN_FLASH_ADDR       182 //0x02D8
@@ -168,6 +187,29 @@ static inline int enable_device_irq(struct himax_ts_data *ts)
     ts->irq_count++;
     return 0;
 }
+#ifdef __USB_CHARGER_STATUS__
+extern int  get_usb_charger_status(void)	;
+static int charger_notifier_call (struct himax_ts_data *ts,int status)
+{
+    char buf[2] ;
+    int ret ;
+    buf[0] = 0x90 ;
+    buf[1] = !!status ;
+
+    if(ts->charger_status != status){
+        info_printk("charger status change charger[%d],current[%d]\n",
+            ts->charger_status,status);
+        ret = i2c_master_send(ts->client, buf,2) ;
+        if(ret<0){
+            err_printk("i2c send error[%d]\n",ret);
+            return -EINVAL ;
+        }
+        ts->charger_status = !!status ;
+    }
+
+    return 0 ;
+}
+#endif
 //#define __SELF_REPORT__
 #ifdef __SELF_REPORT__
 static void self_report_function(struct work_struct * work)
@@ -288,7 +330,6 @@ OUT:
 }
 #else
 
-#define  point_count        20
 
  static void report_function(struct work_struct *work)
 {
@@ -301,10 +342,13 @@ OUT:
     static int report_key = 0 ;
 	struct i2c_msg msg[2];
 	uint8_t start_reg;
-	uint8_t buf[24];
+	uint8_t buf[FINGER_TOTAL_SIZE];//MID:20121122_01
 	uint32_t finger_num;
     uint32_t * buf_32 ;
 	struct himax_ts_data *ts = container_of(work, struct himax_ts_data, work);
+#ifdef __USB_CHARGER_STATUS__
+        charger_notifier_call(ts,!!get_usb_charger_status());
+#endif
 	start_reg = 0x86;
 
 	msg[0].addr = ts->client->addr;
@@ -314,7 +358,7 @@ OUT:
 
 	msg[1].addr = ts->client->addr;
 	msg[1].flags = I2C_M_RD;
-	msg[1].len =  24;
+	msg[1].len =  FINGER_TOTAL_SIZE; //MID:20121122_01
 	msg[1].buf = &buf[0];
 
 	ret = i2c_transfer(ts->client->adapter, msg, 2);
@@ -329,14 +373,15 @@ OUT:
         goto OUT ;
 	}
 
-    for (i = 0 ; i < 22; i++)
+    //MID:20121122_01
+    for (i = 0 ; i < CHECKSUM_SIZE; i++)
     {
         checksum += buf[i];
     }
 
-    i = buf[22];
+    i = buf[CHECKSUM_SIZE];
     i <<= 8;
-    i |= buf[23];
+    i |= buf[CHECKSUM_SIZE+1];
     if (checksum != i)
     {
         err_printk("i2c checksum error ret[%d]\n",ret);
@@ -346,17 +391,18 @@ OUT:
         }
         goto OUT ;
     }
-
-	finger_num=buf[point_count]&0x0F;
+    //MID:20121122_01
+	finger_num=buf[POINT_COUNT]&0x0F;
     buf_32 = (uint32_t *)buf ;
-    dbg_printk("finger number [%x]\n",finger_num);
+//    info_printk("finger number [%x]\n",finger_num);
 
     #if 0
     for(i=0;i<6;i++)
         dbg_printk("layer[%d]:data[%x]\n",i,buf_32[i]);
     #endif
 
-    if(finger_num==0x01||finger_num==0x02||finger_num==0x03||finger_num==0x04)
+    //MID:20121122_01
+    if((finger_num>0)&&(finger_num<=5))
     {
 	    for(i=0; i<TOUCH_MAX_NUMBER; i++)
 	    {
@@ -455,7 +501,7 @@ static inline void himax_ts_reset(struct himax_platform_data *pdata)
     gpio_set_value(pdata->gpio_rst, GPIO_OUTPUT_HI);
     msleep(5); //5ms
     gpio_set_value(pdata->gpio_rst, GPIO_OUTPUT_LO);
-    mdelay(1);//100us
+    msleep(10);//100us
     gpio_set_value(pdata->gpio_rst, GPIO_OUTPUT_HI);
     msleep(10);
 }
@@ -538,6 +584,7 @@ static int himax_ts_poweron(struct himax_ts_data *ts)
 	{
 		info_printk("OK addr = 0x%x\n",ts->client->addr);
 	}
+    ts->charger_status = 0 ;
     msleep(120); //120ms
 
 
@@ -1056,14 +1103,18 @@ u8 himax_read_FW_ver(struct himax_ts_data * ts) //OK
 	unsigned char FW_VER_MIN_FLASH_buff[FW_VER_MIN_FLASH_LENG*4 ];
 	unsigned char CFG_VER_MAJ_FLASH_buff[CFG_VER_MAJ_FLASH_LENG*4];
 	unsigned char CFG_VER_MIN_FLASH_buff[CFG_VER_MIN_FLASH_LENG*4];
-
+    int ret = 0 ;
 	unsigned int i;
 	unsigned char cmd[5];
 
 	//Himax: Power On Flow
 	cmd[0] = 0x42;
 	cmd[1] = 0x02;
-	i2c_master_send(ts->client, cmd, 2);//himax_i2c_master_write(slave_address, 2, cmd);
+	ret = i2c_master_send(ts->client, cmd, 2);//himax_i2c_master_write(slave_address, 2, cmd);
+    if( ret < 0 ){
+        err_printk(" read firmware version error\n");
+        return 0 ;
+    }
 	udelay(10);
 
 	cmd[0] = 0x36;
@@ -1505,7 +1556,10 @@ static int himax_ts_probe(struct i2c_client *client, const struct i2c_device_id 
 
     info_printk("himax TS probe\n"); //[Step 1]
     pdata = dev_get_platdata(&client->dev);
-
+    if(!pdata){
+        err_printk("platform data error\n");
+        return -ENODEV ;
+    }
     if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
         printk(KERN_ERR "himax_ts_probe: need I2C_FUNC_I2C\n");
         ret = -ENODEV;
@@ -1594,6 +1648,7 @@ static int himax_ts_probe(struct i2c_client *client, const struct i2c_device_id 
 
     ts->himax_state = HIMAX_STATE_ACTIVE ;
     ts->irq_count   = 1 ;
+    ts->charger_status = 0 ;
     if (client->irq) {
         ret = request_irq(client->irq, himax_ts_irq_handler,IRQF_DISABLED|IRQF_TRIGGER_LOW, client->name, ts);
         // |IRQF_SHARED | IRQF_SAMPLE_RANDOM

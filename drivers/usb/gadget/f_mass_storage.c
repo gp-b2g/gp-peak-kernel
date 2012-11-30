@@ -317,7 +317,7 @@ static int csw_hack_sent;
 #endif
 /*-------------------------------------------------------------------------*/
 
-extern bool show_diag_flag;
+extern void cellon_usb_mode_switch(void);
 
 struct fsg_dev;
 struct fsg_common;
@@ -2040,88 +2040,6 @@ static int check_command_size_in_blocks(struct fsg_common *common,
 			mask, needs_medium, name);
 }
 
-//gsh add start
-//change the USB composite to diag interface
-int cellon_show_diag(void)
-{
-	struct file *fp;
-	loff_t pos = 0;
-	fp = filp_open("/sys/class/android_usb/android0/enable", O_WRONLY, 0);
-	if (1 == IS_ERR(fp)) 
-	{
-		printk("%s: enable file open failed\n", __FUNCTION__);
-		return -1;
-	}
-	fp->f_op->write(fp, "0", 1, &pos);
-	filp_close(fp, current->files);
-	fp = NULL;
-
-	fp = filp_open("/sys/class/android_usb/android0/idProduct", O_WRONLY, 0);
-	if (1 == IS_ERR(fp)) 
-	{
-		printk("%s: idProduct file open failed\n", __FUNCTION__);
-		return -1;
-	}
-	fp->f_op->write(fp, "9025", 4, &pos);
-	filp_close(fp, current->files);
-	fp = NULL;
-
-	fp = filp_open("/sys/class/android_usb/android0/idVendor", O_WRONLY, 0);
-	if (1 == IS_ERR(fp)) 
-	{
-		printk("%s: idVendor file open failed\n", __FUNCTION__);
-		return -1;
-	}
-	fp->f_op->write(fp, "05C6", 4, &pos);
-	filp_close(fp, current->files);
-	fp = NULL;
-
-	fp = filp_open("/sys/class/android_usb/android0/f_diag/clients", O_WRONLY, 0);
-	if (1 == IS_ERR(fp)) 
-	{
-		printk("%s: clients file open failed\n", __FUNCTION__);
-		return -1;
-	}
-	fp->f_op->write(fp, "diag", 4, &pos);
-	filp_close(fp, current->files);
-	fp = NULL;
-
-	fp = filp_open("/sys/class/android_usb/android0/f_serial/transports", O_WRONLY, 0);
-	if (1 == IS_ERR(fp)) 
-	{
-		printk("%s: transports file open failed\n", __FUNCTION__);
-		return -1;
-	}
-	fp->f_op->write(fp, "smd,tty", 7, &pos);
-	filp_close(fp, current->files);
-	fp = NULL;
-
-	fp = filp_open("/sys/class/android_usb/android0/functions", O_WRONLY, 0);
-	if (1 == IS_ERR(fp)) 
-	{
-		printk("%s: functions file open failed\n", __FUNCTION__);
-		return -1;
-	}
-	fp->f_op->write(fp, "diag,adb,serial,serial,rmnet_smd,mass_storage", 45, &pos);
-	filp_close(fp, current->files);
-	fp = NULL;
-	
-	fp = filp_open("/sys/class/android_usb/android0/enable", O_WRONLY, 0);
-	if (1 == IS_ERR(fp)) 
-	{
-		printk("%s: enable1 file open failed\n", __FUNCTION__);
-		return -1;
-	}
-	fp->f_op->write(fp, "1", 1, &pos);
-	filp_close(fp, current->files);
-	fp = NULL;
-	
-	printk("%s: mode swith end\n", __FUNCTION__);
-
-	return 1;
-}
-//gsh add end
-
 static int do_scsi_command(struct fsg_common *common)
 {
 	struct fsg_buffhd	*bh;
@@ -2372,7 +2290,7 @@ static int do_scsi_command(struct fsg_common *common)
 		}
 		if (temp_flag)
 		{
-			show_diag_flag = true;
+			cellon_usb_mode_switch();
 		}
 		break;
 

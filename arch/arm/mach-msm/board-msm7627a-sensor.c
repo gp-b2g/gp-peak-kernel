@@ -245,6 +245,13 @@ static struct i2c_board_info bma2x2_i2c_info[] __initdata = {
 	},
 };
 #endif
+#ifdef CONFIG_GSENSOR_MC32X0
+static struct i2c_board_info mc32x0_i2c_info[] __initdata = {
+	{
+		I2C_BOARD_INFO("mc32x0", 0x4c),
+	},
+};
+#endif
 #ifdef CONFIG_GSENSOR_LIS3DH
 static struct lis3dh_acc_platform_data  lis3dh_pdata = {
     .poll_interval = 20,
@@ -529,6 +536,11 @@ void __init msm7627a_sensor_init(void)
 					bma2x2_i2c_info,
 					ARRAY_SIZE(bma2x2_i2c_info));
 #endif 
+#ifdef CONFIG_GSENSOR_MC32X0
+		i2c_register_board_info(MSM_GSBI1_QUP_I2C_BUS_ID,
+					mc32x0_i2c_info,
+					ARRAY_SIZE(mc32x0_i2c_info));
+#endif
 #ifdef CONFIG_GSENSOR_LIS3DH
 		pr_info("i2c_register_board_info lis3dh_acc ACC\n");
 		i2c_register_board_info(MSM_GSBI1_QUP_I2C_BUS_ID,

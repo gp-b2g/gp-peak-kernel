@@ -50,6 +50,9 @@
 #define machine_is_msm8225_cellon() (1)
 
 #define GPIO_C8681_LCD_RESET_N	 4
+// ross add
+#define GPIO_C8681_LCD_BACKLIGHT_EN 85
+// ross add 
 #define GPIO_C8681_LCD_MODESEL	113
 #define GPIO_C8681_LCD_ID0 129
 #define GPIO_C8681_LCD_ID1 124
@@ -1250,8 +1253,27 @@ gpio_fail1:
 static int msm_fb_dsi_client_c8681_reset(void)
 {
 	int rc = 0;
+	int lcd_en =1 ;
 
 	printk("%s: %d\n", __func__, __LINE__);
+	
+	rc = gpio_request(GPIO_C8681_LCD_BACKLIGHT_EN, "gpio_bkl_en");
+	if (rc < 0)
+		return rc;
+
+	rc = gpio_tlmm_config(GPIO_CFG(GPIO_C8681_LCD_BACKLIGHT_EN, 0,
+		GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+		GPIO_CFG_ENABLE);
+	if (rc < 0) {
+		pr_err("failed GPIO_BACKLIGHT_EN tlmm config\n");
+		return rc;
+	}
+	 rc = gpio_direction_output(GPIO_C8681_LCD_BACKLIGHT_EN, lcd_en);
+	if (rc < 0) {
+		pr_err("failed to enable backlight\n");
+		gpio_free(QRD_GPIO_BACKLIGHT_EN);
+		return rc;
+	}
 
 	c8681_detect_lcd_panel();
 
@@ -1539,6 +1561,8 @@ static int mipi_dsi_panel_qrd3_power(int on)
 	return rc;
 }
 
+bool kernel_booted = 0;
+
 #ifdef CONFIG_CELLON_PRJ_C8681
 static int mipi_dsi_panel_c8681_power(int on)
 {
@@ -1573,6 +1597,13 @@ static int mipi_dsi_panel_c8681_power(int on)
 		gpio_set_value_cansleep(GPIO_C8681_LCD_RESET_N, 0);
 		udelay(20);
 		gpio_set_value_cansleep(GPIO_C8681_LCD_RESET_N, 1);
+	} else {
+		rc = gpio_direction_output(GPIO_C8681_LCD_RESET_N, 0);
+		if (rc < 0) {
+		pr_err("Failed to set reset invalid\n");
+		return rc;
+		}
+		
 	}
 
 	gpio_free(GPIO_C8681_LCD_RESET_N);
@@ -1628,6 +1659,11 @@ static int mipi_dsi_panel_c8680_power(int on)
 	if (rc < 0) {
 		pr_err("Failed to set reset invalid\n");
 		return rc;
+	}
+
+	if (!kernel_booted) {
+		gpio_set_value(GPIO_C8680_LCD_BACKLIGHT_EN, 0);
+		printk("%s: %d\n", __func__, __LINE__);
 	}
 
 	if (on) {

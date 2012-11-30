@@ -334,7 +334,7 @@ int32_t msm_sensor_set_sensor_mode(struct msm_sensor_ctrl_t *s_ctrl,
 		s_ctrl->curr_line_length_pclk =
 			s_ctrl->msm_sensor_reg->
 			output_settings[res].line_length_pclk;
-#if 0
+#if 1
 		if (s_ctrl->sensordata->pdata->is_csic ||
 			!s_ctrl->sensordata->csi_if)
 			rc = s_ctrl->func_tbl->sensor_csi_setting(s_ctrl,
@@ -374,7 +374,7 @@ int32_t msm_sensor_mode_init(struct msm_sensor_ctrl_t *s_ctrl,
 	if (mode != s_ctrl->cam_mode) {
 		s_ctrl->curr_res = MSM_SENSOR_INVALID_RES;
 		s_ctrl->cam_mode = mode;
-#if 0
+#if 1
 		if (s_ctrl->sensordata->pdata->is_csic ||
 			!s_ctrl->sensordata->csi_if)
 			rc = s_ctrl->func_tbl->sensor_csi_setting(s_ctrl,
@@ -542,7 +542,7 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 		sizeof(struct sensor_cfg_data)))
 		return -EFAULT;
 	mutex_lock(s_ctrl->msm_sensor_mutex);
-	printk("msm_sensor_config: cfgtype = %d\n",
+	CDBG("msm_sensor_config: cfgtype = %d\n",
 	cdata.cfgtype);
 		switch (cdata.cfgtype) {
 		case CFG_SET_FPS:
@@ -601,8 +601,7 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 			break;
 
 #ifdef CONFIG_S5K3H2Y
-		case CFG_GET_CAL_DATA:	
-
+		case CFG_GET_CAL_DATA:
 			if (s_ctrl->func_tbl->
 			get_calibration_data_from_eeprom == NULL) {
 				rc = -EFAULT;
@@ -852,6 +851,7 @@ int32_t msm_sensor_i2c_probe(struct i2c_client *client,
 		rc = -EFAULT;
 		return rc;
 	}
+
 	s_ctrl = (struct msm_sensor_ctrl_t *)(id->driver_data);
 	if (s_ctrl->sensor_i2c_client != NULL) {
 		s_ctrl->sensor_i2c_client->client = client;

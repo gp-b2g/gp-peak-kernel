@@ -25,7 +25,11 @@
 #include "sd_ops.h"
 
 //int cardinit = 1;
-
+//jason.lee_fix_0002
+//2012/11/23 for prevent sd card shatter when it bigger than 32GB 
+//add
+#define SDHC_MAX_SIZE 1024*1024*32
+//end
 static const unsigned int tran_exp[] = {
 	10000,		100000,		1000000,	10000000,
 	0,		0,		0,		0
@@ -803,7 +807,15 @@ int mmc_sd_get_csd(struct mmc_host *host, struct mmc_card *card)
 	err = mmc_decode_csd(card);
 	if (err)
 		return err;
-
+	
+	//jason.lee_fix_0002
+	//2012/11/23 for prevent sd card shatter when it bigger than 32GB 
+	//add
+	if (card->csd.capacity > SDHC_MAX_SIZE){
+		printk(KERN_INFO "lzj : SD size %d > 32 GiB\n",card->csd.capacity);
+		return EINVAL;
+	}
+	//end
 	/* Fix for some buggy card with CSD tacc == 0*/
 	if(!card->csd.tacc_ns)
 	{	

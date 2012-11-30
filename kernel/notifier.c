@@ -309,10 +309,8 @@ int __blocking_notifier_call_chain(struct blocking_notifier_head *nh,
 	 * racy then it does not matter what the result of the test
 	 * is, we re-check the list after having taken the lock anyway:
 	 */
-	//printk("%s: %d\n",__func__,__LINE__);
 	if (rcu_dereference_raw(nh->head)) {
 		down_read(&nh->rwsem);
-	printk("%s: %d\n",__func__,__LINE__);
 		ret = notifier_call_chain(&nh->head, val, v, nr_to_call,
 					nr_calls);
 		up_read(&nh->rwsem);

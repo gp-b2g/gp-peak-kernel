@@ -63,7 +63,7 @@
 #define S2202_RST   26
 #endif /* CONFIG_RMI4_I2C */
 #ifdef CONFIG_TOUCHSCREEN_HX8526A
-#define HX8526A_ADDR     0x4A
+#define HX8526A_ADDR     0x4a
 #define HX8526A_RST      26
 #define HX8526A_INT      48
 #define HX8526A_ID       -1
@@ -84,78 +84,6 @@
 
 #ifndef CLEARPAD3000_RESET_GPIO
 #define CLEARPAD3000_RESET_GPIO (26)
-#endif
-
-#if 0
-#define KP_INDEX(row, col) ((row)*ARRAY_SIZE(kp_col_gpios) + (col))
-
-static unsigned int kp_row_gpios[] = {31, 32, 33, 34, 35};
-static unsigned int kp_col_gpios[] = {36, 37, 38, 39, 40};
-
-static const unsigned short keymap[ARRAY_SIZE(kp_col_gpios) *
-					  ARRAY_SIZE(kp_row_gpios)] = {
-	[KP_INDEX(0, 0)] = KEY_VOLUMEUP,
-	[KP_INDEX(0, 1)] = 0,
-	[KP_INDEX(0, 2)] = 0,
-	[KP_INDEX(0, 3)] = 0,
-	[KP_INDEX(0, 4)] = 0,
-
-	[KP_INDEX(1, 0)] = 0,
-	[KP_INDEX(1, 1)] = 0,
-	[KP_INDEX(1, 2)] = 0,
-	[KP_INDEX(1, 3)] = 0,
-	[KP_INDEX(1, 4)] = 0,
-
-	[KP_INDEX(2, 0)] = KEY_VOLUMEDOWN,
-	[KP_INDEX(2, 1)] = 0,
-	[KP_INDEX(2, 2)] = 0,
-	[KP_INDEX(2, 3)] = 0,
-	[KP_INDEX(2, 4)] = 0,
-
-	[KP_INDEX(3, 0)] = 0,
-	[KP_INDEX(3, 1)] = 0,
-	[KP_INDEX(3, 2)] = 0,
-	[KP_INDEX(3, 3)] = 0,
-	[KP_INDEX(3, 4)] = 0,
-
-	[KP_INDEX(4, 0)] = 0,
-	[KP_INDEX(4, 1)] = 0,
-	[KP_INDEX(4, 2)] = 0,
-	[KP_INDEX(4, 3)] = 0,
-	[KP_INDEX(4, 4)] = 0,
-};
-
-/* SURF keypad platform device information */
-static struct gpio_event_matrix_info kp_matrix_info = {
-	.info.func	= gpio_event_matrix_func,
-	.keymap		= keymap,
-	.output_gpios	= kp_row_gpios,
-	.input_gpios	= kp_col_gpios,
-	.noutputs	= ARRAY_SIZE(kp_row_gpios),
-	.ninputs	= ARRAY_SIZE(kp_col_gpios),
-	.settle_time.tv_nsec = 40 * NSEC_PER_USEC,
-	.poll_time.tv_nsec = 20 * NSEC_PER_MSEC,
-	.flags		= GPIOKPF_LEVEL_TRIGGERED_IRQ | GPIOKPF_DRIVE_INACTIVE |
-			  GPIOKPF_PRINT_UNMAPPED_KEYS,
-};
-
-static struct gpio_event_info *kp_info[] = {
-	&kp_matrix_info.info
-};
-
-static struct gpio_event_platform_data kp_pdata = {
-	.name		= "7x27a_kp",
-	.info		= kp_info,
-	.info_count	= ARRAY_SIZE(kp_info)
-};
-
-static struct platform_device kp_pdev = {
-	.name	= GPIO_EVENT_DEV_NAME,
-	.id	= -1,
-	.dev	= {
-		.platform_data	= &kp_pdata,
-	},
-};
 #endif
 
 /* 8625 keypad device information */
@@ -345,7 +273,7 @@ struct kobject *mxt_virtual_key_properties_kobj;
 
 static int mxt_touchpad_setup(void)
 {
-	int retval;
+	int retval=0;
 
         mxt_virtual_key_properties_kobj =
                 kobject_create_and_add("board_properties", NULL);
@@ -487,14 +415,14 @@ static struct mxt_platform_data mxt_platform_data = {
 	.disp_maxy		= 799,
 	.irqflags		= IRQF_TRIGGER_LOW,
 	.i2c_pull_up		= true,
-	.reset_gpio		= MXT_TS_RESET_GPIO,
-	.irq_gpio		= MXT_TS_IRQ_GPIO,
+//	.reset_gpio		= MXT_TS_RESET_GPIO,
+//	.irq_gpio		= MXT_TS_IRQ_GPIO,
 	.key_codes		= mxt_key_codes,
 };
 
 static struct i2c_board_info mxt_device_info[] __initdata = {
 	{
-		I2C_BOARD_INFO("atmel_mxt_ts", 0x4a),
+		I2C_BOARD_INFO("atmel_mxt_ts", 0),
 		.platform_data = &mxt_platform_data,
 		.irq = MSM_GPIO_TO_INT(MXT_TS_IRQ_GPIO),
 	},
@@ -653,7 +581,129 @@ static struct i2c_board_info s2202_ts_devices_info[] __initdata = {
 };
 #endif
 
+#ifdef CONFIG_TOUCHSCREEN_ATMEL_MXT154
+#define MXT_GPIO_INT 48
+#define MXT_GPIO_RST 26
 
+#define __pwhs  _pwhs(1008,100,40)
+#define _ms_     __stringify(55) // 5-105
+#define _hs_     __stringify(200) //150-250
+#define _bs_     __stringify(360) //
+#define _ss_     __stringify(500)
+static ssize_t atmel_virtual_keys_show(struct kobject *kobj,
+		     struct kobj_attribute *attr, char *buf)
+{
+
+    char *virtual_keys = __stringify(EV_KEY) ":" __stringify(KEY_MENU)  ":"_ms_":"  __pwhs  \
+                     ":" __stringify(EV_KEY) ":" __stringify(KEY_HOME)  ":"_hs_":" __pwhs \
+                     ":" __stringify(EV_KEY) ":" __stringify(KEY_BACK)  ":"_bs_":" __pwhs \
+                     ":" __stringify(EV_KEY) ":" __stringify(KEY_SEARCH)":"_ss_":" _pwhs(1008,80,40) "\n";
+
+	return snprintf(buf, strnlen(virtual_keys, MAX_LEN) + 1 , "%s",
+			virtual_keys);
+
+}
+
+static struct kobj_attribute atmel_virtual_keys_attr = {
+	.attr = {
+		.name = "virtualkeys.maxtouch-ts154",
+		.mode = S_IRUGO,
+	},
+	.show = &atmel_virtual_keys_show,
+};
+
+
+static struct attribute *atmel_key_properties_attrs[] = {
+	&atmel_virtual_keys_attr.attr,
+	NULL
+};
+
+static struct attribute_group atmel_key_properties_attr_group = {
+	.attrs = atmel_key_properties_attrs,
+};
+
+static int atmel_virtual_key_properties(struct kobject * kobject)
+{
+	int retval = 0;
+
+	if (kobject)
+		retval = sysfs_create_group(kobject,
+				&atmel_key_properties_attr_group);
+	if (retval)
+		pr_err("atmel:failed to create  board_properties\n");
+
+	return retval;
+}
+
+
+
+void atmel_gpio_uninit(void)
+{
+    gpio_free(MXT_GPIO_INT) ;
+    gpio_free(MXT_GPIO_RST) ;
+}
+int atmel_gpio_init(void)
+{
+    int ret ;
+    ret = gpio_request(MXT_GPIO_INT,"atmel_int");
+    if(ret < 0){
+        printk("maxtouch get gpio int error\n");
+        return -EIO ;
+    }
+    ret = gpio_request(MXT_GPIO_RST,"atmel_rst") ;
+    if(ret < 0){
+        printk("maxtouch get gpio rst error\n");
+        gpio_free(MXT_GPIO_INT) ;
+        return -EIO ;
+    }
+
+    ret = gpio_direction_input(MXT_GPIO_INT) ;
+    ret |= gpio_direction_output(MXT_GPIO_RST,1) ;
+    if(ret < 0){
+        printk("maxtouch set gpio direction error \n");
+        gpio_free(MXT_GPIO_INT) ;
+        gpio_free(MXT_GPIO_RST) ;
+        return -EIO ;
+    }
+
+  return 0 ;
+}
+
+static int mxt154_key_codes[MXT_KEYARRAY_MAX_KEYS] = {
+	[0] = KEY_HOME,
+	[1] = KEY_MENU,
+	[9] = KEY_BACK,
+	[10] = KEY_SEARCH,
+};
+
+
+static struct mxt_platform_data mxt154_platform_data = {
+	//.config_array		= mxt_config_array,
+	//.config_array_size	= ARRAY_SIZE(mxt_config_array),
+	.panel_minx		= 0,
+	.panel_maxx		= 540,
+	.panel_miny		= 0,
+	.panel_maxy		= 1023,
+	.disp_minx		= 0,
+	.disp_maxx		= 540,
+	.disp_miny		= 0,
+	.disp_maxy		= 960,
+	.gpio_rst		= MXT_GPIO_RST,
+	.gpio_irq		= MXT_GPIO_INT,
+	.gpio_init      = atmel_gpio_init,
+	.gpio_uninit    = atmel_gpio_uninit,
+	.key_codes		= mxt154_key_codes,
+};
+
+static struct i2c_board_info atmel_ts_devices_info[] __initdata = {
+	{
+		I2C_BOARD_INFO(ATMEL_MXT154_NAME, 0x4b),
+		.platform_data = &mxt154_platform_data,
+		.irq = MSM_GPIO_TO_INT(MXT_GPIO_INT),
+	},
+};
+
+#endif
 
 
 #ifdef CONFIG_TOUCHSCREEN_HX8526A
@@ -972,7 +1022,7 @@ static struct maxtouch_platform_data atmel_ts_pdata = {
 
 static struct i2c_board_info atmel_ts_i2c_info[] __initdata = {
 	{
-		I2C_BOARD_INFO(ATMEL_TS_I2C_NAME, 0x4a),
+		I2C_BOARD_INFO(ATMEL_TS_I2C_NAME, 0),
 		.platform_data = &atmel_ts_pdata,
 		.irq = MSM_GPIO_TO_INT(ATMEL_TS_GPIO_IRQ),
 	},
@@ -1220,31 +1270,34 @@ static struct platform_device gpio_leds_pdev = {
 //end
 
 char CTP_Panel_manufacturer;
-static int register_tp_devices(void)
+static int __init register_tp_devices(void)
 {
     	struct kobject *kobj=NULL;
+#ifndef CONFIG_CELLON_PRJ_C8681
 	int rc;
 
 	rc = gpio_request(C8680_CTP_ID, "C8680_CTP_ID");
-	if (rc < 0) 
+	if (rc < 0)
 		pr_err("%s: gpio_request C8680_CTP_ID failed!",
 				__func__);
-	
+    //pull gpio 115 to high
+    //to select maxtouch154 i2c address 0x4b
 	rc = gpio_tlmm_config(GPIO_CFG(C8680_CTP_ID, 0,
-			GPIO_CFG_INPUT, GPIO_CFG_PULL_UP,
+			GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP,
 			GPIO_CFG_8MA), GPIO_CFG_ENABLE);
 	if (rc)
 		pr_err("%s: gpio_tlmm_config for %d failed\n",
 			__func__, C8680_CTP_ID);
 
+    gpio_set_value(C8680_CTP_ID,1);
 	rc = gpio_get_value(C8680_CTP_ID);
 	printk("%s, GPIO = %d\n", __func__, rc);
 	if(rc)
 		CTP_Panel_manufacturer = 1;
 	else
 		CTP_Panel_manufacturer = 0;
-	gpio_free(C8680_CTP_ID);
-	
+	//gpio_free(C8680_CTP_ID);
+#endif
 
     printk("Register touchscreen devices for Cellon Phone.\n");
 	kobj = kobject_create_and_add("board_properties", NULL);
@@ -1264,6 +1317,12 @@ static int register_tp_devices(void)
                     himax_ts_devices_info,
                     ARRAY_SIZE(himax_ts_devices_info));
         himax_virtual_key_properties(kobj);
+#endif
+#if defined(CONFIG_TOUCHSCREEN_ATMEL_MXT154)
+        i2c_register_board_info(MSM_GSBI1_QUP_I2C_BUS_ID,
+                    atmel_ts_devices_info,
+                    ARRAY_SIZE(atmel_ts_devices_info));
+        atmel_virtual_key_properties(kobj);
 #endif
     return 0 ;
 }

@@ -92,7 +92,7 @@ static const char longname[] = "Gadget Android";
 //gsh add start read BT nv item as serial string
 typedef struct  {
            char   shared_bd_addr[13];
-           uint8_t shared_sim_flag;
+           uint8_t product_name_flag;
        }shared_bd_addr_info_table;
 
 shared_bd_addr_info_table *bd_addr_info_table = NULL;
@@ -1549,7 +1549,7 @@ static int get_serial_number(void)
 	if (bd_addr_info_table == NULL)
 		return -1;
 	printk("card_flag=%d,gsh serail number read data:%s\n", 
-		bd_addr_info_table->shared_sim_flag, bd_addr_info_table->shared_bd_addr);
+		bd_addr_info_table->product_name_flag, bd_addr_info_table->shared_bd_addr);
 
 	return 0;
 }
@@ -1605,15 +1605,27 @@ static int android_bind(struct usb_composite_dev *cdev)
 	device_desc.iProduct = id;
 
 	/* Default strings - should be updated by userspace */
-	strlcpy(manufacturer_string, "Haier",
+	strlcpy(manufacturer_string, "Android",
 		sizeof(manufacturer_string) - 1);
-	strlcpy(product_string, "HW-W820", sizeof(product_string) - 1);
+	strlcpy(product_string, "Android", sizeof(product_string) - 1);
 	strlcpy(serial_string, "0123456789ABCDEF", sizeof(serial_string) - 1);
 
 	//gsh add start
 	if (get_serial_number() >= 0) //gsh add
 	{
-		strings_dev[STRING_SERIAL_IDX].s = bd_addr_info_table->shared_bd_addr;
+	    if (1 == bd_addr_info_table->product_name_flag)
+	    {
+			strings_dev[STRING_MANUFACTURER_IDX].s = "Haier";
+		    strings_dev[STRING_PRODUCT_IDX].s = "HW-W820";
+	    }
+		else if (2 == bd_addr_info_table->product_name_flag)
+	    {
+			strings_dev[STRING_MANUFACTURER_IDX].s = "Q-Smart model Mach";
+		    strings_dev[STRING_PRODUCT_IDX].s = "Q-Smart model Mach";
+	    }
+		
+		
+		strings_dev[STRING_SERIAL_IDX].s = bd_addr_info_table->shared_bd_addr; 
 		printk("strings_dev[STRING_SERIAL_IDX].s = %s\n", strings_dev[STRING_SERIAL_IDX].s);
 
 		bd_addr_info_table = NULL;

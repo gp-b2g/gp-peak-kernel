@@ -88,6 +88,7 @@ void msm_camio_clk_rate_set(int rate)
 void msm_camio_vfe_blk_reset_2(void)
 {
 	uint32_t val;
+
 	/* do apps reset */
 	val = readl_relaxed(appbase + 0x00000210);
 	val |= 0x1;
@@ -124,11 +125,7 @@ void msm_camio_vfe_blk_reset_3(void)
 	val |= 0x10A0000;
 	writel_relaxed(val, appbase + 0x00000210);
 	usleep_range(10000, 11000);
-//	val = readl_relaxed(appbase + 0x00000210);
-//	val &= ~(0x10A0000);
-//	writel_relaxed(val, appbase + 0x00000210);
-//	usleep_range(10000, 11000);
-//	mb();
+
 	val = readl_relaxed(appbase + 0x00000210);
 	val &= ~(0x10A0000);
 	writel_relaxed(val, appbase + 0x00000210);

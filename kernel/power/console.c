@@ -17,12 +17,10 @@ static int orig_fgconsole, orig_kmsg;
 
 int pm_prepare_console(void)
 {
-	printk("%s: %d\n",__func__,__LINE__);
 	orig_fgconsole = vt_move_to_console(SUSPEND_CONSOLE, 1);
 	if (orig_fgconsole < 0)
 		return 1;
 
-	printk("%s: %d\n",__func__,__LINE__);
 	orig_kmsg = vt_kmsg_redirect(SUSPEND_CONSOLE);
 	return 0;
 }

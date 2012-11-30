@@ -4,7 +4,6 @@
  * Copyright (c) 2003 Patrick Mochel
  * Copyright (c) 2003 Open Source Development Lab
  * Copyright (c) 2009 Rafael J. Wysocki <rjw@sisk.pl>, Novell Inc.
- * Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * This file is released under the GPLv2.
  */
@@ -25,11 +24,6 @@
 #include <linux/suspend.h>
 #include <linux/syscore_ops.h>
 #include <trace/events/power.h>
-
-#ifdef CONFIG_MSM_SM_EVENT
-#include <linux/sm_event_log.h>
-#include <linux/sm_event.h>
-#endif
 
 #include "power.h"
 
@@ -96,50 +90,27 @@ static int suspend_test(int level)
 static int suspend_prepare(void)
 {
 	int error;
-	unsigned int free_pages;
 
 	if (!suspend_ops || !suspend_ops->enter)
 		return -EPERM;
-	printk("%s: %d\n",__func__,__LINE__);
+
 	pm_prepare_console();
 
-	printk("%s: %d\n",__func__,__LINE__);
 	error = pm_notifier_call_chain(PM_SUSPEND_PREPARE);
 	if (error)
 		goto Finish;
 
-	printk("%s: %d\n",__func__,__LINE__);
 	error = usermodehelper_disable();
 	if (error)
 		goto Finish;
 
-	printk("%s: %d\n",__func__,__LINE__);
 	error = suspend_freeze_processes();
-	if (!error) {
-		return 0;
-	  goto Thaw;
-	}
-
-#define FREE_PAGE_NUMBER (100)
-
-	free_pages = global_page_state(NR_FREE_PAGES);
-	if (free_pages < FREE_PAGE_NUMBER) {
-		   pr_debug("PM: free some memory\n");
-		   shrink_all_memory(FREE_PAGE_NUMBER - free_pages);
-		   if (nr_free_pages() < FREE_PAGE_NUMBER) {
-				   error = -ENOMEM;
-				   printk(KERN_ERR "PM: No enough memory\n");
-		   }
-	}
 	if (!error)
-		   return 0;
-
-Thaw:
+		return 0;
 
 	suspend_thaw_processes();
 	usermodehelper_enable();
  Finish:
-	printk("%s: %d\n",__func__,__LINE__);
 	pm_notifier_call_chain(PM_POST_SUSPEND);
 	pm_restore_console();
 	return error;
@@ -305,13 +276,9 @@ int enter_state(suspend_state_t state)
 	if (!mutex_trylock(&pm_mutex))
 		return -EBUSY;
 
-#ifdef CONFIG_MSM_SM_EVENT
-	sm_set_system_state (SM_STATE_SUSPEND);
-	sm_add_event(SM_POWER_EVENT | SM_POWER_EVENT_SUSPEND, SM_EVENT_START, 0, NULL, 0);
-#endif
 	suspend_sys_sync_queue();
 
-	pr_info("PM: Preparing system for %s sleep\n", pm_states[state]);
+	pr_debug("PM: Preparing system for %s sleep\n", pm_states[state]);
 	error = suspend_prepare();
 	if (error)
 		goto Unlock;
@@ -319,20 +286,16 @@ int enter_state(suspend_state_t state)
 	if (suspend_test(TEST_FREEZER))
 		goto Finish;
 
-	pr_info("PM: Entering %s sleep\n", pm_states[state]);
+	pr_debug("PM: Entering %s sleep\n", pm_states[state]);
 	pm_restrict_gfp_mask();
 	error = suspend_devices_and_enter(state);
 	pm_restore_gfp_mask();
 
  Finish:
-	pr_info("PM: Finishing wakeup.\n");
+	pr_debug("PM: Finishing wakeup.\n");
 	suspend_finish();
  Unlock:
 	mutex_unlock(&pm_mutex);
-
-#ifdef CONFIG_MSM_SM_EVENT
-	sm_add_event(SM_POWER_EVENT | SM_POWER_EVENT_RESUME, SM_EVENT_END, 0, NULL, 0);
-#endif
 	return error;
 }
 

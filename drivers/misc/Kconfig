@@ -415,6 +415,12 @@ config GSENSOR_BMA2X2
 	help
 	 BMA2X2 GSensor Driver implemented by cellon.
 
+config GSENSOR_MC32X0
+	tristate "MC32X0 GSensor Driver"
+	depends on I2C
+	help
+	 MC32X0 GSensor Driver implemented by cellon.
+
 config GSENSOR_LIS3DH
 	tristate "LIS3DH GSensor Driver"
 	depends on I2C

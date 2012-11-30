@@ -2156,7 +2156,7 @@ static const struct {
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_CFF_USER_EVENT,
 			kgsl_ioctl_cff_user_event, 0),
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_TIMESTAMP_EVENT,
-			kgsl_ioctl_timestamp_event, 1),
+			kgsl_ioctl_timestamp_event, 0),
 	KGSL_IOCTL_FUNC(IOCTL_KGSL_SETPROPERTY,
 			kgsl_ioctl_device_setproperty, 1),
 };

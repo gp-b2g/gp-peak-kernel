@@ -340,7 +340,6 @@ static struct msm_adsp_module *qcam_mod;
 static struct msm_adsp_module *vfe_mod;
 static void *extdata;
 static uint32_t extlen;
-//static uint32_t start_ack_sent;
 
 struct mutex vfe_lock;
 static uint8_t vfestopped;
@@ -408,7 +407,7 @@ static void vfe_7x_ops(void *driver_data, unsigned id, size_t len,
 	struct vfe_outputack fack;
 	int i;
 
-	CDBG("msm_vfe7x27a_v4l2 %s:id=%d\n", __func__, id);
+	CDBG("%s:id=%d\n", __func__, id);
 	if (id != VFE_ADSP_EVENT) {
 		data = kzalloc(len, GFP_ATOMIC);
 		if (!data) {
@@ -577,7 +576,6 @@ static void vfe_7x_ops(void *driver_data, unsigned id, size_t len,
 			break;
 		case MSG_OUTPUT2:
 			if (op_mode & SNAPSHOT_MASK_MODE) {
-				CDBG("-------------- MSG_OUTPUT2 \n");
 				kfree(data);
 				return;
 			} else {
@@ -654,30 +652,9 @@ static void vfe_7x_ops(void *driver_data, unsigned id, size_t len,
 		case MSG_VFE_ERROR:
 		case MSG_SYNC_TIMER1_DONE:
 		case MSG_SYNC_TIMER2_DONE:
-			//if (id == MSG_START_ACK) {
-			//	kfree(data);
 			vfe2x_send_isp_msg(vfe2x_ctrl, msgs_map[id].isp_id);
 			if (id == MSG_START_ACK)
 				vfe2x_ctrl->vfe_started = 1;
-/*				return;
-			}
-			vfe2x_send_isp_msg(vfe2x_ctrl, msgs_map[id].isp_id);
-			if (MSG_UPDATE_ACK == id) {
-				spin_lock_irqsave(&vfe2x_ctrl->table_lock, flags);
-				if (vfe2x_ctrl->stop_pending) {
-					CDBG("Send STOP\n");
-					cmd_data = buf;
-					*(uint32_t *)cmd_data = VFE_STOP;
-					// Send Stop cmd here 
-					len  = 4;
-					msm_adsp_write(vfe_mod, QDSP_CMDQUEUE,
-						cmd_data, len);
-					vfe2x_ctrl->stop_pending = 0;
-				}
-				vfe2x_ctrl->updateack_pending = 0;
-				spin_unlock_irqrestore(&vfe2x_ctrl->table_lock, flags);
-			}
-			*/
 			if (id == MSG_VFE_ERROR) {
 				uint16_t *ptr;
 				struct vfe_error_msg *VFE_ErrorMessageBuffer
@@ -726,21 +703,12 @@ static void vfe_7x_ops(void *driver_data, unsigned id, size_t len,
 				) {
 				CDBG("Ignore SOF for snapshot\n");
 				kfree(data);
-				//vfe2x_send_isp_msg(vfe2x_ctrl,
-				//		MSG_ID_START_ACK);
 				return;
 			}
 			vfe2x_send_isp_msg(vfe2x_ctrl, MSG_ID_SOF_ACK);
 			if (raw_mode)
-			//CDBG("vfe2x_ctrl->vfeFrameId : %d \n",vfe2x_ctrl->vfeFrameId);
-			//if (start_ack_sent)
-			//	vfe2x_send_isp_msg(vfe2x_ctrl, MSG_ID_SOF_ACK);
-			//if (raw_mode || !(start_ack_sent)) {
 				vfe2x_send_isp_msg(vfe2x_ctrl,
 						MSG_ID_START_ACK);
-			//	start_ack_sent = 1;
-			//}
-			CDBG("!!!!!!!!!!!MSG_SOF end\n");
 			break;
 		case MSG_STOP_ACK:
 			stopevent.state = 1;
@@ -814,7 +782,6 @@ static void vfe_7x_ops(void *driver_data, unsigned id, size_t len,
 		vfe2x_ctrl->tableack_pending = 1;
 		spin_unlock_irqrestore(&vfe2x_ctrl->table_lock, flags);
 	} else if (!vfe2x_ctrl->tableack_pending) {
-		CDBG("!!!!!!!!!!  tableack_pending \n");
 		if (!list_empty(&vfe2x_ctrl->table_q)) {
 			kfree(data);
 			return;
@@ -1450,8 +1417,7 @@ static long msm_vfe_subdev_ioctl(struct v4l2_subdev *sd,
 				}
 
 				if ((!list_empty(&vfe2x_ctrl->table_q)) ||
-					vfe2x_ctrl->tableack_pending) {
-					//	vfe2x_ctrl->tableack_pending || vfe2x_ctrl->updateack_pending) {
+						vfe2x_ctrl->tableack_pending) {
 					CDBG("stop pending\n");
 					vfe2x_ctrl->stop_pending = 1;
 					spin_unlock_irqrestore(
@@ -1479,7 +1445,6 @@ static long msm_vfe_subdev_ioctl(struct v4l2_subdev *sd,
 							flags);
 					return 0;
 				}
-				//vfe2x_ctrl->updateack_pending = 1;
 				spin_unlock_irqrestore(&vfe2x_ctrl->table_lock,
 						flags);
 				goto config_send;
@@ -1866,7 +1831,6 @@ config_failure:
 }
 
 static struct msm_cam_clk_info vfe2x_clk_info[] = {
-	//{"vfe_clk", 266667000},
 	{"vfe_clk", 192000000},
 };
 
@@ -1960,7 +1924,7 @@ static int msm_vfe_subdev_s_crystal_freq(struct v4l2_subdev *sd,
 {
 	int rc = 0;
 	int round_rate;
-	//return rc;
+
 	round_rate = clk_round_rate(vfe2x_ctrl->vfe_clk[0], freq);
 	if (rc < 0) {
 		pr_err("%s: clk_round_rate failed %d\n",

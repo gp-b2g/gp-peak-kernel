@@ -35,8 +35,8 @@
 #endif
 
 #define SENSOR_NAME 			"bma2x2"
-#define ABSMIN				-512
-#define ABSMAX				512
+#define ABSMIN				-(512 * 16)
+#define ABSMAX				(512 * 16)
 #define SLOPE_THRESHOLD_VALUE 		32
 #define SLOPE_DURATION_VALUE 		1
 #define INTERRUPT_LATCH_MODE 		13
@@ -2103,6 +2103,11 @@ static void bma2x2_work_func(struct work_struct *work)
 
 	bma2x2_read_accel_xyz(bma2x2->bma2x2_client, bma2x2->sensor_type,
 									 &acc);
+
+	acc.x = acc.x * 16;
+	acc.y = acc.y * 16;
+	acc.z = acc.z * 16;
+
 	input_report_abs(bma2x2->input, ABS_X, acc.x);
 	input_report_abs(bma2x2->input, ABS_Y, acc.y);
 	input_report_abs(bma2x2->input, ABS_Z, acc.z);

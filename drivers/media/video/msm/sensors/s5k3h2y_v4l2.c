@@ -10,17 +10,16 @@
  * GNU General Public License for more details.
  *
  */
-
+#include <linux/mutex.h>
 #include "msm_sensor.h"
 #include "msm.h"
+
 #define SENSOR_NAME "s5k3h2y"
 #define PLATFORM_DRIVER_NAME "msm_camera_s5k3h2y"
 #define s5k3h2y_obj s5k3h2y_##obj
 
 /* TO DO - Currently ov5647 typical values are used
  * Need to get the exact values */
-#define S5K3H2Y_RG_RATIO_TYPICAL_VALUE 64 /* R/G of typical camera module */
-#define S5K3H2Y_BG_RATIO_TYPICAL_VALUE 105 /* B/G of typical camera module */
 
 #ifdef CDBG
 #undef CDBG
@@ -67,17 +66,32 @@ static int32_t vfe_clk = 266667000;
 // add end
 
 DEFINE_MUTEX(s5k3h2y_mut);
+DEFINE_MUTEX(eeprom_mut);
 static struct msm_sensor_ctrl_t s5k3h2y_s_ctrl;
 
+/* jason.lee, 2012-11-7, add otp for s5k3h2y { */
+//#define S5K3H2Y_OTP
+
+char isOtp=-1;
+
+#ifdef S5K3H2Y_OTP
 struct otp_struct {
 	uint8_t customer_id;
 	uint8_t module_integrator_id;
 	uint8_t lens_id;
 	uint8_t rg_ratio;
 	uint8_t bg_ratio;
-	uint8_t user_data[5];
 } st_s5k3h2y_otp;
 
+
+/*******************************************************************************
+* R/G and B/G of typical camera module is defined here
+*******************************************************************************/
+#define S5K3H2Y_RG_RATIO_TYPICAL_VALUE 64 /* R/G of typical camera module */
+#define S5K3H2Y_BG_RATIO_TYPICAL_VALUE 105 /* B/G of typical camera module */
+#endif
+
+/* }  jason.lee, 2012-11-7, add otp for s5k3h2y */
 static struct msm_camera_i2c_reg_conf s5k3h2y_start_settings[] = {
 	{0x0100, 0x01},
 };
@@ -422,82 +436,286 @@ static struct msm_sensor_exp_gain_info_t s5k3h2y_exp_gain_info = {
 
 
 //add by lzj
-static int s5k3h2y_i2c_rxburst(struct msm_sensor_ctrl_t *s_ctrl,unsigned short saddr, unsigned char *rxdata,
+static int s5k3h2y_i2c_rxburst(struct msm_camera_i2c_client *client, unsigned short saddr, unsigned char *rxdata,
 	int length)
 {
+	int rc;
 	struct i2c_msg msgs[] = {
 		{
-			.addr  = saddr,
+			.addr   = saddr,
+			.flags = 0,
+			.len   = 1,
+			.buf   = rxdata,
+		},
+		{
+			.addr   = saddr,
 			.flags = I2C_M_RD,
 			.len   = length,
 			.buf   = rxdata,
 		},
 	};
 
-	if (i2c_transfer(s_ctrl->msm_sensor_client->adapter, msgs, 2) < 0) {
-		CDBG("s5k3h2y_i2c_rxdata failed!\n");
+	if ((rc = i2c_transfer(client->client->adapter, msgs, 2)) < 0) {
+		CDBG_HIGH("--CAMERA-- ov5640_i2c_rxdata failed!\n");
 		return -EIO;
 	}
-
-	return 0;
+	printk(" ### lzj :%s : %d \n",__func__,rc);
+	return rc;
 }
 
-static void s5k3h2y_get_calibration_data_from_eeprom(struct msm_sensor_ctrl_t *s_ctrl,uint16_t idx, char *data)
+
+static int s5k3h2y_i2c_tx(struct msm_camera_i2c_client *client, unsigned short saddr, unsigned char *txdata,
+	int length)
 {
-       #if 1
-	int32_t rc = 0, cnt = 0, i = 0;
+	int rc ;
+	struct i2c_msg msg[] = {
+		{
+			.addr = saddr,
+			.flags = 0,
+			.len = length,
+			.buf = txdata,
+		 },
+	};
+	if ((rc = i2c_transfer(client->client->adapter, msg, 1)) < 0) {
+		CDBG("s5k3h2y_i2c_tx faild\n");
+		return -EIO;
+	}
+	printk(" ### lzj :%s : %d \n",__func__,rc);
+	return rc;
+}
+
+/* jason.lee, 2012-11-7, add otp for s5k3h2y { */
+int s5k3h2y_otp_or_eeprom(struct msm_sensor_ctrl_t *s_ctrl)
+{
+	int rc;
+	unsigned char buf = 0x00;
+	printk("### lzj : %s : begin \n", __func__);
+	
+	rc = s5k3h2y_i2c_tx(s_ctrl->sensor_i2c_client, 0x3A1C,&buf, MSM_CAMERA_I2C_BYTE_DATA);
+	printk("### lzj : %s : %d \n", __func__,rc);
+	return rc;
+}
+
+
+
+void s5k3h2y_get_calibration_data_from_eeprom_test(struct msm_sensor_ctrl_t *s_ctrl)
+{
+
+	int32_t rc=0, cnt = 0, i = 0;
+	unsigned char buf[S5K3H2Y_EEP_PAGE_SIZE];
+	unsigned char pageAddr = 0;
+	//unsigned short raddr = 0, saddr = 0;
+	CDBG("#### lzj : %s \n",__func__);
+
+	if (s_ctrl==NULL) CDBG("#### lzj : %s s_ctrl null \n",__func__);
+	mutex_lock(&eeprom_mut);
+	// Cal data use 5pages(0~4) of eeprom /start address, page unit? 0page ff?, Memory Map check
+	while(pageAddr < 5 && cnt < 3)
+	{
+		memset(buf, 0, S5K3H2Y_EEP_PAGE_SIZE);
+		rc = s5k3h2y_i2c_rxburst(s_ctrl->sensor_i2c_client,S5K3H2Y_EEP_I2C_ADDR | pageAddr,
+			buf, S5K3H2Y_EEP_PAGE_SIZE);//S5K3H2Y_EEP_PAGE_SIZE
+		for (i = 0; i < S5K3H2Y_EEP_PAGE_SIZE; i++)
+			CDBG("pageaddr %d cnt %d : index = %d, %x \n ",pageAddr, cnt , i, buf[i]);			
+		cnt++;
+		pageAddr++;
+	}
+	mutex_unlock(&eeprom_mut);
+	CDBG("#### lzj : %s end\n",__func__);
+}
+
+
+void s5k3h2y_get_calibration_data_from_eeprom(struct msm_sensor_ctrl_t *s_ctrl,uint16_t idx, char *data)
+{
+	int32_t rc = 0, cnt = 0;
 	unsigned char buf[S5K3H2Y_EEP_PAGE_SIZE];
 	unsigned char pageAddr = idx*3;
 	//unsigned short raddr = 0, saddr = 0;
 	CDBG("#### lzj : %s idx : %d \n",__func__,idx);
 
 	if (s_ctrl==NULL) CDBG("#### lzj : %s s_ctrl null \n",__func__);
+	
+#ifdef S5K3H2Y_OTP	
+	if (isOtp<0){
+		if (s5k3h2y_otp_or_eeprom(s_ctrl) < 0) {
+			isOtp = 0;
+			printk("### lzj : S5k3h2y use eeprom\n");
+		}else{
+			isOtp = 1;
+			printk("### lzj : S5k3h2y use otp \n");
+		}
+	}
+
+	if (isOtp==1) return ;
+#endif
+
 	if (data==NULL) CDBG("#### lzj : %s data null \n",__func__);
 
 	
-	memset(data, 0, MAX_CAL_DATA_PACKET_LEN);
+	mutex_lock(&eeprom_mut);
+	memset(data, 0, S5K3H2Y_EEP_PAGE_SIZE*(3-idx));//MAX_CAL_DATA_PACKET_LEN);
 
 	// Cal data use 5pages(0~4) of eeprom /start address, page unit? 0page ff?, Memory Map check
 	while(pageAddr < 5 && cnt < 3)
 	{
+		CDBG("%s: cnt : %d %d \n", __func__,cnt,pageAddr);
 		memset(buf, 0, sizeof(buf));
-		rc = s5k3h2y_i2c_rxburst(s_ctrl,S5K3H2Y_EEP_I2C_ADDR | pageAddr, 
-			buf, S5K3H2Y_EEP_PAGE_SIZE);
-		//CDBG("s5k4e5y1_i2c_rxburst] rc = %d", rc);
+		rc = s5k3h2y_i2c_rxburst(s_ctrl->sensor_i2c_client,S5K3H2Y_EEP_I2C_ADDR | pageAddr, 
+			buf, S5K3H2Y_EEP_PAGE_SIZE);//S5K3H2Y_EEP_PAGE_SIZE
 		memcpy(data+cnt*S5K3H2Y_EEP_PAGE_SIZE, buf, S5K3H2Y_EEP_PAGE_SIZE);
 		cnt++;
 		pageAddr++;
 	}
-
+	mutex_unlock(&eeprom_mut);
 	// for debug
-	CDBG("%s: \n", __func__);
-	for (i = 0; i < cnt*S5K3H2Y_EEP_PAGE_SIZE; i++)
-		CDBG("index = %d, %x ", i, *(data+i));
-       #else
-	int32_t rc = 0, i;
-
-	Cal_eeprom_checksum = 0;
-	
-        for (i = 0; i < MAX_CAL_DATA_PACKET_LEN; i++){
-                *(data+i) = (char)(i&0xFF);
-                Cal_eeprom_checksum += *(data+i);
-
-		  CDBG("%s 1 : idx = %x, *(data+%d) = %x, checksum = %d\n", __func__, idx, i,
-			(char)(i&0xFF), Cal_eeprom_checksum);
-                }
-
-        if (idx==1){
-                *(data+1117-MAX_CAL_DATA_PACKET_LEN) = (char)(Cal_eeprom_checksum&0xFF);
-		CDBG("%s : data+1117-MAX_CAL_DATA_PACKET_LEN = %d\n", __func__, (char)(Cal_eeprom_checksum&0xFF));
-        	}	
-        for (i = 0; i < MAX_CAL_DATA_PACKET_LEN; i++)
-		CDBG("%x ", *(data+i));
-	#endif
+	//CDBG("%s: \n", __func__);
+	//for (i = 0; i < cnt*S5K3H2Y_EEP_PAGE_SIZE; i++)
+	//	CDBG("index = %d, %x ", i, *(data+i));
 
 }
 
+#ifdef S5K3H2Y_OTP
+int s5k3h2y_read_otp(struct msm_sensor_ctrl_t *s_ctrl, struct otp_struct *potp)
+{
+	uint16_t address,rg_ratio,bg_ratio;
+        //select page
+	// disable test command setting
+	msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x3A1C,0x00, MSM_CAMERA_I2C_BYTE_DATA);
+	// OTP Initialize
+	msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x0A00,0x04, MSM_CAMERA_I2C_BYTE_DATA);
+	// SET PAGE to write: 0x00 to 0x1F
+	msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x0A02,0x11, MSM_CAMERA_I2C_BYTE_DATA);
+	// SET read mode enable
+	msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x0A00,0x01, MSM_CAMERA_I2C_BYTE_DATA);
+	msleep(5);
+	/* read otp into buffer */
+	//id
+	#if 0
+	address = 0x3a1c;
+	msm_camera_i2c_read(s_ctrl->sensor_i2c_client, address, &temp_h,
+		MSM_CAMERA_I2C_BYTE_DATA);
+	address = 0x0a00;
+	msm_camera_i2c_read(s_ctrl->sensor_i2c_client, address, &temp_l,
+		MSM_CAMERA_I2C_BYTE_DATA);
+	potp->module_integrator_id = (temp_h << 8) | temp_l;
+	#endif
+	//awb	
+   	address = 0x0A04;
+	// Read DATA(1byte) from buffer(1st data of PAGE)
+	msm_camera_i2c_read(s_ctrl->sensor_i2c_client, (address), &rg_ratio,
+		MSM_CAMERA_I2C_BYTE_DATA);
+	if(rg_ratio <= 0)
+	return 0;
+	//Read DATA(1byte) from buffer(2nd data of PAGE)
+	msm_camera_i2c_read(s_ctrl->sensor_i2c_client, (address+1), &bg_ratio,
+		MSM_CAMERA_I2C_BYTE_DATA);
+	if(bg_ratio <= 0)
+	return 0;
 
 
+	potp->rg_ratio = rg_ratio;
+	potp->bg_ratio = bg_ratio;
+;
+	printk("%s rg_ratio    = 0x%02x\r\n", __func__, potp->rg_ratio);
+	printk("%s bg_ratio    = 0x%02x\r\n", __func__, potp->bg_ratio);
+
+	return 1;
+
+}
+
+/*******************************************************************************
+* R_gain, sensor red gain of AWB, 0x100 =1
+* G_gain, sensor green gain of AWB, 0x100 =1
+* B_gain, sensor blue gain of AWB, 0x100 =1
+* weight, 1 g_r gain,2 g_b gain
+*******************************************************************************/
+void s5k3h2y_update_awb_gain(struct msm_sensor_ctrl_t *s_ctrl,
+		uint16_t R_gain, uint16_t G_gain, uint16_t B_gain,uint16_t weight)
+{
+	CDBG("%s R_gain = 0x%04x\r\n", __func__, R_gain);
+	CDBG("%s G_gain = 0x%04x\r\n", __func__, G_gain);
+	CDBG("%s B_gain = 0x%04x\r\n", __func__, B_gain);
+	CDBG("%s weight = 0x%04x\r\n", __func__, weight);
+
+	if (R_gain > 0x100) {
+		msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x0210,
+				(R_gain>>8), MSM_CAMERA_I2C_BYTE_DATA);
+		msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x0211,
+				(R_gain&0xff), MSM_CAMERA_I2C_BYTE_DATA);
+	}
+	if (G_gain > 0x100) {	
+		msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x020E,
+				(G_gain>>8), MSM_CAMERA_I2C_BYTE_DATA);
+		msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x020F,
+				(G_gain&0xff), MSM_CAMERA_I2C_BYTE_DATA);
+		msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x0214,
+				(G_gain>>8), MSM_CAMERA_I2C_BYTE_DATA);
+		msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x0215,
+				(G_gain&0xff), MSM_CAMERA_I2C_BYTE_DATA);
+	}
+	if (B_gain > 0x100) {
+		msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x0212,
+				(B_gain>>8), MSM_CAMERA_I2C_BYTE_DATA);
+		msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x0213,
+				(B_gain&0xff), MSM_CAMERA_I2C_BYTE_DATA);
+	}
+}
+
+
+/*******************************************************************************
+* call this function after s5k3h2y initialization
+* return value:
+*     0, update success
+*     1, no OTP
+*******************************************************************************/
+uint16_t s5k3h2y_update_otp(struct msm_sensor_ctrl_t *s_ctrl)
+{
+
+	uint16_t R_gain, G_gain, B_gain, G_gain_R, G_gain_B;
+	/* R/G and B/G of current camera module is read out from sensor OTP */
+
+	if(!s5k3h2y_read_otp(s_ctrl, &st_s5k3h2y_otp))
+	return 0;
+	/* calculate G_gain */
+	/* 0x100 = 1x gain */
+	if (st_s5k3h2y_otp.bg_ratio < S5K3H2Y_BG_RATIO_TYPICAL_VALUE) {
+		if (st_s5k3h2y_otp.rg_ratio < S5K3H2Y_RG_RATIO_TYPICAL_VALUE) {
+			G_gain = 0x100;
+			B_gain = 0x100 * S5K3H2Y_BG_RATIO_TYPICAL_VALUE /st_s5k3h2y_otp.bg_ratio;
+			R_gain = 0x100 * S5K3H2Y_RG_RATIO_TYPICAL_VALUE /st_s5k3h2y_otp.rg_ratio;
+			s5k3h2y_update_awb_gain(s_ctrl, R_gain, G_gain, B_gain,1);
+		} else {
+			R_gain = 0x100;
+			G_gain = 0x100 * st_s5k3h2y_otp.rg_ratio / S5K3H2Y_RG_RATIO_TYPICAL_VALUE;
+			B_gain = G_gain * S5K3H2Y_BG_RATIO_TYPICAL_VALUE / st_s5k3h2y_otp.bg_ratio;
+			s5k3h2y_update_awb_gain(s_ctrl, R_gain, G_gain,B_gain, 1);
+		}
+	} else {
+		if (st_s5k3h2y_otp.rg_ratio < S5K3H2Y_RG_RATIO_TYPICAL_VALUE) {
+			B_gain = 0x100;
+			G_gain = 0x100 *st_s5k3h2y_otp.bg_ratio /S5K3H2Y_BG_RATIO_TYPICAL_VALUE;
+			R_gain = G_gain * S5K3H2Y_RG_RATIO_TYPICAL_VALUE / st_s5k3h2y_otp.rg_ratio;
+			s5k3h2y_update_awb_gain(s_ctrl, R_gain, G_gain,B_gain, 2);
+		} else {
+			G_gain_B = 0x100 * st_s5k3h2y_otp.bg_ratio / S5K3H2Y_BG_RATIO_TYPICAL_VALUE;
+			G_gain_R = 0x100 * st_s5k3h2y_otp.rg_ratio / S5K3H2Y_RG_RATIO_TYPICAL_VALUE;
+			if (G_gain_B > G_gain_R) {
+				B_gain = 0x100;
+				G_gain = G_gain_B;
+				R_gain = G_gain * S5K3H2Y_RG_RATIO_TYPICAL_VALUE / st_s5k3h2y_otp.rg_ratio;
+				s5k3h2y_update_awb_gain(s_ctrl, R_gain, G_gain,B_gain, 2);
+			} else {
+				R_gain = 0x100;
+				G_gain = G_gain_R;
+				B_gain = G_gain * S5K3H2Y_BG_RATIO_TYPICAL_VALUE / st_s5k3h2y_otp.bg_ratio;
+				s5k3h2y_update_awb_gain(s_ctrl, R_gain, G_gain,B_gain, 1);
+			}
+		}
+	}
+	return 0;
+}
+#endif
+/* } jason.lee, 2012-11-7, add otp for s5k3h2y */
 //add end
 
 inline uint8_t s5k3h2y_sa8q_byte(uint16_t word, uint8_t offset)
@@ -773,13 +991,13 @@ int32_t s5k3h2y_sensor_i2c_probe(struct i2c_client *client,
 
 	if (camera_id !=0) return -EFAULT;
 	CDBG("\n in s5k3h2y_sensor_i2c_probe\n");
-	
 	rc = msm_sensor_i2c_probe(client, id);
 	if (client->dev.platform_data == NULL) {
 		pr_err("%s: NULL sensor data\n", __func__);
 		return -EFAULT;
 	}
 	s_ctrl = client->dev.platform_data;
+	isOtp = -1;
 	if (s_ctrl->sensordata->pmic_gpio_enable)
 	//	lcd_camera_power_onoff(0);
 		camera_power_onoff(0);
@@ -889,6 +1107,7 @@ int32_t s5k3h2y_sensor_setting(struct msm_sensor_ctrl_t *s_ctrl,
 	int32_t rc = 0;
 	static int csi_config;
 	CDBG("######### %s begin res = %d update_type=%d \n",__func__,res,update_type);
+s5k3h2y_get_calibration_data_from_eeprom_test(s_ctrl);	
 	s_ctrl->func_tbl->sensor_stop_stream(s_ctrl);
 	msleep(30);
 	if (update_type == MSM_SENSOR_REG_INIT) {
@@ -897,6 +1116,10 @@ int32_t s5k3h2y_sensor_setting(struct msm_sensor_ctrl_t *s_ctrl,
 		msm_sensor_enable_debugfs(s_ctrl);
 		msm_sensor_write_init_settings(s_ctrl);
 		csi_config = 0;
+#ifdef S5K3H2Y_OTP
+		if (isOtp)
+			s5k3h2y_update_otp(s_ctrl);
+#endif
 	} else if (update_type == MSM_SENSOR_UPDATE_PERIODIC) {
 		CDBG("PERIODIC : %d\n", res);
 		msm_sensor_write_conf_array(

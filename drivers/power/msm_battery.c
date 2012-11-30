@@ -15,7 +15,7 @@
  * this needs to be before <linux/kernel.h> is loaded,
  * and <linux/sched.h> loads <linux/kernel.h>
  */
-#define DEBUG 1
+#define DEBUG  0
 
 #include <linux/slab.h>
 #include <linux/earlysuspend.h>
@@ -33,6 +33,7 @@
 
 #include <mach/msm_rpcrouter.h>
 #include <mach/msm_battery.h>
+
 #ifdef CONFIG_MSM_SM_EVENT
 #include <linux/sm_event_log.h>
 #include <linux/sm_event.h>
@@ -56,11 +57,14 @@
 #define	CHG_RPC_VER_1_1			0x00010001
 
 #define	CHG_GET_GENERAL_STATUS_PROC	9	
-#define	CHG_CHARGING_ENABLE_PROC 10				//alex.lu add 			
-#define	CHG_CHARGING_DISABLE_PROC 11			//alex.lu add 
+#define	CHG_CHARGING_ENABLE_PROC    10				    //alex.lu add 			
+#define	CHG_CHARGING_DISABLE_PROC   11			        //alex.lu add 
+#define	CHG_BOARD_TEMP_LOW_PROC     12			        //alex.lu add 
+#define	CHG_BOARD_TEMP_MIDDLE_PROC  13                  //alex.lu add 
+#define	CHG_BOARD_TEMP_HIGH_PROC    14                  //alex.lu add 
 
 
-#define	RPC_TIMEOUT			5000	/* 5 sec */
+#define	RPC_TIMEOUT			10000	/* 10 sec */
 #define	INVALID_HANDLER			-1
 
 #define	MSM_BATT_POLLING_TIME		(10 * HZ)
@@ -71,9 +75,6 @@
 #define	TEMPERATURE_HOT			350
 #define	TEMPERATURE_COLD		50
 
-bool show_diag_flag = false;
-
-extern int cellon_show_diag(void);
 
 #if AUTO_CHANGE_CHARGING_CURRENT
 static  int  change_max_current;
@@ -427,38 +428,40 @@ static int msm_battery_get_charger_status(void)
 
 	return 0;
 }
-
-/*
-static boolean is_usb_charger_insert_flag = false;				//alex.lu add to return usb charger statu
-boolean usb_charger_insert_pull_out_status(void)			//alex.lu add to return usb charger statu
+#define __GET_CHARGER_STATUS__
+#ifdef __GET_CHARGER_STATUS__
+static bool is_usb_charger_insert_flag = false;				//robin add to return usb charger statu
+int  get_usb_charger_status(void)			            //robin add to return usb charger statu
 {
-	return is_usb_charger_insert_flag;						//alex.lu add to return usb charger statu
+	return is_usb_charger_insert_flag;					       //robin add to return usb charger statu
 }
 
-EXPORT_SYMBOL(usb_charger_insert_pull_out_status);
-*/
+EXPORT_SYMBOL(get_usb_charger_status);
+#endif
 static void update_charger_type(u32 charger_hardware)
 {
 	switch(charger_hardware) {
 	case CHARGER_TYPE_USB_PC:
 		pr_debug("BATT: usb pc charger inserted\n");
-
+#ifdef __GET_CHARGER_STATUS__
+		is_usb_charger_insert_flag = false;					//robin  add to return usb charger statu
+#endif
 		msm_battery_info.current_psy = &msm_psy_usb;
 		msm_battery_info.current_charger_src = USB_CHG;
 		break;
 	case CHARGER_TYPE_USB_WALL:
 		pr_debug("BATT: usb wall changer inserted\n");
-		
-//		is_usb_charger_insert_flag = 1;					//alex.lu add to return usb charger statu
-//		usb_charger_insert_pull_out_status();				//alex.lu add to return usb charger statu
+        #ifdef __GET_CHARGER_STATUS__
+		is_usb_charger_insert_flag = true;					//robin  add to return usb charger statu
+        #endif
 		msm_battery_info.current_psy = &msm_psy_ac;
 		msm_battery_info.current_charger_src = AC_CHG;
 		break;
 	case CHARGER_TYPE_USB_UNKNOWN:
 		pr_debug("BATT: unknown changer inserted\n");
-
-//		is_usb_charger_insert_flag = 1;					//alex.lu add to return usb charger statu
-//		usb_charger_insert_pull_out_status();				//alex.lu add to return usb charger statu
+        #ifdef __GET_CHARGER_STATUS__
+		is_usb_charger_insert_flag = true;					//robin add to return usb charger statu
+        #endif
 		msm_battery_info.current_psy = &msm_psy_unknown;
 		msm_battery_info.current_charger_src = UNKNOWN_CHG;
 		break;
@@ -541,8 +544,6 @@ void msm_battery_update_psy_status(void)
 	u32 is_charging_complete;
 	u32 is_charging_failed;
 
-	int open_file_flag = 0;
-
 	bool is_awake = true;
 #ifdef CONFIG_MSM_SM_EVENT
 	sm_msm_battery_data_t battery_data;
@@ -552,21 +553,12 @@ void msm_battery_update_psy_status(void)
 #endif
 //	pr_debug("BATT: msm_battery_update_psy_status");
 
-	//gsh add start
-	//change the usb composite to diag interface
-	if (show_diag_flag)
-	{
-		open_file_flag = cellon_show_diag();
-		if (1 == open_file_flag)
-			show_diag_flag = false;
-	}
-	//gsh add end
-	
 	mutex_lock(&msm_battery_info.update_mutex);
 
 	if (msm_battery_get_charger_status()) {
 		goto done;
 	}
+    
 
 	if (msm_battery_info.fuel_gauge)
 	{
@@ -648,14 +640,14 @@ void msm_battery_update_psy_status(void)
 				pr_debug("BATT: usb pc charger removed\n");
 			} else if (msm_battery_info.current_charger_src & AC_CHG) {
 				pr_debug("BATT: usb wall charger removed\n");
-
-//				is_usb_charger_insert_flag = 0;				//alex.lu add to return usb charger statu
-//				usb_charger_insert_pull_out_status();			//alex.lu add to return usb charger statu
+                #ifdef __GET_CHARGER_STATUS__
+				is_usb_charger_insert_flag = false;				//robin add to return usb charger statu
+                #endif
 			} else if (msm_battery_info.current_charger_src & UNKNOWN_CHG) {
 				pr_debug("BATT: unknown wall charger removed\n");
-
-//				is_usb_charger_insert_flag = 0;				//alex.lu add to return usb charger statu
-//				usb_charger_insert_pull_out_status();			//alex.lu add to return usb charger statu
+                #ifdef __GET_CHARGER_STATUS__
+				is_usb_charger_insert_flag = false;				//robin add to return usb charger statu
+                #endif
 			} else {
 				pr_debug("BATT: CAUTION: charger invalid: %d\n",
 					  msm_battery_info.current_charger_src);
@@ -1321,7 +1313,9 @@ static struct platform_driver msm_batt_driver = {
 };
 
 //Added for RPC transfer the parameter from AP to BP---alex.lu add start
-static int disable_charging_flag = 0;			
+static int disable_charging_flag = 0;	
+static int board_temp_state = 0;
+
 static void msm_rpc_send_charging_flag(void)
 {	
 	int rc;
@@ -1338,10 +1332,8 @@ static void msm_rpc_send_charging_flag(void)
 					&reply_charger1, sizeof(reply_charger1),
 					msecs_to_jiffies(RPC_TIMEOUT));
 		
-		pr_debug("BATT: %s, disable_charging_flag = %d\n",__func__, disable_charging_flag);
 		if (rc < 0) 
-			pr_err("BATT: ERROR: %s, msm_rpc_send_charging_flag, rc=%d\n",	//alex add
-		       __func__, rc);
+			pr_err("BATT: ERROR: %s, rc=%d\n",__func__, rc);
 	}
 	else {
 		rc= msm_rpc_call_reply(msm_battery_info.charger_endpoint,
@@ -1349,20 +1341,63 @@ static void msm_rpc_send_charging_flag(void)
 					&request_charger1, sizeof(request_charger1),
 					&reply_charger1, sizeof(reply_charger1),
 					msecs_to_jiffies(RPC_TIMEOUT));
-		pr_debug("BATT: %s, disable_charging_flag = %d\n",__func__, disable_charging_flag);
+
 		if (rc < 0) 
-			pr_err("BATT: ERROR: %s, msm_rpc_send_charging_flag, rc=%d\n",	//alex add
-		       __func__, rc);
+			pr_err("BATT: ERROR: %s, rc=%d\n",__func__, rc);
 	}		
 }
 
+static void msm_proc_board_temp_state_send(void)
+{	
+	int rc;
+	struct rpc_reply_charger reply_charger1;
+	struct rpc_request_charger {
+		struct rpc_request_hdr hdr;
+		u32 more_data;
+	} request_charger1;
+    
+    switch (board_temp_state){
+        case 0:
+    		rc= msm_rpc_call_reply(msm_battery_info.charger_endpoint,
+    					CHG_BOARD_TEMP_HIGH_PROC,
+    					&request_charger1, sizeof(request_charger1),
+    					&reply_charger1, sizeof(reply_charger1),
+    					msecs_to_jiffies(RPC_TIMEOUT));
+    		
+    		if (rc < 0) 
+    			pr_err("BATT: ERROR: %s, rc=%d\n",__func__, rc);
+    	    break;
+    	case 1:
+    		rc= msm_rpc_call_reply(msm_battery_info.charger_endpoint,
+    					CHG_BOARD_TEMP_MIDDLE_PROC,
+    					&request_charger1, sizeof(request_charger1),
+    					&reply_charger1, sizeof(reply_charger1),
+    					msecs_to_jiffies(RPC_TIMEOUT));
+
+    		if (rc < 0) 
+    			pr_err("BATT: ERROR: %s, rc=%d\n",__func__, rc);
+            break;
+        case 2:
+    		rc= msm_rpc_call_reply(msm_battery_info.charger_endpoint,
+    					CHG_BOARD_TEMP_LOW_PROC,
+    					&request_charger1, sizeof(request_charger1),
+    					&reply_charger1, sizeof(reply_charger1),
+    					msecs_to_jiffies(RPC_TIMEOUT));
+
+    		if (rc < 0) 
+    			pr_err("BATT: ERROR: %s, rc=%d\n",__func__, rc);
+            break;
+            
+        default:
+            break;
+	}		
+}
 
 static ssize_t store_charge_control(struct device_driver *driver, const char *buf, size_t count)
 {
 	if( kstrtoint(buf,10,&disable_charging_flag) )
 		return -EINVAL;
 	msm_rpc_send_charging_flag();
-	
 	return count;
 }
 
@@ -1371,8 +1406,24 @@ static ssize_t show_charge_control(struct device_driver *driver,  char *buf)
 	return sprintf(buf,"%d\n",disable_charging_flag);
 }
 
+static ssize_t store_board_temp_state(struct device_driver *driver, const char *buf, size_t count)
+{
+	if( kstrtoint(buf,10,&board_temp_state) )
+		return -EINVAL;
+	msm_proc_board_temp_state_send();
+	return count;
+}
+
+static ssize_t show_board_temp_state(struct device_driver *driver,  char *buf)
+{
+	return sprintf(buf,"%d\n",board_temp_state);
+}
+
 static DRIVER_ATTR(charge_control, 0644, show_charge_control, store_charge_control);
+
+static DRIVER_ATTR(board_temp_state, 0644, show_board_temp_state, store_board_temp_state);
 //Added for RPC transfer the parameter from AP to BP ----alex.lu add end
+
 static int __devinit msm_battery_init_rpc(void)
 {
 	int rc = 0;
@@ -1441,7 +1492,13 @@ static int __init msm_battery_init(void)
 				 &driver_attr_charge_control);				
 	if (rc) {												
 		pr_err("BATT: ERROR: %s, driver_create_file, rc=%d\n",	__func__, rc);								
-	}													
+	}	
+
+	rc = driver_create_file(&msm_batt_driver.driver,			
+				 &driver_attr_board_temp_state);				
+	if (rc) {												
+		pr_err("BATT: ERROR: %s, driver_create_file, rc=%d\n",	__func__, rc);								
+	}	
 //alex.lu add end				 
 				 
 	pr_debug("BATT: %s, exit\n", __func__);
@@ -1452,6 +1509,8 @@ static void __exit msm_battery_exit(void)
 {
 	driver_remove_file(&msm_batt_driver.driver,
 			   &driver_attr_charge_control);
+	driver_remove_file(&msm_batt_driver.driver,
+			   &driver_attr_board_temp_state);
 
 	platform_driver_unregister(&msm_batt_driver);
 }

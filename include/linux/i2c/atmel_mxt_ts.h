@@ -35,6 +35,9 @@
 #define MXT_BOOTLOADER_ID_1386		0x01
 #define MXT_BOOTLOADER_ID_1386E		0x10
 
+#define ATMEL_MXT154_NAME "maxtouch-ts154"
+
+
 /* Config data for a given maXTouch controller with a specific firmware */
 struct mxt_config_info {
 	const u8 *config;
@@ -68,13 +71,11 @@ struct mxt_platform_data {
 	unsigned long irqflags;
 	bool	i2c_pull_up;
 	bool	digital_pwr_regulator;
-	int reset_gpio;
-	int irq_gpio;
-	int *key_codes;
-
-	u8(*read_chg) (void);
-	int (*init_hw) (bool);
-	int (*power_on) (bool);
+	int gpio_rst;
+	int gpio_irq;
+    int (*gpio_init)(void) ;
+    void (*gpio_uninit)(void) ;
+    int *key_codes;
 };
 
 #endif /* __LINUX_ATMEL_MXT_TS_H */

@@ -16,7 +16,6 @@
 #include <linux/genalloc.h>
 #include <linux/vmalloc.h>
 
-
 /* General purpose special memory pool descriptor. */
 struct gen_pool {
 	rwlock_t lock;			/* protects chunks list */
@@ -91,17 +90,15 @@ int __must_check gen_pool_add_virt(struct gen_pool *pool, unsigned long virt, ph
 	nbytes = sizeof *chunk + BITS_TO_LONGS(size) * sizeof *chunk->bits;
 
 	if (nbytes <= PAGE_SIZE)
-            chunk = kzalloc_node(nbytes, GFP_KERNEL, nid);
-        else
-            chunk = (struct gen_pool_chunk *)vmalloc(nbytes);
+		chunk = kzalloc_node(nbytes, GFP_KERNEL, nid);
+	else
+		chunk = vmalloc(nbytes);
 
 	if (!chunk)
 		return -ENOMEM;
 
-
-    if (nbytes > PAGE_SIZE)
-        memset(chunk, 0, nbytes);
-
+	if (nbytes > PAGE_SIZE)
+		memset(chunk, 0, nbytes);
 
 	spin_lock_init(&chunk->lock);
 	chunk->phys_addr = phys;
@@ -164,13 +161,12 @@ void gen_pool_destroy(struct gen_pool *pool)
 		BUG_ON(bit < chunk->size);
 
 		nbytes = sizeof *chunk + BITS_TO_LONGS(chunk->size) *
-		sizeof *chunk->bits;
+			sizeof *chunk->bits;
 
-		if (nbytes <= PAGE_SIZE){
+		if (nbytes <= PAGE_SIZE)
 			kfree(chunk);
-		} else {
+		else
 			vfree(chunk);
-		}
 	}
 	kfree(pool);
 }
