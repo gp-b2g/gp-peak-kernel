@@ -10,11 +10,15 @@
 #include <linux/sched.h>
 #include <linux/unistd.h>
 #include <linux/cpu.h>
+#include <linux/module.h>
 #include <linux/kthread.h>
 #include <linux/stop_machine.h>
 #include <linux/mutex.h>
 #include <linux/gfp.h>
 #include <linux/suspend.h>
+
+#define CREATE_TRACE_POINTS
+#include <trace/events/cpu_hotplug.h>
 
 #ifdef CONFIG_SMP
 /* Serializes the updates to cpu_online_mask, cpu_present_mask */
@@ -281,6 +285,7 @@ int __ref cpu_down(unsigned int cpu)
 	}
 
 	err = _cpu_down(cpu, 0);
+	trace_cpu_online(0);
 
 out:
 	cpu_maps_update_done();
@@ -374,6 +379,7 @@ int __cpuinit cpu_up(unsigned int cpu)
 	}
 
 	err = _cpu_up(cpu, 0);
+	trace_cpu_online(1);
 
 out:
 	cpu_maps_update_done();
