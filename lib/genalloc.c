@@ -90,9 +90,9 @@ int __must_check gen_pool_add_virt(struct gen_pool *pool, unsigned long virt, ph
 	nbytes = sizeof *chunk + BITS_TO_LONGS(size) * sizeof *chunk->bits;
 
 	if (nbytes <= PAGE_SIZE)
-		chunk = kzalloc_node(nbytes, GFP_KERNEL, nid);
-	else
-		chunk = vmalloc(nbytes);
+            chunk = kzalloc_node(nbytes, GFP_KERNEL, nid);
+        else
+            chunk = (struct gen_pool_chunk *)vmalloc(nbytes);
 
 	if (!chunk)
 		return -ENOMEM;

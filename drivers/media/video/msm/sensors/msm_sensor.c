@@ -334,7 +334,7 @@ int32_t msm_sensor_set_sensor_mode(struct msm_sensor_ctrl_t *s_ctrl,
 		s_ctrl->curr_line_length_pclk =
 			s_ctrl->msm_sensor_reg->
 			output_settings[res].line_length_pclk;
-#if 1
+#if 0
 		if (s_ctrl->sensordata->pdata->is_csic ||
 			!s_ctrl->sensordata->csi_if)
 			rc = s_ctrl->func_tbl->sensor_csi_setting(s_ctrl,
@@ -374,7 +374,7 @@ int32_t msm_sensor_mode_init(struct msm_sensor_ctrl_t *s_ctrl,
 	if (mode != s_ctrl->cam_mode) {
 		s_ctrl->curr_res = MSM_SENSOR_INVALID_RES;
 		s_ctrl->cam_mode = mode;
-#if 1
+#if 0
 		if (s_ctrl->sensordata->pdata->is_csic ||
 			!s_ctrl->sensordata->csi_if)
 			rc = s_ctrl->func_tbl->sensor_csi_setting(s_ctrl,

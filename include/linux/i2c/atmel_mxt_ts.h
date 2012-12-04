@@ -37,7 +37,6 @@
 
 #define ATMEL_MXT154_NAME "maxtouch-ts154"
 
-
 /* Config data for a given maXTouch controller with a specific firmware */
 struct mxt_config_info {
 	const u8 *config;

@@ -324,6 +324,23 @@ static const u8 c8680_config_data[] = {
 };
 
 
+static char * driver_ver [] = {
+ "add version info"
+};
+
+static ssize_t atmel_driver_show(struct device *dev,
+                       struct device_attribute *attr,
+                       char *buf)
+ {
+        int i ;
+        int ret = 0;
+        for(i=0;i< ARRAY_SIZE(driver_ver);i++){
+          ret += snprintf(buf+ret,PAGE_SIZE,"ver%2d:%s\n",i,driver_ver[i]);
+        }
+    return ret ;
+ }
+
+
 
 enum mxt_device_state { INIT, APPMODE, BOOTLOADER ,ACTIVE,DEEPSLEEP};
 
@@ -546,7 +563,7 @@ enum mxt_device_state { INIT, APPMODE, BOOTLOADER ,ACTIVE,DEEPSLEEP};
 
 /* Touchscreen absolute values */
 #define MXT_MAX_AREA		0xff
-#define MXT_MAX_PRESSURE       0xff
+#define MXT_MAX_PRESSURE    0xff
 #define MXT_MAX_FINGER		10
 
 #define T7_DATA_SIZE		3
@@ -1274,7 +1291,6 @@ static inline int is_key(struct mxt_data * data,int code)
             if(data->tp_type==4)
                 return KEY_MENU ;
         }
-
         case 2 :
             return KEY_HOME ;
         case 4 :
@@ -1290,8 +1306,8 @@ static inline int is_key(struct mxt_data * data,int code)
 
 static int atmel_report_virtual_key(struct mxt_data * data,int code,int value)
 {
-
     int x ;
+
     int status ;
     int key ;
     key = is_key(data,code) ;
@@ -1303,8 +1319,6 @@ static int atmel_report_virtual_key(struct mxt_data * data,int code,int value)
     } else{
         status = MXT_DETECT ;
      }
-
-
 
     switch(key)
     {
@@ -1321,7 +1335,7 @@ static int atmel_report_virtual_key(struct mxt_data * data,int code,int value)
             dbg_printk("pressure back button\n");
          break ;
          case KEY_SEARCH:
-           dbg_printk("pressure search button\n");
+            dbg_printk("pressure search button\n");
             x = _s_x ;
             break ;
          default:
@@ -1374,7 +1388,6 @@ static void mxt_handle_key_array(struct mxt_data *data,
 
 
 	data->keyarray_old = data->keyarray_new;
-
 }
 
 static irqreturn_t mxt_irq_handler(int irq, void *dev_id)
@@ -1499,8 +1512,6 @@ static int mxt_backup_nv(struct mxt_data *data)
 
 static int mxt_check_reg_init(struct mxt_data *data)
 {
-
-
 	struct mxt_object *object;
     u8 cfg_ver ,chip_ver ;
     int i, j, config_offset;
@@ -1514,23 +1525,24 @@ static int mxt_check_reg_init(struct mxt_data *data)
         err_printk("read tp type error\n");
         return -EIO ;
     }
-	//if type ==0  default  to one icon tp
-    if( type==1 || type==0 ){
-        cfg_data = gp_config_data ;
+	//if type==0,default select one icon mode
+    if( type==1 ||type==0){
+        cfg_data = gp_config_data;
         size     = sizeof(gp_config_data) ;
         data->tp_type = 1 ;
+        info_printk("select one icon tp config data\n");
     }else if(type == 4 ){
         cfg_data = c8680_config_data ;
         size     = sizeof(c8680_config_data);
         data->tp_type = 4 ;
+        info_printk("select four icon tp config data\n");
     }else {
         err_printk("not tp config data \n");
         data->tp_type = 0 ;
         return -EIO ;
-	}
-	
-        info_printk("select %d icon tp config data\n",type);
+    }
 
+    info_printk("select %d icon tp config data\n",type);
     cfg_ver = cfg_data[CONFIG_VER_OFFSET] ;
     mxt_read_object(data,MXT_TOUCH_USER_DATA_T38,CONFIG_VER_OFFSET,&chip_ver) ;
     if(cfg_ver <= chip_ver){
@@ -1565,9 +1577,10 @@ static int mxt_check_reg_init(struct mxt_data *data)
 		index += object->size;
 	}
 
-
+        //if tp type not confirm,we dont backup config file
 	if (type) {
-		mxt_backup_nv(data) ;
+           info_printk("backup config file to ic \n");
+	   mxt_backup_nv(data) ;
 	}
     return 0 ;
 }
@@ -2411,12 +2424,15 @@ static DEVICE_ATTR(message, 0444, mxt_message_show, NULL);
 static DEVICE_ATTR(status, 0444, mxt_device_status_show,NULL);
 static DEVICE_ATTR(update_fw, 0664, NULL, mxt_update_fw_store);
 static DEVICE_ATTR(one,0664,mxt_one_object_show,mxt_one_object_store) ;
+static DEVICE_ATTR(ver,0664,atmel_driver_show,NULL) ;
+
 static struct attribute *mxt_attrs[] = {
 	&dev_attr_object.attr,
 	&dev_attr_update_fw.attr,
 	&dev_attr_status.attr,
     &dev_attr_one.attr,
     &dev_attr_message.attr,
+    &dev_attr_ver.attr,
 	NULL
 };
 
@@ -2734,8 +2750,6 @@ static int mxt_resume(struct device *dev)
 #endif
 	return 0;
 }
-
-
 
 #if defined(CONFIG_HAS_EARLYSUSPEND)
 static void mxt_early_suspend(struct early_suspend *h)
