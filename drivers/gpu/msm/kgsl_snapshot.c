@@ -10,6 +10,7 @@
  * GNU General Public License for more details.
  */
 
+#include <linux/export.h>
 #include <linux/time.h>
 #include <linux/sysfs.h>
 #include <linux/utsname.h>
@@ -507,7 +508,7 @@ int kgsl_device_snapshot(struct kgsl_device *device, int hang)
 
 	header->magic = SNAPSHOT_MAGIC;
 
-	header->gpuid = kgsl_gpuid(device, NULL);
+	header->gpuid = kgsl_gpuid(device, &header->chipid);
 
 	/* Get a pointer to the first section (right after the header) */
 	snapshot = ((void *) device->snapshot) + sizeof(*header);

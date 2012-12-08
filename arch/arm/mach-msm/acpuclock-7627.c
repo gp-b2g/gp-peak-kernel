@@ -1051,7 +1051,7 @@ static void __init select_freq_plan(void)
 	 * are using different clock plan based reprogramming method.
 	 */
 	if (cpu_is_msm8625() &&	pll_mhz[ACPU_PLL_4] == 1008) {
-		if (pll_mhz[ACPU_PLL_2] == 245)
+		if (pll_mhz[ACPU_PLL_1] == 245)
 			acpu_freq_tbl =
 				pll0_960_pll1_245_pll2_1200_pll4_1008_2p0;
 		else

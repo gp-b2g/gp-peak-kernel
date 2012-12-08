@@ -172,10 +172,10 @@ static struct msm_i2c_platform_data msm_gsbi1_qup_i2c_pdata = {
 };
 
 #ifdef CONFIG_ARCH_MSM7X27A
-#define MSM_PMEM_MDP_SIZE       0x4600000
+#define MSM_PMEM_MDP_SIZE       0x2400000
 #define MSM7x25A_MSM_PMEM_MDP_SIZE       0x1500000
 
-#define MSM_PMEM_ADSP_SIZE      0x3700000//0x1100000
+#define MSM_PMEM_ADSP_SIZE      0x1200000
 #define MSM7x25A_MSM_PMEM_ADSP_SIZE      0xB91000
 
 #endif
@@ -1007,6 +1007,7 @@ static void __init msm8625_reserve(void)
 	msm7x27a_reserve();
 	memblock_remove(MSM8625_SECONDARY_PHYS, SZ_8);
 	memblock_remove(MSM8625_WARM_BOOT_PHYS, SZ_32);
+	memblock_remove(MSM8625_NON_CACHE_MEM, SZ_2K);
 }
 
 static void __init msm7x27a_device_i2c_init(void)

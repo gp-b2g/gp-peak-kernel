@@ -10,6 +10,7 @@
  * GNU General Public License for more details.
  *
  */
+#include <linux/export.h>
 #include <linux/types.h>
 #include <linux/device.h>
 #include <linux/spinlock.h>
@@ -38,7 +39,8 @@ static int kgsl_cleanup_pt(struct kgsl_pagetable *pt)
 	/* For IOMMU only unmap the global structures to global pt */
 	if ((KGSL_MMU_TYPE_NONE != kgsl_mmu_type) &&
 		(KGSL_MMU_TYPE_IOMMU == kgsl_mmu_type) &&
-		(KGSL_MMU_GLOBAL_PT !=  pt->name))
+		(KGSL_MMU_GLOBAL_PT !=  pt->name) &&
+		(KGSL_MMU_PRIV_BANK_TABLE_NAME !=  pt->name))
 		return 0;
 	for (i = 0; i < KGSL_DEVICE_MAX; i++) {
 		struct kgsl_device *device = kgsl_driver.devp[i];
@@ -57,7 +59,8 @@ static int kgsl_setup_pt(struct kgsl_pagetable *pt)
 	/* For IOMMU only map the global structures to global pt */
 	if ((KGSL_MMU_TYPE_NONE != kgsl_mmu_type) &&
 		(KGSL_MMU_TYPE_IOMMU == kgsl_mmu_type) &&
-		(KGSL_MMU_GLOBAL_PT !=  pt->name))
+		(KGSL_MMU_GLOBAL_PT !=  pt->name) &&
+		(KGSL_MMU_PRIV_BANK_TABLE_NAME !=  pt->name))
 		return 0;
 	for (i = 0; i < KGSL_DEVICE_MAX; i++) {
 		struct kgsl_device *device = kgsl_driver.devp[i];
@@ -452,9 +455,9 @@ static struct kgsl_pagetable *kgsl_mmu_createpagetableobject(
 	 * just once from this pool of the defaultpagetable
 	 */
 	if ((KGSL_MMU_TYPE_IOMMU == kgsl_mmu_get_mmutype()) &&
-		(KGSL_MMU_GLOBAL_PT == name)) {
-		pagetable->kgsl_pool = gen_pool_create(KGSL_MMU_ALIGN_SHIFT,
-						       -1);
+		((KGSL_MMU_GLOBAL_PT == name) ||
+		(KGSL_MMU_PRIV_BANK_TABLE_NAME == name))) {
+		pagetable->kgsl_pool = gen_pool_create(PAGE_SHIFT, -1);
 		if (pagetable->kgsl_pool == NULL) {
 			KGSL_CORE_ERR("gen_pool_create(%d) failed\n",
 					KGSL_MMU_ALIGN_SHIFT);
@@ -540,13 +543,14 @@ void kgsl_mmu_putpagetable(struct kgsl_pagetable *pagetable)
 }
 EXPORT_SYMBOL(kgsl_mmu_putpagetable);
 
-void kgsl_setstate(struct kgsl_mmu *mmu, uint32_t flags)
+void kgsl_setstate(struct kgsl_mmu *mmu, unsigned int context_id,
+			uint32_t flags)
 {
 	struct kgsl_device *device = mmu->device;
 	if (KGSL_MMU_TYPE_NONE == kgsl_mmu_type)
 		return;
 	else if (device->ftbl->setstate)
-		device->ftbl->setstate(device, flags);
+		device->ftbl->setstate(device, context_id, flags);
 	else if (mmu->mmu_ops->mmu_device_setstate)
 		mmu->mmu_ops->mmu_device_setstate(mmu, flags);
 }
@@ -557,7 +561,7 @@ void kgsl_mh_start(struct kgsl_device *device)
 	struct kgsl_mh *mh = &device->mh;
 	/* force mmu off to for now*/
 	kgsl_regwrite(device, MH_MMU_CONFIG, 0);
-	kgsl_idle(device,  KGSL_TIMEOUT_DEFAULT);
+	kgsl_idle(device);
 
 	/* define physical memory range accessible by the core */
 	kgsl_regwrite(device, MH_MMU_MPU_BASE, mh->mpu_base);
@@ -681,7 +685,8 @@ kgsl_mmu_unmap(struct kgsl_pagetable *pagetable,
 
 	if (KGSL_MMU_TYPE_IOMMU != kgsl_mmu_get_mmutype())
 		spin_lock(&pagetable->lock);
-	pagetable->pt_ops->mmu_unmap(pagetable->priv, memdesc);
+	pagetable->pt_ops->mmu_unmap(pagetable->priv, memdesc,
+					&pagetable->tlb_flags);
 	if (KGSL_MMU_TYPE_IOMMU == kgsl_mmu_get_mmutype())
 		spin_lock(&pagetable->lock);
 	/* Remove the statistics */

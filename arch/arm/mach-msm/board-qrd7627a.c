@@ -65,6 +65,7 @@
 #define PMEM_KERNEL_EBI1_SIZE	0x3A000
 #define MSM_PMEM_AUDIO_SIZE	0x1F4000
 #define BAHAMA_SLAVE_ID_FM_REG 0x02
+#define FM_GPIO	83
 #define BT_PCM_BCLK_MODE  0x88
 #define BT_PCM_DIN_MODE   0x89
 #define BT_PCM_DOUT_MODE  0x8A
@@ -892,6 +893,7 @@ static void __init msm7627a_reserve(void)
 static void __init msm8625_reserve(void)
 {
 	memblock_remove(MSM8625_SECONDARY_PHYS, SZ_8);
+	memblock_remove(MSM8625_NON_CACHE_MEM, SZ_2K);
 	msm7627a_reserve();
 }
 

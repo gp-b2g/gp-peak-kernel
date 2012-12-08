@@ -11,6 +11,7 @@
  *
  */
 
+#include <linux/export.h>
 #include <linux/delay.h>
 #include <linux/debugfs.h>
 #include <linux/uaccess.h>
@@ -115,6 +116,11 @@ void adreno_debugfs_init(struct kgsl_device *device)
 		&adreno_dev->wait_timeout);
 	debugfs_create_u32("ib_check", 0644, device->d_debugfs,
 			   &adreno_dev->ib_check_level);
+
+	/* By Default enable fast hang detection */
+	adreno_dev->fast_hang_detect = 1;
+	debugfs_create_u32("fast_hang_detect", 0644, device->d_debugfs,
+			   &adreno_dev->fast_hang_detect);
 
 	/* Create post mortem control files */
 

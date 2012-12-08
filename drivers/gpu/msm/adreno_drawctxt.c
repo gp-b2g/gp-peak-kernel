@@ -216,9 +216,8 @@ void adreno_drawctxt_destroy(struct kgsl_device *device,
 		adreno_drawctxt_switch(adreno_dev, NULL, 0);
 	}
 
-	adreno_idle(device, KGSL_TIMEOUT_DEFAULT);
+	adreno_idle(device);
 
-	kgsl_setstate(&device->mmu, KGSL_MMUFLAGS_PTUPDATE);
 	kgsl_sharedmem_free(&drawctxt->gpustate);
 	kgsl_sharedmem_free(&drawctxt->context_gmem_shadow.gmemshadow);
 
@@ -271,8 +270,13 @@ void adreno_drawctxt_switch(struct adreno_device *adreno_dev,
 	}
 
 	/* already current? */
-	if (adreno_dev->drawctxt_active == drawctxt)
+	if (adreno_dev->drawctxt_active == drawctxt) {
+		if (adreno_dev->gpudev->ctxt_draw_workaround &&
+			adreno_is_a225(adreno_dev))
+				adreno_dev->gpudev->ctxt_draw_workaround(
+					adreno_dev, drawctxt);
 		return;
+	}
 
 	KGSL_CTXT_INFO(device, "from %p to %p flags %d\n",
 			adreno_dev->drawctxt_active, drawctxt, flags);
