@@ -347,15 +347,16 @@ static unsigned int msm_AR600X_shutdown_power(bool on)
 		}
 		gpio_set_value(gpio_wlan_sys_rest_en, 0);
 	} else {
-        /* rollback to 1030 baseline */
-		gpio_request(gpio_wlan_sys_rest_en, "WLAN_DEEP_SLEEP_N");
-		rc = setup_wlan_gpio(on);
-		if (rc) {
+		rc = gpio_request(gpio_wlan_sys_rest_en, "WLAN_DEEP_SLEEP_N");
+		if (!rc) {
+			rc = setup_wlan_gpio(on);
+			if (rc) {
 				pr_err("%s: setup_wlan_gpio = %d\n",
 					__func__, rc);
 				goto set_gpio_fail;
+			}
+			gpio_free(gpio_wlan_sys_rest_en);
 		}
-		gpio_free(gpio_wlan_sys_rest_en);
 	}
 
 	/* GPIO_WLAN_3V3_EN is only required for the QRD7627a */

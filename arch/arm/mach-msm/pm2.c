@@ -1609,14 +1609,17 @@ void msm_pm_cpu_enter_lowpower(unsigned int cpu)
 /******************************************************************************
  * Restart Definitions
  *****************************************************************************/
+#ifdef CONFIG_RMT_STORAGE_CLIENT
 extern void rmt_storage_client_shutdown_complete(void);
-
+#endif
 static uint32_t restart_reason = 0x776655AA;
 
 static void msm_pm_power_off(void)
 {
 	printk("%s\n", __func__);
+#ifdef CONFIG_RMT_STORAGE_CLIENT
 	rmt_storage_client_shutdown_complete();
+#endif
 	msm_rpcrouter_close();
 	msm_proc_comm(PCOM_POWER_DOWN, 0, 0);
 	printk("%s sent\n", __func__);
@@ -1627,7 +1630,9 @@ static void msm_pm_power_off(void)
 static void msm_pm_restart(char str, const char *cmd)
 {
 	printk("%s\n", __func__);
+#ifdef CONFIG_RMT_STORAGE_CLIENT
 	rmt_storage_client_shutdown_complete();
+#endif
 	msm_rpcrouter_close();
 
 	printk("restart str %c cmd %s",str,cmd);

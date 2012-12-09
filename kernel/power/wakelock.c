@@ -30,7 +30,6 @@
 #include <linux/sm_event.h>
 #endif
 
-
 enum {
 	DEBUG_EXIT_SUSPEND = 1U << 0,
 	DEBUG_WAKEUP = 1U << 1,

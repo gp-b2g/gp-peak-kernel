@@ -561,7 +561,7 @@ static void __init *early_alloc(unsigned long sz)
 	return ptr;
 }
 
-static pte_t * __init early_pte_alloc(pmd_t *pmd, unsigned long addr, unsigned long prot)
+static pte_t * early_pte_alloc(pmd_t *pmd, unsigned long addr, unsigned long prot)
 {
 	if (pmd_none(*pmd)) {
 		pte_t *pte = early_alloc(PTE_HWTABLE_OFF + PTE_HWTABLE_SIZE);
@@ -695,7 +695,7 @@ static void __init create_36bit_mapping(struct map_desc *md,
  * offsets, and we take full advantage of sections and
  * supersections.
  */
-void __init create_mapping(struct map_desc *md)
+void create_mapping(struct map_desc *md)
 {
 	unsigned long addr, length, end;
 	phys_addr_t phys;

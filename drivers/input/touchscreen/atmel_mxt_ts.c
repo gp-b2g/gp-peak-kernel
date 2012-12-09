@@ -39,7 +39,7 @@
 struct i2c_client *this_client;
 struct delayed_work     pen_event_work;
 struct workqueue_struct *ts_workqueue;
-#define DELAY_TIME    1000
+#define DELAY_TIME    750
 #endif
 
 #define DEFAULT_X_RESOLUTION 540
@@ -92,188 +92,7 @@ static const struct mxt_address_pair mxt_slave_addresses[] = {
 #define CONFIG_VER_OFFSET 6
 #define CONFIG_TP_TYPE    5
 #define __UPDATE_CFG__
-#define  __SUSPEND__
-
-#if 0
-/*
-   0xff is tag
-*/
-    static const u8 gp_config_data[] = {
-    /*[SPT_USERDATA_T38 INSTANCE 0]*/0xff,38,
-    /*DATA[0]=*/0,
-    /*DATA[1]=*/0,
-    /*DATA[2]=*/0,
-    /*DATA[3]=*/0,
-    /*DATA[4]=*/0,
-    /*DATA[5]=*/0,
-    /*DATA[6]=*/0,
-    /*DATA[7]=*/13, //config data version
-    /*[GEN_POWERCONFIG_T7 INSTANCE 0]*/0xff,7,
-    /*IDLEACQINT=*/32,
-    /*ACTVACQINT=*/15,
-    /*ACTV2IDLETO=*/50,
-    /*[GEN_ACQUISITIONCONFIG_T8 INSTANCE 0]*/0xff,8,
-    /*CHRGTIME=*/10,
-    /*ATCHDRIFT=*/10,
-    /*TCHDRIFT=*/15,
-    /*DRIFTST=*/15,
-    /*TCHAUTOCAL=*/0,
-    /*SYNC=*/0,
-    /*ATCHCALST=*/5,
-    /*ATCHCALSTHR=*/37,
-    /*ATCHFRCCALTHR=*/0,
-    /*ATCHFRCCALRATIO=*/0,
-    /*[TOUCH_MULTITOUCHSCREEN_T9 INSTANCE 0]*/0xff,9,
-    /*CTRL=*/0x83, //add by robin
-    /*XORIGIN=*/0,
-    /*YORIGIN=*/0,
-    /*XSIZE=*/18,
-    /*YSIZE=*/11,
-    /*AKSCFG=*/1,
-    /*BLEN=*/16,
-    /*TCHTHR=*/50,
-    /*TCHDI=*/3,
-    /*ORIENT=*/3, //add by robin
-    /*MRGTIMEOUT=*/0,
-    /*MOVHYSTI=*/5,
-    /*MOVHYSTN=*/5,
-    /*MOVFILTER=*/32,
-    /*NUMTOUCH=*/4,
-    /*MRGHYST=*/10,
-    /*MRGTHR=*/20,
-    /*AMPHYST=*/3,
-    /*XRANGE_LSB=*/(960&0xff),  //add by robin
-    /*XRANGE_MSB=*/(960>>8)&0xff,
-    /*YRANGE_LSB=*/(540&0xff),
-    /*YRANGE_MSB=*/(540>>8)&0xff,
-    /*XLOCLIP=*/0,
-    /*XHICLIP=*/0,
-    /*YLOCLIP=*/0,
-    /*YHICLIP=*/0,
-    /*XEDGECTRL=*/5,
-    /*XEDGEDIST=*/180,
-    /*YEDGECTRL=*/5,
-    /*YEDGEDIST=*/180,
-    /*JUMPLIMIT=*/10,
-    /*TCHHYST=*/0,
-
-    /*[TOUCH_KEYARRAY_T15 INSTANCE 0]*/0xff,15,
-    /*CTRL=*/131,
-    /*XORIGIN=*/0,
-    /*YORIGIN=*/11,
-    /*XSIZE=*/11,
-    /*YSIZE=*/1,
-    /*AKSCFG=*/1,
-    /*BLEN=*/0,
-    /*TCHTHR=*/42,
-    /*TCHDI=*/3,
-    /*RESERVED[0]=*/0,
-    /*RESERVED[1]=*/0,
-    /*[SPT_COMMSCONFIG_T18 INSTANCE 0]*/0xff,18,
-    /*CTRL=*/0,
-    /*COMMAND=*/0,
-    /*[SPT_GPIOPWM_T19 INSTANCE 0]*/0xff,19,
-    /*CTRL=*/0,
-    /*REPORTMASK=*/0,
-    /*DIR=*/0,
-    /*INTPULLUP=*/0,
-    /*OUT=*/0,
-    /*WAKE=*/0,
-    /*PWM=*/0,
-    /*PERIOD=*/0,
-    /*DUTY[0]=*/0,
-    /*DUTY[1]=*/0,
-    /*DUTY[2]=*/0,
-    /*DUTY[3]=*/0,
-    /*TRIGGER[0]=*/0,
-    /*TRIGGER[1]=*/0,
-    /*TRIGGER[2]=*/0,
-    /*TRIGGER[3]=*/0,
-    /*[PROCI_GRIPFACESUPPRESSION_T20 INSTANCE 0]*/0xff,20,
-    /*CTRL=*/0,
-    /*XLOGRIP=*/100,
-    /*XHIGRIP=*/100,
-    /*YLOGRIP=*/100,
-    /*YHIGRIP=*/100,
-    /*MAXTCHS=*/0,
-    /*RESERVED[0]=*/0,
-    /*SZTHR1=*/0,
-    /*SZTHR2=*/0,
-    /*SHPTHR1=*/0,
-    /*SHPTHR2=*/0,
-    /*SUPEXTTO=*/0,
-    /*[PROCG_NOISESUPPRESSION_T22 INSTANCE 0]*/0xff,22,
-    /*CTRL=*/5,
-    /*VIRTREFRNKG=*/0,
-    /*RESERVED[0]=*/0,
-    /*GCAFUL_MSB=*/0,  //add by robin
-    /*GCAFUL_LSB=*/0,
-    /*GCAFLL_MSB=*/0,
-    /*GCAFLL_LSB=*/0,
-    /*ACTVGCAFVALID=*/0,
-    /*NOISETHR=*/17,
-    /*RESERVED[1]=*/0,
-    /*FREQHOPSCALE=*/3,
-    /*FREQ[0]=*/7,
-    /*FREQ[1]=*/19,
-    /*FREQ[2]=*/30,
-    /*FREQ[3]=*/0,//255 add by robin
-    /*FREQ[4]=*/0,//255
-    /*IDLEGCAFVALID=*/0,
-    /*[TOUCH_PROXIMITY_T23 INSTANCE 0]*/0xff,23,
-    /*CTRL=*/0,
-    /*XORIGIN=*/0,
-    /*YORIGIN=*/0,
-    /*XSIZE=*/0,
-    /*YSIZE=*/0,
-    /*RESERVED[0]=*/0,
-    /*BLEN=*/0,
-    /*FXDDTHR=*/0,
-    /*FXDDI=*/0,
-    /*AVERAGE=*/0,
-    /*MVNULLRATE=*/0,
-    /*MVDTHR=*/0,
-    /*[PROCI_ONETOUCHGESTUREPROCESSOR_T24 INSTANCE 0]*/0xff,24,
-    /*CTRL=*/0,
-    /*NUMGEST=*/0,
-    /*GESTEN=*/0,
-    /*PROCESS=*/0,
-    /*TAPTO=*/100,
-    /*FLICKTO=*/100,
-    /*DRAGTO=*/1,
-    /*SPRESSTO=*/10,
-    /*LPRESSTO=*/20,
-    /*REPPRESSTO=*/40,
-    /*FLICKTHR=*/75,
-    /*DRAGTHR=*/2,
-    /*TAPTHR=*/100,
-    /*THROWTHR=*/25,
-    /*[SPT_SELFTEST_T25 INSTANCE 0]*/0xff,25,
-    /*CTRL=*/3,
-    /*CMD=*/0,
-    /*SIGLIM[0].UPSIGLIM_MSB=*/0x2e,  //add by robin
-    /*SIGLIM[0].UPSIGLIM_LSB=*/0xe0,
-    /*SIGLIM[0].LOSIGLIM_MSB=*/0x17,
-    /*SIGLIM[0].LOSIGLIM_LSB=*/0x70,
-    /*SIGLIM[1].UPSIGLIM_MSB=*/0x2e,
-    /*SIGLIM[1].UPSIGLIM_LSB=*/0xe0,
-    /*SIGLIM[1].LOSIGLIM_MSB=*/0,
-    /*SIGLIM[1].LOSIGLIM_LSB=*/0,
-    /*SIGLIM[2].UPSIGLIM_MSB=*/0,
-    /*SIGLIM[2].UPSIGLIM_LSB=*/0,
-    /*SIGLIM[2].LOSIGLIM_MSB=*/0,
-    /*SIGLIM[2].LOSIGLIM_LSB=*/0,
-    /*[SPT_CTECONFIG_T28 INSTANCE 0]*/0xff,28,
-    /*CTRL=*/0,
-    /*CMD=*/0,
-    /*MODE=*/2,
-    /*IDLEGCAFDEPTH=*/4,
-    /*ACTVGCAFDEPTH=*/8,
-    /*VOLTAGE=*/30,
-    /*end config*/0xff,0xff,
-    };
-
-#endif
+#define __SUSPEND__
 
 static const u8 gp_config_data[] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00,
@@ -323,7 +142,6 @@ static const u8 c8680_config_data[] = {
 	0x00, 0x03, 0x20, 0x20, 0x0A
 };
 
-
 static char * driver_ver [] = {
  "add version info"
 };
@@ -340,9 +158,7 @@ static ssize_t atmel_driver_show(struct device *dev,
     return ret ;
  }
 
-
-
-enum mxt_device_state { INIT, APPMODE, BOOTLOADER ,ACTIVE,DEEPSLEEP};
+enum mxt_device_state { INIT, APPMODE, BOOTLOADER, ACTIVE, DEEPSLEEP};
 
 /* Firmware */
 #define MXT_FW_NAME		"maxtouch.fw"
@@ -386,8 +202,6 @@ enum mxt_device_state { INIT, APPMODE, BOOTLOADER ,ACTIVE,DEEPSLEEP};
 #define MXT_PROCI_EXTRATOUCHSCREENDATA_T57	57
 #define MXT_PROCI_TIMER_T61	61
 #define MXT_PROCI_MAXCHARGER_T62	62
-
-
 #define MXT_GEN_DATASOURCE_T53		53
 #define MXT_TOUCH_PROXKEY_T52		52
 #define MXT_PROCI_GRIPFACE_T20		20
@@ -522,7 +336,7 @@ enum mxt_device_state { INIT, APPMODE, BOOTLOADER ,ACTIVE,DEEPSLEEP};
 #define MXT_BOOT_VALUE		0xa5
 #define MXT_BACKUP_VALUE	0x55
 #define MXT_BACKUP_TIME		25	/* msec */
-#define MXT224_RESET_TIME	75	/* msec */
+#define MXT224_RESET_TIME	65	/* msec */
 #define MXT224E_RESET_TIME	22	/* msec */
 #define MXT1386_RESET_TIME	250	/* msec */
 #define MXT_RESET_TIME		250	/* msec */
@@ -596,7 +410,7 @@ struct mxt_object {
 
 	/* to map object and message */
 	u8 max_reportid;
-       u8 min_reportid;
+    u8 min_reportid;
 };
 
 struct mxt_message {
@@ -637,7 +451,6 @@ struct mxt_data {
 #if defined(CONFIG_HAS_EARLYSUSPEND)
 	struct early_suspend early_suspend;
 #endif
-
 	u8 t6_reportid;
 	u8 t7_data[T7_DATA_SIZE];
 	u16 t7_start_addr;
@@ -655,100 +468,12 @@ struct mxt_data {
 	int t38_start_addr;
 	bool update_cfg;
 	const char *fw_name;
-       u8 max_reportid;
+    u8 max_reportid;
 };
 
 static struct dentry *debug_base;
 
-/* Opal modified for mXT224S start*******
-static bool mxt_object_readable(unsigned int type)
-{
-	switch (type) {
-       case MXT_DEBUG_DIAGNOSTIC_T37:
-       case MXT_SPT_MESSAGECOUNT_T44:
-       case MXT_GEN_MESSAGE_T5:
-       case MXT_GEN_COMMAND_T6:
-       case MXT_SPT_USERDATA_T38:
-       case MXT_GEN_POWER_T7:
-       case MXT_GEN_ACQUIRE_T8	:
-       case MXT_TOUCH_MULTI_T9:
-       case MXT_TOUCH_KEYARRAY_T15:
-       case MXT_SPT_COMMSCONFIG_T18:
-       case MXT_SPT_GPIOPWM_T19:
-       case MXT_TOUCH_PROXIMITY_T23	:
-       case MXT_SPT_SELFTEST_T25:
-       case MXT_PROCI_GRIP_T40:
-       case MXT_PROCI_TOUCHSUPPRESSION_T42:
-       case MXT_SPT_CTECONFIG_T46:
-       case MXT_PROCI_STYLUS_T47:
-       case MXT_PROCI_ADAPTIVETHRESHOLD_T55:
-       case MXT_PROCI_SLIMSENSOR_T56:
-       case MXT_PROCI_EXTRATOUCHSCREENDATA_T57:
-       case MXT_PROCI_TIMER_T61:
-       case MXT_PROCI_MAXCHARGER_T62:
-		return true;
-	default:
-		return false;
-	}
-}
-
-static bool mxt_object_writable(unsigned int type)
-{
-	switch (type) {
-	//case MXT_DEBUG_DIAGNOSTIC_T37:
-       //case MXT_SPT_MESSAGECOUNT_T44:
-       //case MXT_GEN_MESSAGE_T5:
-       //case MXT_GEN_COMMAND_T6:
-       case MXT_SPT_USERDATA_T38:
-       case MXT_GEN_POWER_T7:
-       case MXT_GEN_ACQUIRE_T8	:
-       case MXT_TOUCH_MULTI_T9:
-       case MXT_TOUCH_KEYARRAY_T15:
-       case MXT_SPT_COMMSCONFIG_T18:
-       case MXT_SPT_GPIOPWM_T19:
-       case MXT_TOUCH_PROXIMITY_T23	:
-       case MXT_SPT_SELFTEST_T25:
-       case MXT_PROCI_GRIP_T40:
-       case MXT_PROCI_TOUCHSUPPRESSION_T42:
-       case MXT_SPT_CTECONFIG_T46:
-       case MXT_PROCI_STYLUS_T47:
-       case MXT_PROCI_ADAPTIVETHRESHOLD_T55:
-       case MXT_PROCI_SLIMSENSOR_T56:
-       case MXT_PROCI_EXTRATOUCHSCREENDATA_T57:
-       case MXT_PROCI_TIMER_T61:
-       case MXT_PROCI_MAXCHARGER_T62:
-		return true;
-	default:
-		return false;
-	}
-}
-*******Opal modified for mXT224S end*/
-
-#if 0
-static bool mxt_object_readable(unsigned int type)
-{
-	switch (type) {
-       case MXT_DEBUG_DIAGNOSTIC_T37:
-       case MXT_GEN_MESSAGE_T5:
-       case MXT_GEN_COMMAND_T6:
-       case MXT_SPT_USERDATA_T38:
-       case MXT_GEN_POWER_T7:
-       case MXT_GEN_ACQUIRE_T8	:
-       case MXT_TOUCH_MULTI_T9:
-       case MXT_TOUCH_KEYARRAY_T15:
-       case MXT_SPT_COMMSCONFIG_T18:
-       case MXT_SPT_GPIOPWM_T19:
-       case MXT_TOUCH_PROXIMITY_T23	:
-       case MXT_SPT_SELFTEST_T25:
-       case MXT_PROCI_GRIPFACE_T20:
-       case MXT_SPT_CTECONFIG_T28:
-		return true;
-	default:
-		return false;
-	}
-}
-#endif
-
+#ifdef __UPDATE_CFG__
 static bool mxt_object_writable(unsigned int type)
 {
 	switch (type) {
@@ -775,7 +500,7 @@ static bool mxt_object_writable(unsigned int type)
 		return false;
 	}
 }
-
+#endif
 
 static void mxt_dump_message(struct device *dev,
 				  struct mxt_message *message)
@@ -1238,12 +963,6 @@ static void mxt_input_touchevent(struct mxt_data *data,
 		return;
 	}
 
-#if 0
-	/* Check only AMP detection */
-	if (!(status & (MXT_PRESS | MXT_MOVE)))
-		return;
-#endif
-
 	x = (message->message[1] << 4) | ((message->message[3] >> 4) & 0xf);
 	y = (message->message[2] << 4) | ((message->message[3] & 0xf));
 
@@ -1251,13 +970,6 @@ static void mxt_input_touchevent(struct mxt_data *data,
 		x = x >> 2;
 	if (data->pdata->panel_maxy < 1024)
 		y = y >> 2;
-
-   //switch x,y;
-#if 0
-    tmp = x ;
-    x   = y ;
-    y   = tmp ;
-#endif
 
 	area = message->message[4];
 	pressure = message->message[5];
@@ -1335,7 +1047,7 @@ static int atmel_report_virtual_key(struct mxt_data * data,int code,int value)
             dbg_printk("pressure back button\n");
          break ;
          case KEY_SEARCH:
-            dbg_printk("pressure search button\n");
+           dbg_printk("pressure search button\n");
             x = _s_x ;
             break ;
          default:
@@ -1399,8 +1111,6 @@ static irqreturn_t mxt_irq_handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-
-
 static void mxt_reset_delay(struct mxt_data *data)
 {
 	struct mxt_info *info = &data->info;
@@ -1418,58 +1128,11 @@ static void mxt_reset_delay(struct mxt_data *data)
 	default:
 		msleep(MXT_RESET_TIME);
 	}
-
-
 }
 
-
-
-#if  0
-
-static inline int get_len(u8 * pos)
-{
-    u8* tmp = pos ;
-    while(*pos!=0xff)pos++;
-    return pos - tmp ;
-}
-
-
-static int mxt_init_object(struct mxt_data * data,u8 type,u8 size)
-{
-
-    u8 * postion = (u8*)gp_config_data ;
-    u8 * tmp = postion ;
-    int len = sizeof(gp_config_data);
-    int obj_size ;
-    int i ;
-    for(;postion < tmp + len-1;){
-     dbg_printk("*postion[%d],postion++[%d]\n",*postion,*(postion+1));
-     obj_size = get_len(postion+2);
-
-    if(*postion++==0xff&&(*postion++==type)){
-
-        if(obj_size!=size){
-         dbg_printk("obj_size[%d],size[%d],type[%d]\n",obj_size,size,type);
-        }
-
-        obj_size = obj_size>size?size:obj_size ;
-        for(i=0;i<obj_size;i++)
-        mxt_write_object(data,type,i,*(postion+i));
-
-        dbg_printk("wirte object[%d],size[%d]\n",type,obj_size);
-        return 0 ;
-    }else {
-        postion += obj_size ;
-    }
-
-  }
-    return -EIO ;
-}
-
-#endif
+#ifdef __UPDATE_CFG__
 static int mxt_backup_nv(struct mxt_data *data)
 {
-#if 1
     int error;
 	u8 command_register;
 	int timeout_counter = 0;
@@ -1500,16 +1163,13 @@ static int mxt_backup_nv(struct mxt_data *data)
 	mxt_write_object(data, MXT_GEN_COMMAND_T6, MXT_COMMAND_RESET, 1);
 
 	mxt_reset_delay(data);
-#endif
 
 	return 0;
 }
 
-
 /*
     check config file
 */
-
 static int mxt_check_reg_init(struct mxt_data *data)
 {
 	struct mxt_object *object;
@@ -1584,8 +1244,7 @@ static int mxt_check_reg_init(struct mxt_data *data)
 	}
     return 0 ;
 }
-
-
+#endif
 
 static int mxt_make_highchg(struct mxt_data *data)
 {
@@ -1764,32 +1423,11 @@ static void mxt_check_config_version(struct mxt_data *data,
 	if (*cfg_version_found)
 		result = compare_versions(*cfg_version_found, cfg_version);
 
-// 	if (match_major) {
-// 		if (result >= MXT_CFG_VERSION_EQUAL)
-// 			*found_cfg_major_match = true;
-//
-// 		if (result == MXT_CFG_VERSION_EQUAL ||
-// 			result == MXT_CFG_VERSION_GREATER) {
-// 			data->config_info = cfg_info;
-// 			data->fw_name = cfg_info->fw_name;
-// 			*cfg_version_found = cfg_version;
-// 		}
-//
-// 		if (result == MXT_CFG_VERSION_GREATER)
-// 			data->update_cfg = true;
-// 	} else if (!*cfg_version_found || result == MXT_CFG_VERSION_GREATER) {
-// 		data->config_info = cfg_info;
-// 		data->fw_name = cfg_info->fw_name;
-// 		data->update_cfg = true;
-// 		*cfg_version_found = cfg_version;
-// 	}
-
        data->config_info = cfg_info;
  	   data->update_cfg = true;
 
        info_printk(":data->config_info->configlength = %d\n",
                             data->config_info->config_length);
-
 }
 
 /* If the controller's config version has a non-zero major number, call this
@@ -1802,7 +1440,6 @@ static void mxt_check_config_version(struct mxt_data *data,
  */
 static int mxt_search_config_array(struct mxt_data *data, bool match_major)
 {
-
 	const struct mxt_platform_data *pdata = data->pdata;
 	const struct mxt_config_info *cfg_info;
 	const struct mxt_info *info = &data->info;
@@ -1901,9 +1538,6 @@ static int mxt_save_objects(struct mxt_data *data)
 	struct mxt_object *t7_object;
 	struct mxt_object *t9_object;
 	struct mxt_object *t15_object;
-	//struct mxt_object *t42_object;
-      // struct mxt_object *t56_object;
-      // struct mxt_object *t62_object;
 	int error;
 
 	t6_object = mxt_get_object(data, MXT_GEN_COMMAND_T6);
@@ -1914,18 +1548,6 @@ static int mxt_save_objects(struct mxt_data *data)
 	data->t6_reportid = t6_object->max_reportid;
 	if ( t6_object->num_report_ids > 1)
 		dev_err(&client->dev, ": T6 has %d report id\n", t6_object->num_report_ids);
-#if 0
-	t42_object = mxt_get_object(data, MXT_PROCI_TOUCHSUPPRESSION_T42);
-	if (!t42_object) {
-		dev_err(&client->dev, ": Failed to get T42 object\n");
-		return -EINVAL;
-	}
-
-	data->t42_reportid = t42_object->max_reportid;
-	if ( t42_object->num_report_ids > 1)
-		dev_err(&client->dev, ": T42 has %d report id\n", t42_object->num_report_ids);
-
- #endif
 	/* Store T7 and T9 locally, used in suspend/resume operations */
 	t7_object = mxt_get_object(data, MXT_GEN_POWER_T7);
 	if (!t7_object) {
@@ -1966,25 +1588,7 @@ static int mxt_save_objects(struct mxt_data *data)
 						t15_object->num_report_ids + 1;
 		}
 	}
-#if 0
-       t56_object = mxt_get_object(data, MXT_PROCI_SLIMSENSOR_T56);
-	if (!t56_object) {
-		dev_err(&client->dev, ": Failed to get T56 object\n");
-		return -EINVAL;
-	}
-	data->t56_reportid = t56_object->max_reportid;
-	if ( t56_object->num_report_ids > 1)
-		dev_err(&client->dev, ": T56 has %d report id\n", t56_object->num_report_ids);
 
-       t62_object = mxt_get_object(data, MXT_PROCI_MAXCHARGER_T62);
-	if (!t62_object) {
-		dev_err(&client->dev, ": Failed to get T62 object\n");
-		return -EINVAL;
-	}
-	data->t62_reportid = t62_object->max_reportid;
-	if ( t62_object->num_report_ids > 1)
-		dev_err(&client->dev, ": T62 has %d report id\n", t62_object->num_report_ids);
-#endif
 	return 0;
 }
 
@@ -1992,10 +1596,8 @@ static int mxt_initialize(struct mxt_data *data)
 {
 	struct i2c_client *client = data->client;
 	struct mxt_info *info = &data->info;
-   // struct mxt_object *object = NULL ;
 	int error;
 	u8 val;
-//	const u8 *cfg_ver;
 
 	error = mxt_get_info(data);
 	if (error) {
@@ -2041,6 +1643,7 @@ static int mxt_initialize(struct mxt_data *data)
 	error = mxt_get_config(data);
 	if (error)
 		err_printk(": Config info not found.\n");
+
 #if defined(__UPDATE_CFG__)
         error = mxt_check_reg_init(data);
 		if (error) {
@@ -2048,8 +1651,6 @@ static int mxt_initialize(struct mxt_data *data)
 				": Failed to check reg init value\n");
 			goto free_object_table;
 		}
-
-
 #endif
 
 	error = mxt_save_objects(data);
@@ -2058,16 +1659,11 @@ static int mxt_initialize(struct mxt_data *data)
 
 	/* Update matrix size at info struct */
 	error = mxt_read_reg(client, MXT_MATRIX_X_SIZE, &val);
-
-
 	info->matrix_xsize = val;
 
 	error = mxt_read_reg(client, MXT_MATRIX_Y_SIZE, &val);
 	if (error)
-
 	info->matrix_ysize = val;
-
-
 
     dev_info(&client->dev,
 			": Matrix X Size: %d Matrix Y Size: %d\n",
@@ -2154,15 +1750,7 @@ static ssize_t mxt_object_show(struct device *dev,
 				i + 1, object->type);
 		if (count >= PAGE_SIZE)
 			return PAGE_SIZE - 1;
-#if 0
-		if (!mxt_object_readable(object->type)) {
-			count += snprintf(buf + count, PAGE_SIZE - count,
-					"\n");
-			if (count >= PAGE_SIZE)
-				return PAGE_SIZE - 1;
-			continue;
-		}
-#endif
+
 		for (j = 0; j < object->size/* + 1*/; j++) {
 			error = mxt_read_object(data,
 						object->type, j, &val);
@@ -2518,8 +2106,6 @@ static void mxt_input_close(struct input_dev *dev)
 	}
 }
 
-
-#ifdef __SUSPEND__
 static int mxt_reset(struct mxt_data *data)
 {
 	int error;
@@ -2536,158 +2122,6 @@ static int mxt_reset(struct mxt_data *data)
 
 	return error;
 }
-#endif
-
-#if 0
-static int reg_set_optimum_mode_check(struct regulator *reg, int load_uA)
-{
-	return (regulator_count_voltages(reg) > 0) ?
-		regulator_set_optimum_mode(reg, load_uA) : 0;
-}
-
-static int mxt_power_on(struct mxt_data *data, bool on)
-{
-	int rc;
-
-	if (on == false)
-		goto power_off;
-
-	if (data->pdata->digital_pwr_regulator) {
-		rc = reg_set_optimum_mode_check(data->vcc_dig,
-					MXT_ACTIVE_LOAD_DIG_UA);
-		if (rc < 0) {
-			dev_err(&data->client->dev,
-				"Regulator vcc_dig set_opt failed rc=%d\n",
-				rc);
-			goto power_off;
-		}
-
-		rc = regulator_enable(data->vcc_dig);
-		if (rc) {
-			dev_err(&data->client->dev,
-				"Regulator vcc_dig enable failed rc=%d\n", rc);
-			goto error_reg_en_vcc_dig;
-		}
-	}
-
-	if (data->pdata->i2c_pull_up) {
-		rc = reg_set_optimum_mode_check(data->vcc_i2c, MXT_I2C_LOAD_UA);
-		if (rc < 0) {
-			dev_err(&data->client->dev,
-				"Regulator vcc_i2c set_opt failed rc=%d\n", rc);
-			goto error_reg_opt_i2c;
-		}
-
-		rc = regulator_enable(data->vcc_i2c);
-		if (rc) {
-			dev_err(&data->client->dev,
-				"Regulator vcc_i2c enable failed rc=%d\n", rc);
-			goto error_reg_en_vcc_i2c;
-		}
-	}
-
-	msleep(130);
-
-	return 0;
-
-error_reg_en_vcc_i2c:
-	if (data->pdata->i2c_pull_up)
-		reg_set_optimum_mode_check(data->vcc_i2c, 0);
-error_reg_opt_i2c:
-	if (data->pdata->digital_pwr_regulator)
-		regulator_disable(data->vcc_dig);
-error_reg_en_vcc_dig:
-	if (data->pdata->digital_pwr_regulator)
-		reg_set_optimum_mode_check(data->vcc_dig, 0);
-
-power_off:
-	if (data->pdata->digital_pwr_regulator) {
-		reg_set_optimum_mode_check(data->vcc_dig, 0);
-		regulator_disable(data->vcc_dig);
-	}
-	if (data->pdata->i2c_pull_up) {
-		reg_set_optimum_mode_check(data->vcc_i2c, 0);
-		regulator_disable(data->vcc_i2c);
-	}
-	msleep(50);
-	return 0;
-}
-
-static int mxt_regulator_configure(struct mxt_data *data, bool on)
-{
-	int rc;
-
-	if (on == false)
-		goto hw_shutdown;
-
-	if (data->pdata->digital_pwr_regulator) {
-		data->vcc_dig = regulator_get(&data->client->dev, "ldo15");
-		if (IS_ERR(data->vcc_dig)) {
-			rc = PTR_ERR(data->vcc_dig);
-			dev_err(&data->client->dev,
-				": Regulator get ldo15 failed rc=%d\n", rc);
-			goto error_get_vtg_vcc_dig;
-		}
-
-		if (regulator_count_voltages(data->vcc_dig) > 0) {
-			rc = regulator_set_voltage(data->vcc_dig,
-				MXT_VTG_DIG_MIN_UV, MXT_VTG_DIG_MAX_UV);
-			if (rc) {
-				dev_err(&data->client->dev,
-					": regulator set_vtg failed rc=%d\n", rc);
-				goto error_set_vtg_vcc_dig;
-			}
-		}
-	}
-	if (data->pdata->i2c_pull_up) {
-		data->vcc_i2c = regulator_get(&data->client->dev, "smps3");
-		if (IS_ERR(data->vcc_i2c)) {
-			rc = PTR_ERR(data->vcc_i2c);
-			dev_err(&data->client->dev,
-				": Regulator smps3 get failed rc=%d\n",	rc);
-			goto error_get_vtg_i2c;
-		}
-		if (regulator_count_voltages(data->vcc_i2c) > 0) {
-			rc = regulator_set_voltage(data->vcc_i2c,
-				MXT_I2C_VTG_MIN_UV, MXT_I2C_VTG_MAX_UV);
-			if (rc) {
-				dev_err(&data->client->dev,
-					": regulator set_vtg failed rc=%d\n", rc);
-				goto error_set_vtg_i2c;
-			}
-		}
-	}
-
-	return 0;
-
-error_set_vtg_i2c:
-	regulator_put(data->vcc_i2c);
-error_get_vtg_i2c:
-	if (data->pdata->digital_pwr_regulator)
-		if (regulator_count_voltages(data->vcc_dig) > 0)
-			regulator_set_voltage(data->vcc_dig, 0,
-				MXT_VTG_DIG_MAX_UV);
-error_set_vtg_vcc_dig:
-	if (data->pdata->digital_pwr_regulator)
-		regulator_put(data->vcc_dig);
-error_get_vtg_vcc_dig:
-
-hw_shutdown:
-	if (data->pdata->digital_pwr_regulator) {
-		if (regulator_count_voltages(data->vcc_dig) > 0)
-			regulator_set_voltage(data->vcc_dig, 0,
-						MXT_VTG_DIG_MAX_UV);
-		regulator_put(data->vcc_dig);
-	}
-	if (data->pdata->i2c_pull_up) {
-		if (regulator_count_voltages(data->vcc_i2c) > 0)
-			regulator_set_voltage(data->vcc_i2c, 0,
-						MXT_I2C_VTG_MAX_UV);
-		regulator_put(data->vcc_i2c);
-	}
-	return 0;
-}
-#endif
 
 #ifdef CONFIG_PM
 static int mxt_suspend(struct device *dev)
@@ -2720,8 +2154,6 @@ static int mxt_suspend(struct device *dev)
 #endif
 	return 0;
 }
-
-
 
 static int mxt_resume(struct device *dev)
 {
@@ -2840,29 +2272,6 @@ static void __devinit mxt_debugfs_init(struct mxt_data *data)
 		debugfs_remove_recursive(debug_base);
 	}
 }
-
-#if 0
-static int print_object(struct mxt_data * data,u8 type)
-{
-    struct mxt_object * object ;
-    int i ;
-    u8   tmp ;
-    object = mxt_get_object(data,type) ;
-    if(!object){
-        err_printk("get object type[%d]\n",type) ;
-        return -ENODEV ;
-    }
-    for(i=0;i<object->size;i++){
-        if(mxt_read_object(data,type,i,&tmp)){
-            err_printk("read object error\n");
-        }
-        if(i%5==0)printk("\n");
-        info_printk("type[%d],offset[%d],value[%x]\n",
-            type,i,tmp);
-    }
-    return 0 ;
-}
-#endif
 
 static void atmel_ts_work_func(struct work_struct *work)
 {
@@ -3009,7 +2418,6 @@ static int __devinit mxt_probe(struct i2c_client *client,
         return -EINVAL;
 	}
 
-
     info_printk("mxt_probe \n");
 
 	data = kzalloc(sizeof(struct mxt_data), GFP_KERNEL);
@@ -3136,7 +2544,6 @@ static int __devinit mxt_probe(struct i2c_client *client,
 
 	mxt_debugfs_init(data);
 
-#if 1
     mxt_read_object(data,MXT_TOUCH_MULTI_T9,MXT_TOUCH_XRANGE_LSB,(u8*)&i);
     error = i ;
     mxt_read_object(data,MXT_TOUCH_MULTI_T9,MXT_TOUCH_XRANGE_MSB,(u8*)&i);
@@ -3155,7 +2562,6 @@ static int __devinit mxt_probe(struct i2c_client *client,
     }else {
         info_printk("T9[0x%x]\n",i);
     }
-#endif
 
     hrtimer_init(&data->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
     data->timer.function = timer_func;

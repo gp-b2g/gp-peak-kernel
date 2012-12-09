@@ -827,8 +827,9 @@ int __mmc_claim_host_rpm(struct mmc_host *host, atomic_t *abort, int rpm_enabled
 	DECLARE_WAITQUEUE(wait, current);
 	unsigned long flags;
 	int stop;
+#ifdef CONFIG_PM_RUNTIME
 	int count = 0;
-
+#endif
 	might_sleep();
 
 	add_wait_queue(&host->wq, &wait);

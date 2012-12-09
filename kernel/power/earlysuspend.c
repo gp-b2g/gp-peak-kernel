@@ -179,7 +179,6 @@ void request_suspend_state(suspend_state_t new_state)
 	unsigned long irqflags;
 	int old_sleep;
 
-    mutex_lock(&early_suspend_lock);
 	spin_lock_irqsave(&state_lock, irqflags);
 	old_sleep = state & SUSPEND_REQUESTED;
 	if (debug_mask & DEBUG_USER_STATE) {
@@ -187,28 +186,24 @@ void request_suspend_state(suspend_state_t new_state)
 		struct rtc_time tm;
 		getnstimeofday(&ts);
 		rtc_time_to_tm(ts.tv_sec, &tm);
-		pr_info("request_suspend_state: %s (%d->%d, old_sleep %d) at %lld "
+		pr_info("request_suspend_state: %s (%d->%d) at %lld "
 			"(%d-%02d-%02d %02d:%02d:%02d.%09lu UTC)\n",
 			new_state != PM_SUSPEND_ON ? "sleep" : "wakeup",
-			requested_suspend_state, new_state, old_sleep,
+			requested_suspend_state, new_state,
 			ktime_to_ns(ktime_get()),
 			tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
 			tm.tm_hour, tm.tm_min, tm.tm_sec, ts.tv_nsec);
 	}
 	if (!old_sleep && new_state != PM_SUSPEND_ON) {
 		state |= SUSPEND_REQUESTED;
-		pr_info("%s: goto late resume.state %d\n",__func__, state);
 		queue_work(suspend_work_queue, &early_suspend_work);
 	} else if (old_sleep && new_state == PM_SUSPEND_ON) {
 		state &= ~SUSPEND_REQUESTED;
-		pr_info("%s: goto late resume.state %d\n",__func__, state);
 		wake_lock(&main_wake_lock);
 		queue_work(suspend_work_queue, &late_resume_work);
 	}
 	requested_suspend_state = new_state;
-	pr_info("%s: end of function. new_state %d, old_state %d, requested_suspend_state %d\n",__func__, new_state, old_sleep, requested_suspend_state);
 	spin_unlock_irqrestore(&state_lock, irqflags);
-    mutex_unlock(&early_suspend_lock);
 }
 
 suspend_state_t get_suspend_state(void)
