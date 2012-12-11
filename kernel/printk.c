@@ -997,7 +997,8 @@ asmlinkage int vprintk(const char *fmt, va_list args)
 				printed_len += tlen;
 			}
 
-			if (printk_rtc) {
+			//remove rtc log
+			if (0) {
 				/* add the rtc time stamp */
 				char tbuf[100], *tp;
 				unsigned tlen;

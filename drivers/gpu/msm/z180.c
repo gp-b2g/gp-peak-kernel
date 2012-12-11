@@ -10,9 +10,7 @@
  * GNU General Public License for more details.
  *
  */
-#include <linux/module.h>
 #include <linux/uaccess.h>
-#include <linux/sched.h>
 
 #include "kgsl.h"
 #include "kgsl_cffdump.h"
@@ -365,7 +363,7 @@ static int room_in_rb(struct z180_device *device)
 	return ts_diff < Z180_PACKET_COUNT;
 }
 
-static int z180_idle(struct kgsl_device *device)
+static int z180_idle(struct kgsl_device *device, unsigned int timeout)
 {
 	int status = 0;
 	struct z180_device *z180_dev = Z180_DEVICE(device);
@@ -373,8 +371,7 @@ static int z180_idle(struct kgsl_device *device)
 	if (timestamp_cmp(z180_dev->current_timestamp,
 		z180_dev->timestamp) > 0)
 		status = z180_wait(device, NULL,
-				z180_dev->current_timestamp,
-				Z180_IDLE_TIMEOUT);
+				z180_dev->current_timestamp, timeout);
 
 	if (status)
 		KGSL_DRV_ERR(device, "z180_waittimestamp() timed out\n");
@@ -445,13 +442,11 @@ z180_cmdstream_issueibcmds(struct kgsl_device_private *dev_priv,
 	    (ctrl & KGSL_CONTEXT_CTX_SWITCH)) {
 		KGSL_CMD_INFO(device, "context switch %d -> %d\n",
 			context->id, z180_dev->ringbuffer.prevctx);
-		kgsl_mmu_setstate(&device->mmu, pagetable,
-				KGSL_MEMSTORE_GLOBAL);
+		kgsl_mmu_setstate(&device->mmu, pagetable);
 		cnt = PACKETSIZE_STATESTREAM;
 		ofs = 0;
 	}
 	kgsl_setstate(&device->mmu,
-			KGSL_MEMSTORE_GLOBAL,
 			kgsl_mmu_pt_get_flags(device->mmu.hwpagetable,
 			device->id));
 
@@ -591,7 +586,7 @@ error_clk_off:
 static int z180_stop(struct kgsl_device *device)
 {
 	device->ftbl->irqctrl(device, 0);
-	z180_idle(device);
+	z180_idle(device, KGSL_TIMEOUT_DEFAULT);
 
 	del_timer_sync(&device->idle_timer);
 
@@ -859,13 +854,12 @@ z180_drawctxt_destroy(struct kgsl_device *device,
 {
 	struct z180_device *z180_dev = Z180_DEVICE(device);
 
-	z180_idle(device);
+	z180_idle(device, KGSL_TIMEOUT_DEFAULT);
 
 	if (z180_dev->ringbuffer.prevctx == context->id) {
 		z180_dev->ringbuffer.prevctx = Z180_INVALID_CONTEXT;
 		device->mmu.hwpagetable = device->mmu.defaultpagetable;
-		kgsl_setstate(&device->mmu, KGSL_MEMSTORE_GLOBAL,
-				KGSL_MMUFLAGS_PTUPDATE);
+		kgsl_setstate(&device->mmu, KGSL_MMUFLAGS_PTUPDATE);
 	}
 }
 
@@ -893,8 +887,7 @@ static void z180_irqctrl(struct kgsl_device *device, int state)
 
 	if (state) {
 		z180_regwrite(device, (ADDR_VGC_IRQENABLE >> 2), 3);
-		z180_regwrite(device, MH_INTERRUPT_MASK,
-			kgsl_mmu_get_int_mask());
+		z180_regwrite(device, MH_INTERRUPT_MASK, KGSL_MMU_INT_MASK);
 	} else {
 		z180_regwrite(device, (ADDR_VGC_IRQENABLE >> 2), 0);
 		z180_regwrite(device, MH_INTERRUPT_MASK, 0);

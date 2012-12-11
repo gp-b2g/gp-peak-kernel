@@ -11,10 +11,7 @@
  *
  */
 
-#include <linux/export.h>
 #include <linux/kernel.h>
-
-#include <asm/page.h>
 
 #include "kgsl.h"
 #include "kgsl_pwrscale.h"

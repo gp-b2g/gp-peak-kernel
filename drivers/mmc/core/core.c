@@ -47,18 +47,8 @@
  */
 #define MMC_BKOPS_MAX_TIMEOUT    (4 * 60 * 1000) /* max time to wait in ms */
 
-//#define MMC1_DEBUG_INFO
-#ifdef MMC1_DEBUG_INFO
-#ifdef pr_debug
-#undef pr_debug
-#define pr_debug(fmt, str, args...) 	{ if (!strcmp(str,"mmc1")) printk(fmt, str, ##args) ;}
-#define pr_dbg(fmt, str, args...) 	{ if (!strcmp(str,"mmc1")) printk(fmt, str, ##args) ;}
-#endif
-#else
-#define pr_dbg(fmt, str, args...) 
-#endif
-
 static struct workqueue_struct *workqueue;
+static DEFINE_SEMAPHORE(wq_sem);
 
 /*
  * Enabling software CRCs on the data blocks can be a significant (30%)
@@ -1627,6 +1617,13 @@ void mmc_detach_bus(struct mmc_host *host)
 	mmc_bus_put(host);
 }
 
+
+void mmc_boot_detect(struct mmc_host *host, unsigned long delay)
+{
+	wake_lock(&host->detect_wake_lock);
+	host->detect_change = 1;
+	queue_delayed_work(workqueue, &host->detect, delay);
+}
 /**
  *	mmc_detect_change - process change of state on a MMC socket
  *	@host: host which changed state.
@@ -2211,7 +2208,7 @@ static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
 		mmc_hostname(host), __func__, host->f_init);
 #endif
 	mmc_power_up(host);
-	mmc_go_idle(host);
+
 	/*
 	 * Some eMMCs (with VCCQ always on) may not be reset after power up, so
 	 * do a hardware reset if possible.
@@ -2232,26 +2229,26 @@ static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
 	if (!mmc_attach_sdio(host))
 		return 0;
 
-	mmc_power_off(host);
-	//mdelay(50);
-	mmc_power_up(host);
-	mmc_go_idle(host);
-	mmc_send_if_cond(host, host->ocr_avail);
-
+	down(&wq_sem);
 	if (!host->ios.vdd)
 		mmc_power_up(host);
 
 	if (!mmc_attach_sd(host))
-		return 0;
+		goto attach_succ;
 
 	if (!host->ios.vdd)
 		mmc_power_up(host);
 
 	if (!mmc_attach_mmc(host))
-		return 0;
+		goto attach_succ;
 
+	up(&wq_sem);
 	mmc_power_off(host);
 	return -EIO;
+
+attach_succ:
+	up(&wq_sem);
+	return 0;
 }
 
 int _mmc_detect_card_removed(struct mmc_host *host)
@@ -2319,8 +2316,7 @@ void mmc_rescan(struct work_struct *work)
 		return;
 
 	mmc_bus_get(host);
-	pr_dbg("lzj %s: %s  mmc_rescan done\n",
-			mmc_hostname(host),__func__);	
+
 	/*
 	 * if there is a _removable_ card registered, check whether it is
 	 * still present
@@ -2342,14 +2338,8 @@ void mmc_rescan(struct work_struct *work)
 	 * the card is no longer present.
 	 */
 	mmc_bus_put(host);
-	pr_dbg(" lzj %s: %s  mmc_bus_put 1 done\n",
-			mmc_hostname(host),__func__);
-	
 	mmc_bus_get(host);
-	
-	pr_dbg(" lzj %s: %s  mmc_bus_get 1 done\n",
-			mmc_hostname(host),__func__);	
-	
+
 	/* if there still is a card present, stop here */
 	if (host->bus_ops != NULL) {
 		mmc_bus_put(host);
@@ -2361,9 +2351,7 @@ void mmc_rescan(struct work_struct *work)
 	 * release the lock here.
 	 */
 	mmc_bus_put(host);
-	pr_dbg(" lzj %s: %s  mmc_bus_put 2 done\n",
-			mmc_hostname(host),__func__);
-	
+
 	if (host->ops->get_cd && host->ops->get_cd(host) == 0)
 		goto out;
 
@@ -2374,16 +2362,10 @@ void mmc_rescan(struct work_struct *work)
          */
 
 	__mmc_claim_host_rpm(host, NULL, 0);
-	pr_dbg(" lzj %s: %s  __mmc_claim_host_rpm done\n",
-			mmc_hostname(host),__func__);
-	
 	if (!mmc_rescan_try_freq(host, host->f_min))
 		extend_wakelock = true;
-	pr_dbg(" lzj %s: %s  mmc_rescan_try_freq done\n",
-			mmc_hostname(host),__func__);	
 	mmc_release_host(host);
-	pr_dbg(" lzj %s: %s  mmc_release_host done\n",
-			mmc_hostname(host),__func__);
+
  out:
 	if (extend_wakelock)
 		wake_lock_timeout(&host->detect_wake_lock, HZ / 2);
@@ -2398,7 +2380,7 @@ void mmc_rescan(struct work_struct *work)
 void mmc_start_host(struct mmc_host *host)
 {
 	mmc_power_off(host);
-	mmc_detect_change(host, 0);
+	mmc_boot_detect(host, 0);
 }
 
 void mmc_stop_host(struct mmc_host *host)

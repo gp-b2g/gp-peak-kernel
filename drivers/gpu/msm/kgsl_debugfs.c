@@ -11,7 +11,6 @@
  *
  */
 
-#include <linux/module.h>
 #include <linux/debugfs.h>
 
 #include "kgsl.h"
