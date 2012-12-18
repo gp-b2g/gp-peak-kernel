@@ -46,15 +46,18 @@ int notrace unwind_frame(struct stackframe *frame)
 void notrace walk_stackframe(struct stackframe *frame,
 		     int (*fn)(struct stackframe *, void *), void *data)
 {
+#ifdef CONFIG_ARM_UNWIND
 	while (1) {
 		int ret;
 
 		if (fn(frame, data))
 			break;
+
 		ret = unwind_frame(frame);
 		if (ret < 0)
 			break;
 	}
+#endif
 }
 EXPORT_SYMBOL(walk_stackframe);
 
