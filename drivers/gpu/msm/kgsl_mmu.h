@@ -17,7 +17,7 @@
  * These defines control the split between ttbr1 and ttbr0 pagetables of IOMMU
  * and what ranges of memory we map to them
  */
-#define KGSL_IOMMU_GLOBAL_MEM_BASE	0xC0000000
+#define KGSL_IOMMU_GLOBAL_MEM_BASE	0xf8000000
 #define KGSL_IOMMU_GLOBAL_MEM_SIZE	SZ_4M
 #define KGSL_IOMMU_TTBR1_SPLIT		2
 
