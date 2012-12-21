@@ -77,7 +77,7 @@ struct mxt_address_pair {
 	int bootloader;
 	int application;
 };
-
+int i2c_retries = 0;
 static const struct mxt_address_pair mxt_slave_addresses[] = {
 	{ 0x24, 0x4a },
 	{ 0x25, 0x4b },
@@ -721,7 +721,15 @@ static int __mxt_read_reg(struct i2c_client *client,
 		msleep(MXT_WAKE_TIME);
 	} while (++i < MXT_MAX_RW_TRIES);
 
-	dev_err(&client->dev, ": %s: i2c transfer failed\n", __func__);
+	i2c_retries++;
+	if(i2c_retries<2){
+		client->addr = 0x4b;
+		return __mxt_read_reg(client, reg, len, val);
+	}else{
+		dev_err(&client->dev, ": %s: i2c transfer failed\n", __func__);
+	}
+		
+	
 	return -EIO;
 }
 
