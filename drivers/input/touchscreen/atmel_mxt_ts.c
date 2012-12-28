@@ -39,7 +39,7 @@
 struct i2c_client *this_client;
 struct delayed_work     pen_event_work;
 struct workqueue_struct *ts_workqueue;
-#define DELAY_TIME    750
+#define DELAY_TIME    1000
 #endif
 
 #define DEFAULT_X_RESOLUTION 540
@@ -336,7 +336,7 @@ enum mxt_device_state { INIT, APPMODE, BOOTLOADER, ACTIVE, DEEPSLEEP};
 #define MXT_BOOT_VALUE		0xa5
 #define MXT_BACKUP_VALUE	0x55
 #define MXT_BACKUP_TIME		25	/* msec */
-#define MXT224_RESET_TIME	65	/* msec */
+#define MXT224_RESET_TIME	75	/* msec */
 #define MXT224E_RESET_TIME	22	/* msec */
 #define MXT1386_RESET_TIME	250	/* msec */
 #define MXT_RESET_TIME		250	/* msec */
@@ -723,7 +723,7 @@ static int __mxt_read_reg(struct i2c_client *client,
 
 	i2c_retries++;
 	if(i2c_retries<2){
-		client->addr = 0x4b;
+		client->addr = 0x4a;
 		return __mxt_read_reg(client, reg, len, val);
 	}else{
 		dev_err(&client->dev, ": %s: i2c transfer failed\n", __func__);

@@ -695,7 +695,7 @@ static struct mxt_platform_data mxt154_platform_data = {
 
 static struct i2c_board_info atmel_ts_devices_info[] __initdata = {
 	{
-		I2C_BOARD_INFO(ATMEL_MXT154_NAME, 0x4a),
+		I2C_BOARD_INFO(ATMEL_MXT154_NAME, 0x4b),
 		.platform_data = &mxt154_platform_data,
 		.irq = MSM_GPIO_TO_INT(MXT_GPIO_INT),
 	},
@@ -1279,7 +1279,7 @@ static int register_tp_devices(void)
 		pr_err("%s: gpio_request C8680_CTP_ID failed!",
 				__func__);
     //pull gpio 115 to high
-    //to select maxtouch154 i2c address 0x4a
+    //to select maxtouch154 i2c address 0x4b
 	rc = gpio_tlmm_config(GPIO_CFG(C8680_CTP_ID, 0,
 			GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP,
 			GPIO_CFG_8MA), GPIO_CFG_ENABLE);

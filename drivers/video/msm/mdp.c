@@ -2219,9 +2219,7 @@ static int mdp_probe(struct platform_device *pdev)
 		if (!(mdp_pdata->cont_splash_enabled))
 			mdp4_hw_init();
 #else
-               /* TODO: hwcomposer need these CSC settings, so keep this function call temporally */
-		//if (!(mdp_pdata->cont_splash_enabled))
-			mdp_hw_init(mdp_pdata->cont_splash_enabled);
+		mdp_hw_init(mdp_pdata->cont_splash_enabled);
 #endif
 
 #ifdef CONFIG_FB_MSM_OVERLAY
