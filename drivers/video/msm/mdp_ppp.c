@@ -1140,7 +1140,6 @@ struct mdp_blit_req *req, struct file *p_src_file, struct file *p_dst_file)
 	/* setup for rgb 565 */
 	MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x0124, ppp_src_cfg_reg);
 	MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x0128, packPattern);
-
 	/*
 	 * 0x0138: PPP destination operation register
 	 * 0x014c: constant_alpha|transparent_color
@@ -1358,6 +1357,7 @@ static int mdp_ppp_blit_addr(struct fb_info *info, struct mdp_blit_req *req,
 	iBuf.mdpImg.width = req->src.width;
 	iBuf.mdpImg.imgType = req->src.format;
 
+
 	iBuf.mdpImg.bmy_addr = (uint32 *) (srcp0_start + req->src.offset);
 	if (iBuf.mdpImg.imgType == MDP_Y_CBCR_H2V2_ADRENO)
 		iBuf.mdpImg.cbcr_addr =
@@ -1572,109 +1572,6 @@ static int mdp_ppp_blit_addr(struct fb_info *info, struct mdp_blit_req *req,
 	return 0;
 }
 
-int mdp_ppp_solid_fill(struct fb_info *info, struct mdp_blit_req *req,
-			unsigned long dst_start, unsigned long dst_len,
-			struct file *p_dst_file)
-{
-	MDPIBUF iBuf;
-	uint8 *dest0, *dest1;
-	uint32 dest0_ystride;
-	uint32 dst_roi_width;
-	uint32 dst_roi_height;
-	uint32 dst_packPattern, ppp_dst_cfg_reg;
-	struct msm_fb_data_type *mfd = info->par;
-	dest1 = NULL;
-
-	down(&mdp_ppp_mutex);
-	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
-	req->dst_rect.w = ((req->dst_rect.w/2) * 2);
-	iBuf.ibuf_width = req->dst.width;
-	iBuf.ibuf_height = req->dst.height;
-	iBuf.bpp = bytes_per_pixel[req->dst.format];
-	iBuf.ibuf_type = req->dst.format;
-	iBuf.buf = (uint8 *) dst_start;
-	iBuf.buf += req->dst.offset;
-	iBuf.roi.lcd_x = req->dst_rect.x;
-	iBuf.roi.lcd_y = req->dst_rect.y;
-	iBuf.roi.dst_width = req->dst_rect.w;
-	iBuf.roi.dst_height = req->dst_rect.h;
-
-	if (iBuf.ibuf_type == MDP_BGRA_8888)
-		dst_packPattern =
-		    MDP_GET_PACK_PATTERN(CLR_ALPHA, CLR_R, CLR_G, CLR_B,
-					 8);
-	else if (iBuf.ibuf_type == MDP_RGBA_8888 ||
-			 iBuf.ibuf_type == MDP_RGBX_8888)
-		dst_packPattern =
-		    MDP_GET_PACK_PATTERN(CLR_ALPHA, CLR_B, CLR_G, CLR_R,
-					 8);
-	else if (iBuf.ibuf_type == MDP_XRGB_8888)
-		dst_packPattern =
-		    MDP_GET_PACK_PATTERN(CLR_ALPHA, CLR_R, CLR_G, CLR_B,
-					 8);
-	else
-		dst_packPattern =
-		    MDP_GET_PACK_PATTERN(CLR_ALPHA, CLR_R, CLR_G, CLR_B,
-					 8);
-
-	ppp_dst_cfg_reg = PPP_DST_C0G_8BIT |
-	    PPP_DST_C1B_8BIT |
-	    PPP_DST_C2R_8BIT |
-	    PPP_DST_C3A_8BIT |
-	    PPP_DST_C3ALPHA_EN |
-	    PPP_DST_PACKET_CNT_INTERLVD_4ELEM |
-	    PPP_DST_PACK_TIGHT |
-	    PPP_DST_PACK_ALIGN_LSB |
-	    PPP_DST_OUT_SEL_AXI |
-	    PPP_DST_BPP_4BYTES | PPP_DST_PLANE_INTERLVD;
-
-	dest0_ystride = iBuf.ibuf_width * iBuf.bpp;
-	dst_roi_width = iBuf.roi.dst_width;
-	dst_roi_height = iBuf.roi.dst_height;
-	dest0 = (uint8 *) iBuf.buf;
-	dest1 = mdp_get_chroma_addr(&iBuf);
-
-	mdp_adjust_start_addr(&dest0, &dest1, 1, 1,
-			      iBuf.roi.lcd_x, iBuf.roi.lcd_y,
-			      iBuf.ibuf_width, iBuf.ibuf_height, iBuf.bpp,
-			      &iBuf, 2);
-
-	MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x0138, 0x10000000);
-	MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x0108, (dst_roi_height << 16 |
-					      dst_roi_width));
-	MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x0124, ppp_dst_cfg_reg);
-	MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x0128, dst_packPattern);
-	MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x014c, 0xffffffff);
-	MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x0150, ppp_dst_cfg_reg);
-	MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x0154, dst_packPattern);
-	MDP_OUTP(MDP_BASE + 0x20004, 0x2);
-	MDP_OUTP(MDP_BASE + 0x20040, req->const_color.g |
-		req->const_color.b << 8 | req->const_color.r << 16 |
-			req->const_color.alpha << 24);
-	MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x0164,
-		 (dst_roi_height << 16 | dst_roi_width));
-	MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x0168, dest0);
-	MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x016c, dest1);
-	MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x0178,
-		 (dest0_ystride << 16 | dest0_ystride));
-	MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x01b8, 0);
-	MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x01bc, 0);
-	MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x013c, 0);
-	MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x0140, 0);
-	MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x0144, 0);
-	MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x0148, 0);
-
-	mdp_pipe_kickoff(MDP_PPP_TERM, mfd);
-
-	MDP_OUTP(MDP_BASE + 0x20004, 0x0);
-	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
-	up(&mdp_ppp_mutex);
-
-	put_img(p_dst_file);
-	return 0;
-
-}
-
 int mdp_ppp_blit(struct fb_info *info, struct mdp_blit_req *req)
 {
 	unsigned long src_start, dst_start;
@@ -1682,16 +1579,14 @@ int mdp_ppp_blit(struct fb_info *info, struct mdp_blit_req *req)
 	unsigned long dst_len = 0;
 	struct file *p_src_file = 0 , *p_dst_file = 0;
 
-	if (!(req->flags & CONST_COLOR)) {
-		if (req->flags & MDP_BLIT_SRC_GEM)
-			get_gem_img(&req->src, &src_start, &src_len);
-		else
+	if (req->flags & MDP_BLIT_SRC_GEM)
+		get_gem_img(&req->src, &src_start, &src_len);
+	else
 		get_img(&req->src, info, &src_start, &src_len, &p_src_file);
-		if (src_len == 0) {
-			printk(KERN_ERR "mdp_ppp: could not retrieve image from "
-			       "memory\n");
-			return -EINVAL;
-		}
+	if (src_len == 0) {
+		printk(KERN_ERR "mdp_ppp: could not retrieve image from "
+		       "memory\n");
+		return -EINVAL;
 	}
 	if (req->flags & MDP_BLIT_DST_GEM)
 		get_gem_img(&req->dst, &dst_start, &dst_len);
@@ -1704,10 +1599,6 @@ int mdp_ppp_blit(struct fb_info *info, struct mdp_blit_req *req)
 		return -EINVAL;
 	}
 
-	if (req->flags & CONST_COLOR)
-		return mdp_ppp_solid_fill(info, req, dst_start,
-						dst_len, p_dst_file);
-	else
 	return mdp_ppp_blit_addr(info, req, src_start, src_len, 0, 0, dst_start,
 		dst_len, p_src_file, p_dst_file);
 }
