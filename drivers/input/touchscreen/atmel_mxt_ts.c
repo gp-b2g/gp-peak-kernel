@@ -92,7 +92,6 @@ static const struct mxt_address_pair mxt_slave_addresses[] = {
 #define CONFIG_VER_OFFSET 6
 #define CONFIG_TP_TYPE    5
 #define __UPDATE_CFG__
-#define __SUSPEND__
 
 static const u8 gp_config_data[] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00,
@@ -1193,8 +1192,7 @@ static int mxt_check_reg_init(struct mxt_data *data)
         err_printk("read tp type error\n");
         return -EIO ;
     }
-	//if type==0,default select one icon mode
-    if( type==1 ||type==0){
+    if( type==1 || type==0){
         cfg_data = gp_config_data;
         size     = sizeof(gp_config_data) ;
         data->tp_type = 1 ;
@@ -2134,7 +2132,6 @@ static int mxt_reset(struct mxt_data *data)
 #ifdef CONFIG_PM
 static int mxt_suspend(struct device *dev)
 {
-#ifdef __SUSPEND__
     struct i2c_client *client = to_i2c_client(dev);
 	struct mxt_data *data = i2c_get_clientdata(client);
 	struct input_dev *input_dev = data->input_dev;
@@ -2159,19 +2156,22 @@ static int mxt_suspend(struct device *dev)
 	mutex_unlock(&input_dev->mutex);
 
 	mxt_cleanup_finger(data);
-#endif
+
+	mxt_reset_delay(data);
+
 	return 0;
 }
 
 static int mxt_resume(struct device *dev)
 {
-#ifdef __SUSPEND__
     struct i2c_client *client = to_i2c_client(dev);
 	struct mxt_data *data = i2c_get_clientdata(client);
 	struct input_dev *input_dev = data->input_dev;
 	int error;
 
 	mxt_reset(data);
+
+	mxt_reset_delay(data);
 
 	mutex_lock(&input_dev->mutex);
 
@@ -2187,7 +2187,9 @@ static int mxt_resume(struct device *dev)
 	mutex_unlock(&input_dev->mutex);
 
 	enable_irq(data->client->irq);
-#endif
+
+	mxt_reset_delay(data);
+
 	return 0;
 }
 

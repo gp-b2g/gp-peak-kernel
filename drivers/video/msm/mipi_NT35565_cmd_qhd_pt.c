@@ -56,8 +56,8 @@ static int mipi_cmd_nt35565_qhd_pt_init(void)
 	pinfo.lcdc.border_clr = 0;	/* blk */
 	pinfo.lcdc.underflow_clr = 0xff;	/* blue */
 	pinfo.lcdc.hsync_skew = 0;
-	pinfo.bl_max = 20;
-	pinfo.bl_min = 0;
+	pinfo.bl_max = 30;
+	pinfo.bl_min = 2;
 	pinfo.fb_num = 2;
 
 	pinfo.clk_rate = 454000000;
