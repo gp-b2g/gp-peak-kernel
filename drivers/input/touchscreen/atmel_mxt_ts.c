@@ -335,8 +335,8 @@ enum mxt_device_state { INIT, APPMODE, BOOTLOADER, ACTIVE, DEEPSLEEP};
 #define MXT_BOOT_VALUE		0xa5
 #define MXT_BACKUP_VALUE	0x55
 #define MXT_BACKUP_TIME		25	/* msec */
-#define MXT224_RESET_TIME	75	/* msec */
-#define MXT224E_RESET_TIME	22	/* msec */
+#define MXT224_RESET_TIME	65	/* msec */
+#define MXT224E_RESET_TIME	150	/* msec */
 #define MXT1386_RESET_TIME	250	/* msec */
 #define MXT_RESET_TIME		250	/* msec */
 #define MXT_RESET_NOCHGREAD	400	/* msec */
@@ -1757,14 +1757,14 @@ static ssize_t mxt_object_show(struct device *dev,
 		if (count >= PAGE_SIZE)
 			return PAGE_SIZE - 1;
 
-		for (j = 0; j < object->size/* + 1*/; j++) {
+		for (j = 0; j < object->size + 1; j++) {
 			error = mxt_read_object(data,
 						object->type, j, &val);
 			if (error)
 				return error;
 
 			count += snprintf(buf + count, PAGE_SIZE - count,
-					"\t[%2d]: %02d\n", j, val);
+					"\t[%2d]: %02x (%d)\n", j, val, val);
 			if (count >= PAGE_SIZE)
 				return PAGE_SIZE - 1;
 		}
@@ -1801,6 +1801,7 @@ static int mxt_load_fw(struct device *dev, const char *fn)
 
 	switch (data->info.family_id) {
 	case MXT224_ID:
+	case MXT224E_ID:
 		max_frame_size = MXT_SINGLE_FW_MAX_FRAME_SIZE;
 		break;
 	case MXT1386_ID:
@@ -2157,8 +2158,6 @@ static int mxt_suspend(struct device *dev)
 
 	mxt_cleanup_finger(data);
 
-	mxt_reset_delay(data);
-
 	return 0;
 }
 
@@ -2187,8 +2186,6 @@ static int mxt_resume(struct device *dev)
 	mutex_unlock(&input_dev->mutex);
 
 	enable_irq(data->client->irq);
-
-	mxt_reset_delay(data);
 
 	return 0;
 }

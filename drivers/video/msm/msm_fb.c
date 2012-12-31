@@ -183,6 +183,8 @@ static void msm_fb_set_bl_brightness(struct led_classdev *led_cdev,
 	if (!bl_lvl && value)
 		bl_lvl = 1;
 
+	msleep(16);
+
 	msm_fb_set_backlight(mfd, bl_lvl);
 }
 
@@ -585,9 +587,6 @@ static int msm_fb_resume_sub(struct msm_fb_data_type *mfd)
 				      mfd->op_enable);
 		if (ret)
 			MSM_FB_INFO("msm_fb_resume: can't turn on display!\n");
-	} else {
-		if (pdata->power_ctrl)
-			pdata->power_ctrl(TRUE);
 	}
 
 	return ret;
@@ -643,14 +642,24 @@ static int msm_fb_runtime_idle(struct device *dev)
 static int msm_fb_ext_suspend(struct device *dev)
 {
 	struct msm_fb_data_type *mfd = dev_get_drvdata(dev);
+	struct msm_fb_panel_data *pdata = NULL;
 	int ret = 0;
 
 	if ((!mfd) || (mfd->key != MFD_KEY))
 		return 0;
 
+	pdata = (struct msm_fb_panel_data *)mfd->pdev->dev.platform_data;
 	if (mfd->panel_info.type == HDMI_PANEL ||
-		mfd->panel_info.type == DTV_PANEL)
+		mfd->panel_info.type == DTV_PANEL) {
 		ret = msm_fb_suspend_sub(mfd);
+
+		/* Turn off the HPD circuitry */
+		if (pdata->power_ctrl) {
+			MSM_FB_INFO("%s: Turning off HPD circuitry\n",
+					__func__);
+			pdata->power_ctrl(FALSE);
+		}
+	}
 
 	return ret;
 }
@@ -658,14 +667,24 @@ static int msm_fb_ext_suspend(struct device *dev)
 static int msm_fb_ext_resume(struct device *dev)
 {
 	struct msm_fb_data_type *mfd = dev_get_drvdata(dev);
+	struct msm_fb_panel_data *pdata = NULL;
 	int ret = 0;
 
 	if ((!mfd) || (mfd->key != MFD_KEY))
 		return 0;
 
+	pdata = (struct msm_fb_panel_data *)mfd->pdev->dev.platform_data;
 	if (mfd->panel_info.type == HDMI_PANEL ||
-		mfd->panel_info.type == DTV_PANEL)
+		mfd->panel_info.type == DTV_PANEL) {
+		/* Turn on the HPD circuitry */
+		if (pdata->power_ctrl) {
+			pdata->power_ctrl(TRUE);
+			MSM_FB_INFO("%s: Turning on HPD circuitry\n",
+					__func__);
+		}
+
 		ret = msm_fb_resume_sub(mfd);
+	}
 
 	return ret;
 }
@@ -784,8 +803,6 @@ static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 	struct msm_fb_panel_data *pdata = NULL;
 	int ret = 0;
 
-	MSM_FB_INFO("%s: call address %p blank %d\n", __func__, __builtin_frame_address(0), op_enable);
-
 	if (!op_enable)
 		return -EPERM;
 
@@ -797,22 +814,11 @@ static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 
 	switch (blank_mode) {
 	case FB_BLANK_UNBLANK:
-		MSM_FB_INFO("%s: FB_BLANK_UNBLANK mode\n",__func__);
 		if (!mfd->panel_power_on) {
 			msleep(16);
 			ret = pdata->on(mfd->pdev);
 			if (ret == 0) {
 				mfd->panel_power_on = TRUE;
-/* ToDo: possible conflict with android which doesn't expect sw refresher */
-/*
-	  if (!mfd->hw_refresh)
-	  {
-	    if ((ret = msm_fb_resume_sw_refresher(mfd)) != 0)
-	    {
-	      MSM_FB_INFO("msm_fb_blank_sub: msm_fb_resume_sw_refresher failed = %d!\n",ret);
-	    }
-	  }
-*/
 			}
 		}
 		break;
@@ -822,7 +828,6 @@ static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 	case FB_BLANK_NORMAL:
 	case FB_BLANK_POWERDOWN:
 	default:
-		MSM_FB_INFO("%s: FB_default mode \n",__func__);
 		if (mfd->panel_power_on) {
 			int curr_pwr_state;
 
@@ -838,9 +843,6 @@ static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 				mfd->panel_power_on = curr_pwr_state;
 
 			mfd->op_enable = TRUE;
-		} else {
-			if (pdata->power_ctrl)
-				pdata->power_ctrl(FALSE);
 		}
 		break;
 	}
@@ -940,7 +942,6 @@ static void msm_fb_imageblit(struct fb_info *info, const struct fb_image *image)
 static int msm_fb_blank(int blank_mode, struct fb_info *info)
 {
 	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)info->par;
-	MSM_FB_INFO("%s: %d\n",__func__, __LINE__);
 	return msm_fb_blank_sub(blank_mode, info, mfd->op_enable);
 }
 
@@ -1704,8 +1705,7 @@ static int msm_fb_pan_display(struct fb_var_screeninfo *var,
 	if (mfd->msmfb_no_update_notify_timer.function)
 		del_timer(&mfd->msmfb_no_update_notify_timer);
 
-	mfd->msmfb_no_update_notify_timer.expires =
-				jiffies + ((1000 * HZ) / 1000);
+	mfd->msmfb_no_update_notify_timer.expires = jiffies + (2 * HZ);
 	add_timer(&mfd->msmfb_no_update_notify_timer);
 	mutex_unlock(&msm_fb_notify_update_sem);
 
@@ -2873,8 +2873,7 @@ static int msmfb_overlay_play(struct fb_info *info, unsigned long *argp)
 	if (mfd->msmfb_no_update_notify_timer.function)
 		del_timer(&mfd->msmfb_no_update_notify_timer);
 
-	mfd->msmfb_no_update_notify_timer.expires =
-				jiffies + ((1000 * HZ) / 1000);
+	mfd->msmfb_no_update_notify_timer.expires = jiffies + (2 * HZ);
 	add_timer(&mfd->msmfb_no_update_notify_timer);
 	mutex_unlock(&msm_fb_notify_update_sem);
 
