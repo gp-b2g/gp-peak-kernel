@@ -43,7 +43,7 @@ struct workqueue_struct *ts_workqueue;
 #endif
 
 #define DEFAULT_X_RESOLUTION 540
-#define DEFAULT_Y_RESOLUTION  960
+#define DEFAULT_Y_RESOLUTION 960
 
 #define PRINTK_TAG  "maxtouch->%s_%d:"
 //#define __MXT_DEBUG__
@@ -2063,7 +2063,7 @@ static int mxt_start(struct mxt_data *data)
 			"failed to restore old power state\n");
         return error;
 	}
-    data->status = ACTIVE  ;
+    data->status = ACTIVE;
 	return 0;
 }
 
@@ -2139,6 +2139,9 @@ static int mxt_suspend(struct device *dev)
 	int error;
 
 	disable_irq(data->client->irq);
+
+	mxt_reset_delay(data);
+
 	if (cancel_work_sync(&data->work))
 		enable_irq(data->client->irq);
 
@@ -2157,6 +2160,8 @@ static int mxt_suspend(struct device *dev)
 	mutex_unlock(&input_dev->mutex);
 
 	mxt_cleanup_finger(data);
+
+	mxt_reset_delay(data);
 
 	return 0;
 }
@@ -2186,6 +2191,8 @@ static int mxt_resume(struct device *dev)
 	mutex_unlock(&input_dev->mutex);
 
 	enable_irq(data->client->irq);
+
+	mxt_reset_delay(data);
 
 	return 0;
 }
@@ -2457,8 +2464,8 @@ static int __devinit mxt_probe(struct i2c_client *client,
 
 	/*
 	For multi touch
-    disp_maxx = 540 ;
-    disp_maxy = 960 ;
+    disp_maxx = DEFAULT_X_RESOLUTION;
+    disp_maxy = DEFAULT_Y_RESOLUTION;
    */
     dbg_printk("display x[%d],display y[%d]\n",pdata->disp_maxx,pdata->disp_maxy);
 
