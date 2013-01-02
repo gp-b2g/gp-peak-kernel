@@ -326,19 +326,13 @@ static struct i2c_board_info ltr558_light_i2c_info[] __initdata = {
 #if defined(CONFIG_I2C) && defined(CONFIG_INPUT_PS31XX)
 #define PS31XX_INT         17
 static struct stk31xx_platform_data stk31xx_data = {
-//      .als_cmd = 0x49,
 	.als_cmd = 0x4c,
 	.ps_cmd =  0x21,
 	.ps_gain = 0x0D,
-#if 0
-	.transmittance = 500,
-	.ps_high_thd   = 120,
-	.ps_low_thd    = 110,
-#endif
 	.transmittance = 800,
 	.ps_high_thd   = 120,
 	.ps_low_thd    = 100,
-	.int_pin       = PS31XX_INT,
+	.int_pin       = PS31XX_INT
 };
 
 static struct i2c_board_info ps31xx_light_i2c_info[] __initdata = {
@@ -607,6 +601,4 @@ void __init msm7627a_sensor_init(void)
 			ARRAY_SIZE(accel_kxtj9_i2c_info));
 	}
 #endif
-
-
 }

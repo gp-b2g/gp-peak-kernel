@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2010 Lee Kai Koon <kai-koon.lee@avagotech.com>
  *  Copyright (C) 2010 Avago Technologies
- *  Copyright (c) 2012, Code Aurora Forum. All rights reserved.
+ *  Copyright (c) 2012 The Linux Foundation. All Rights Reserved.
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 and
@@ -30,6 +30,7 @@
 #include <linux/irq.h>
 #include <linux/input.h>
 #include <linux/input/apds990x.h>
+#include <linux/wakelock.h>
 
 #define APDS990x_DRV_NAME	"apds990x"
 #define DRIVER_VERSION		"1.0.4"
@@ -110,6 +111,7 @@ struct apds990x_data {
 	struct delayed_work als_dwork; /* for ALS polling */
 	struct input_dev *input_dev_als;
 	struct input_dev *input_dev_ps;
+	struct wake_lock prx_wake_lock;
 
 	unsigned int enable;
 	unsigned int atime;
@@ -555,7 +557,8 @@ static irqreturn_t apds990x_interrupt(int vec, void *info)
 	struct i2c_client *client=(struct i2c_client *)info;
 	struct apds990x_data *data = i2c_get_clientdata(client);
 
-	printk("==> apds990x_interrupt\n");
+	printk("==> apds990x_interrupt (timeout)\n");
+	wake_lock_timeout(&data->prx_wake_lock, HZ / 2);
 	//Seems linux-3.0 trends to use threaded-interrupt, so we can call the work directly.
 	apds990x_work_handler(&data->dwork.work);
 
@@ -826,7 +829,8 @@ static ssize_t apds990x_store_als_poll_delay(struct device *dev,
 	mutex_lock(&data->update_lock);
 	data->als_poll_delay = val/1000;	// convert us => ms
 
-	poll_delay = 256 - (val/2720);	// the minimum is 2.72ms = 2720 us, maximum is 696.32ms
+	// val * 2 uses bigger integration time, which will provide more accurate output.
+	poll_delay = 256 - (val * 2 / 2720);	// the minimum is 2.72ms = 2720 us, maximum is 696.32ms
 	if (poll_delay >= 256)
 		data->als_atime = 255;
 	else if (poll_delay < 0)
@@ -968,6 +972,8 @@ static int __devinit apds990x_probe(struct i2c_client *client,
 
 	mutex_init(&data->update_lock);
 
+	wake_lock_init(&data->prx_wake_lock, WAKE_LOCK_SUSPEND,
+		       "prx_wake_lock");
 	INIT_DELAYED_WORK(&data->dwork, apds990x_work_handler);
 	INIT_DELAYED_WORK(&data->als_dwork, apds990x_als_polling_work_handler);
 
@@ -1045,6 +1051,7 @@ exit_free_dev_ps:
 exit_free_dev_als:
 	input_free_device(data->input_dev_als);
 exit_kfree:
+	wake_lock_destroy(&data->prx_wake_lock);
 	kfree(data);
 exit:
 	return err;
@@ -1054,6 +1061,7 @@ static int __devexit apds990x_remove(struct i2c_client *client)
 {
 	struct apds990x_data *data = i2c_get_clientdata(client);
 
+	disable_irq(data->pdata->irq);
 	device_init_wakeup(&client->dev, 0);
 	cancel_delayed_work_sync(&data->als_dwork);
 
@@ -1070,6 +1078,7 @@ static int __devexit apds990x_remove(struct i2c_client *client)
 	/* Power down the device */
 	apds990x_set_enable(client, 0);
 
+	wake_lock_destroy(&data->prx_wake_lock);
 	kfree(data);
 
 	return 0;
@@ -1082,6 +1091,7 @@ static int apds990x_suspend(struct i2c_client *client, pm_message_t mesg)
 	struct apds990x_data *data = i2c_get_clientdata(client);
 	int enable = 0;
 
+	disable_irq(data->pdata->irq);
 	if (data->enable_als_sensor)
 		cancel_delayed_work_sync(&data->als_dwork);
 
@@ -1114,6 +1124,8 @@ static int apds990x_resume(struct i2c_client *client)
 
 	if (data->enable_als_sensor)
 		schedule_delayed_work(&data->als_dwork, msecs_to_jiffies(data->als_poll_delay));
+
+	enable_irq(data->pdata->irq);
 
 	return 0;
 }

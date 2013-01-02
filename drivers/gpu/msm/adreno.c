@@ -106,7 +106,7 @@ static struct adreno_device device_3d0 = {
 	.gmem_size = SZ_256K,
 	.pfp_fw = NULL,
 	.pm4_fw = NULL,
-	.wait_timeout = 10000, /* in milliseconds */
+	.wait_timeout = 100, /* in milliseconds */
 	.ib_check_level = 0,
 };
 
@@ -244,6 +244,13 @@ static int adreno_setup_pt(struct kgsl_device *device,
 	if (result)
 		goto unmap_memstore_desc;
 
+	/*
+	 * Set the mpu end to the last "normal" global memory we use.
+	 * For the IOMMU, this will be used to restrict access to the
+	 * mapped registers.
+	 */
+	device->mh.mpu_range = device->mmu.setstate_memory.gpuaddr +
+				device->mmu.setstate_memory.size;
 	return result;
 
 unmap_memstore_desc:
@@ -298,9 +305,8 @@ static void adreno_iommu_setstate(struct kgsl_device *device,
 					device->mmu.setstate_memory.gpuaddr +
 					KGSL_IOMMU_SETSTATE_NOP_OFFSET);
 
-	if (flags & KGSL_MMUFLAGS_PTUPDATE) {
-		pt_val = kgsl_mmu_pt_get_base_addr(device->mmu.hwpagetable);
-		/*
+	pt_val = kgsl_mmu_pt_get_base_addr(device->mmu.hwpagetable);
+	if (flags & KGSL_MMUFLAGS_PTUPDATE) {		/*
 		 * We need to perfrom the following operations for all
 		 * IOMMU units
 		 */
@@ -352,6 +358,14 @@ static void adreno_iommu_setstate(struct kgsl_device *device,
 				device->mmu.setstate_memory.gpuaddr +
 				KGSL_IOMMU_SETSTATE_NOP_OFFSET);
 		}
+		/* invalidate all base pointers */
+		*cmds++ = cp_type3_packet(CP_INVALIDATE_STATE, 1);
+		*cmds++ = 0x7fff;
+
+		if (flags & KGSL_MMUFLAGS_TLBFLUSH)
+			cmds += __adreno_add_idle_indirect_cmds(cmds,
+				device->mmu.setstate_memory.gpuaddr +
+				KGSL_IOMMU_SETSTATE_NOP_OFFSET);
 	}
 	if (flags & KGSL_MMUFLAGS_TLBFLUSH) {
 		/*
@@ -1788,9 +1802,10 @@ hang_dump:
 		      context_id, timestamp, context_id, ts_issued,
 		      adreno_dev->ringbuffer.wptr);
 	if (!adreno_dump_and_recover(device)) {
-		/* The timestamp that this process wanted
-		 * to wait on may be invalid or expired now
-		 * after successful recovery */
+		/* wait for idle after recovery as the
+		 * timestamp that this process wanted
+		 * to wait on may be invalid */
+		if (!adreno_idle(device, KGSL_TIMEOUT_DEFAULT))
 			status = 0;
 	}
 done:

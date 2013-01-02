@@ -335,8 +335,8 @@ enum mxt_device_state { INIT, APPMODE, BOOTLOADER, ACTIVE, DEEPSLEEP};
 #define MXT_BOOT_VALUE		0xa5
 #define MXT_BACKUP_VALUE	0x55
 #define MXT_BACKUP_TIME		25	/* msec */
-#define MXT224_RESET_TIME	65	/* msec */
-#define MXT224E_RESET_TIME	150	/* msec */
+#define MXT224_RESET_TIME	75	/* msec */
+#define MXT224E_RESET_TIME	22	/* msec */
 #define MXT1386_RESET_TIME	250	/* msec */
 #define MXT_RESET_TIME		250	/* msec */
 #define MXT_RESET_NOCHGREAD	400	/* msec */

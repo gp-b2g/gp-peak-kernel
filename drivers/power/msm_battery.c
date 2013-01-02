@@ -63,8 +63,7 @@
 #define	CHG_BOARD_TEMP_MIDDLE_PROC  13                  //alex.lu add 
 #define	CHG_BOARD_TEMP_HIGH_PROC    14                  //alex.lu add 
 
-
-#define	RPC_TIMEOUT			10000	/* 10 sec */
+#define	RPC_TIMEOUT			5000	/* 5 sec */
 #define	INVALID_HANDLER			-1
 
 #define	MSM_BATT_POLLING_TIME		(10 * HZ)

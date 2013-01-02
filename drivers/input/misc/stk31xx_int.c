@@ -42,7 +42,7 @@
 #include <linux/interrupt.h>
 
 #define CONFIG_STK_PS_ENGINEER_TUNING
-#define CONFIG_STK_SYSFS_DBG
+//#define CONFIG_STK_SYSFS_DBG
 
 #include "linux/stk31xx.h"
 #include "linux/stk_defines.h"
@@ -62,10 +62,6 @@
 #if ADDITIONAL_GPIO_CFG
 #include <linux/gpio.h>
 #define EINT_GPIO 136
-// Use irq_to_gpio() if it is possible
-// #include <plat/gpio.h>
-// #define EINT_GPIO (irq_to_gpio(client->irq))
-
 #endif
 
 #define STKALS_DRV_NAME	"stk_als"
@@ -216,7 +212,6 @@ inline void set_als_new_thd_by_reading(uint16_t alscode)
     set_als_thd_h((uint16_t)high_thd);
     set_als_thd_l((uint16_t)low_thd);
 }
-
 #endif // CONFIG_STK_PS_ALS_USE_CHANGE_THRESHOLD
 
 static int32_t init_all_setting(struct stk31xx_platform_data* plat_data)
@@ -298,13 +293,13 @@ static int32_t enable_ps_int(uint8_t enable)
     pStkPsData->ps_cmd_reg |= STK_PS_CMD_INT(enable);
     return i2c_smbus_write_byte_data(pStkPsData->client,STK_PS_CMD_REG,pStkPsData->ps_cmd_reg);
 }
+
 static int32_t enable_als_int(uint8_t enable)
 {
     pStkPsData->als_cmd_reg &= (~STK_ALS_CMD_INT_MASK);
     pStkPsData->als_cmd_reg |= STK_ALS_CMD_INT(enable);
     return i2c_smbus_write_byte_data(pStkPsData->client,STK_ALS_CMD_REG,pStkPsData->als_cmd_reg);
 }
-
 
 static int32_t set_als_it(uint8_t it)
 {
@@ -313,6 +308,7 @@ static int32_t set_als_it(uint8_t it)
     return i2c_smbus_write_byte_data(pStkPsData->client,STK_ALS_CMD_REG,pStkPsData->als_cmd_reg);
 
 }
+
 static int32_t set_als_gain(uint8_t gain)
 {
 	if(gain >= 2)
@@ -323,12 +319,14 @@ static int32_t set_als_gain(uint8_t gain)
     pStkPsData->als_cmd_reg |= (STK_ALS_CMD_GAIN_MASK & STK_ALS_CMD_GAIN(gain));
     return i2c_smbus_write_byte_data(pStkPsData->client,STK_ALS_CMD_REG,pStkPsData->als_cmd_reg);
 }
+
 static int32_t set_ps_it(uint8_t it)
 {
     pStkPsData->ps_cmd_reg &= (~STK_PS_CMD_IT_MASK);
     pStkPsData->ps_cmd_reg |= (STK_PS_CMD_IT_MASK & STK_PS_CMD_IT(it));
     return i2c_smbus_write_byte_data(pStkPsData->client,STK_PS_CMD_REG,pStkPsData->ps_cmd_reg);
 }
+
 static int32_t set_ps_slp(uint8_t slp)
 {
     pStkPsData->ps_cmd_reg &= (~STK_PS_CMD_SLP_MASK);
@@ -336,12 +334,14 @@ static int32_t set_ps_slp(uint8_t slp)
     return i2c_smbus_write_byte_data(pStkPsData->client,STK_PS_CMD_REG,pStkPsData->ps_cmd_reg);
 
 }
+
 static int32_t set_ps_led_driving_current(uint8_t irdr)
 {
     pStkPsData->ps_cmd_reg &= (~STK_PS_CMD_DR_MASK);
     pStkPsData->ps_cmd_reg |= (STK_PS_CMD_DR_MASK & STK_PS_CMD_DR(irdr));
     return i2c_smbus_write_byte_data(pStkPsData->client,STK_PS_CMD_REG,pStkPsData->ps_cmd_reg);
 }
+
 static int32_t set_ps_gc(uint8_t gc)
 {
     int32_t retval;
@@ -355,7 +355,6 @@ static int32_t set_ps_gc(uint8_t gc)
 
     return i2c_smbus_write_byte_data(pStkPsData->client,STK_PS_GC_REG,pStkPsData->ps_gc_reg);
 }
-
 
 static int32_t set_ps_thd_l(uint8_t thd_l)
 {
@@ -377,6 +376,7 @@ static int32_t set_als_thd_l(uint16_t thd_l)
     *(pSrc+1) = temp;
     return i2c_smbus_write_word_data(pStkPsData->client,STK_ALS_THD_L1_REG,thd_l);
 }
+
 static int32_t set_als_thd_h(uint16_t thd_h)
 {
     uint8_t temp;
@@ -462,7 +462,6 @@ static int sitronix_ts_permission_thread(void *data)
 }
 #endif // SITRONIX_PERMISSION_THREAD
 
-
 static int32_t get_ps_cali_file(char * r_buf, int8_t buf_size)
 {
 	struct file  *cali_file;
@@ -492,7 +491,6 @@ static int32_t get_ps_cali_file(char * r_buf, int8_t buf_size)
     filp_close(cali_file,NULL);	
 	return 0;	
 }
-
 
 static int32_t set_ps_cali_file(char * w_buf, int8_t buf_size)
 {
@@ -548,8 +546,6 @@ static int32_t set_ps_cali_file(char * w_buf, int8_t buf_size)
 	return 0;
 }
 
-
-
 static int32_t get_ps_cali_thd(int16_t *ps_thdh, int16_t *ps_thdl)
 {
 	char r_buf[STK_CALI_FILE_SIZE] = {0};
@@ -576,7 +572,6 @@ static int32_t get_ps_cali_thd(int16_t *ps_thdh, int16_t *ps_thdl)
 	
 	return 0;
 }
-
 
 static void set_ps_thd_to_file(int16_t ps_thd_data[])
 {
@@ -704,7 +699,6 @@ static int32_t judge_ct_cali_satu(int16_t ps_stat_data[])
 }
 #endif	/*	#if (defined(STK_MANUAL_CT_CALI) || defined(STK_AUTO_CT_CALI_SATU))	*/
 
-
 #if (defined(STK_MANUAL_CT_CALI) || defined(STK_MANUAL_GREYCARD_CALI) || defined(STK_AUTO_CT_CALI_NO_SATU) || defined(STK_AUTO_CT_CALI_SATU))
 static void set_ps_thd_to_driver(int16_t ps_thd_data[])
 {
@@ -763,7 +757,6 @@ static int32_t get_several_ps_data(int16_t ps_stat_data[])
 	return 0;
 }
 	
-
 static int32_t set_ps_cali(void)
 {
 	int16_t ps_statistic_data[3] = {0};
@@ -850,8 +843,6 @@ static int32_t set_ps_cali(void)
 }
 #endif	/* #if (defined(STK_MANUAL_CT_CALI) || defined(STK_MANUAL_GREYCARD_CALI) || defined(STK_AUTO_CT_CALI_NO_SATU) || defined(STK_AUTO_CT_CALI_SATU)) */
 
-
-
 inline void als_report_event(struct input_dev* dev,int32_t report_value)
 {
     pStkPsData->als_lux_last = report_value;
@@ -862,13 +853,18 @@ inline void als_report_event(struct input_dev* dev,int32_t report_value)
 
 inline void ps_report_event(struct input_dev* dev,int32_t report_value)
 {
+	/* Sometimes, when receiving a call on Firefox OS report_value is -1
+	   when you take it, report_value must be 1 to prevent blank screen issues.
+	*/
+	if(report_value < 0)
+		report_value = 1;
+
     pStkPsData->ps_distance_last = report_value;
 	input_report_abs(dev, ABS_DISTANCE, report_value);
 	input_sync(dev);
 	wake_lock_timeout(&proximity_sensor_wakelock, 2*HZ);
 	INFO("STK PS : ps input event %d cm\n",report_value);
 }
-
 
 static int32_t enable_ps(uint8_t enable)
 {
@@ -945,7 +941,6 @@ static int32_t enable_als(uint8_t enable)
     return ret;
 }
 
-
 #ifdef CONFIG_STK_SYSFS_DBG
 // For Debug
 static ssize_t help_show(struct kobject * kobj, struct kobj_attribute * attr, char * buf)
@@ -970,7 +965,6 @@ static ssize_t als_code_show(struct kobject * kobj, struct kobj_attribute * attr
     STK_LOCK(0);
     return sprintf(buf, "%d\n", reading);
 }
-
 
 static ssize_t ps_code_show(struct kobject * kobj, struct kobj_attribute * attr, char * buf)
 {
@@ -1232,7 +1226,6 @@ static ssize_t ps_sleep_time_show(struct kobject * kobj, struct kobj_attribute *
     return sprintf(buf, "0x%x\n", value);
 }
 
-
 static ssize_t ps_sleep_time_store(struct kobject *kobj,
                                 struct kobj_attribute *attr,
                                 const char *buf, size_t len)
@@ -1243,7 +1236,6 @@ static ssize_t ps_sleep_time_store(struct kobject *kobj,
     STK_LOCK(0);
     return len;
 }
-
 
 static ssize_t ps_led_driving_current_show(struct kobject * kobj, struct kobj_attribute * attr, char * buf)
 {
@@ -1256,7 +1248,6 @@ static ssize_t ps_led_driving_current_show(struct kobject * kobj, struct kobj_at
     return sprintf(buf, "0x%x\n", value);
 }
 
-
 static ssize_t ps_led_driving_current_store(struct kobject *kobj,
                                 struct kobj_attribute *attr,
                                 const char *buf, size_t len)
@@ -1267,6 +1258,7 @@ static ssize_t ps_led_driving_current_store(struct kobject *kobj,
     STK_LOCK(0);
     return len;
 }
+
 static ssize_t ps_integral_time_show(struct kobject * kobj, struct kobj_attribute * attr, char * buf)
 {
     int32_t value;
@@ -1278,7 +1270,6 @@ static ssize_t ps_integral_time_show(struct kobject * kobj, struct kobj_attribut
     return sprintf(buf, "0x%x\n", value);
 }
 
-
 static ssize_t ps_integral_time_store(struct kobject *kobj,
                                 struct kobj_attribute *attr,
                                 const char *buf, size_t len)
@@ -1289,6 +1280,7 @@ static ssize_t ps_integral_time_store(struct kobject *kobj,
     STK_LOCK(0);
     return len;
 }
+
 static ssize_t ps_gain_setting_show(struct kobject * kobj, struct kobj_attribute * attr, char * buf)
 {
     int32_t gc_reg;
@@ -1297,7 +1289,6 @@ static ssize_t ps_gain_setting_show(struct kobject * kobj, struct kobj_attribute
     STK_LOCK(0);
     return sprintf(buf, "0x%x\n", gc_reg);
 }
-
 
 static ssize_t ps_gain_setting_store(struct kobject *kobj,
                                 struct kobj_attribute *attr,
@@ -1324,7 +1315,6 @@ static ssize_t ps_code_thd_l_show(struct kobject * kobj, struct kobj_attribute *
     return sprintf(buf, "%d\n", ps_thd_l_reg);
 }
 
-
 static ssize_t ps_code_thd_l_store(struct kobject *kobj,
                                 struct kobj_attribute *attr,
                                 const char *buf, size_t len)
@@ -1349,7 +1339,6 @@ static ssize_t ps_code_thd_h_show(struct kobject * kobj, struct kobj_attribute *
     STK_LOCK(0);
     return sprintf(buf, "%d\n", ps_thd_h_reg);
 }
-
 
 static ssize_t ps_code_thd_h_store(struct kobject *kobj,
                                 struct kobj_attribute *attr,
@@ -1384,7 +1373,6 @@ static ssize_t als_lux_thd_l_show(struct kobject * kobj, struct kobj_attribute *
     return sprintf(buf, "%d\n", alscode2lux(als_thd_l0_reg));
 }
 
-
 static ssize_t als_lux_thd_l_store(struct kobject *kobj,
                                 struct kobj_attribute *attr,
                                 const char *buf, size_t len)
@@ -1418,7 +1406,6 @@ static ssize_t als_lux_thd_h_show(struct kobject * kobj, struct kobj_attribute *
 
     return sprintf(buf, "%d\n", alscode2lux(als_thd_h0_reg));
 }
-
 
 static ssize_t als_lux_thd_h_store(struct kobject *kobj,
                                 struct kobj_attribute *attr,
@@ -1471,7 +1458,6 @@ static ssize_t recv_show(struct kobject * kobj, struct kobj_attribute * attr, ch
 	return 0;
 }
 
-
 static ssize_t recv_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t len)
 {
     unsigned long value;
@@ -1486,7 +1472,6 @@ static ssize_t recv_store(struct kobject *kobj, struct kobj_attribute *attr, con
 	printk("STK PS: reg 0x%x=0x%x\n", (int)value, recv_data);
 	return len;
 }
-
 
 static ssize_t send_show(struct kobject * kobj, struct kobj_attribute * attr, char * buf)
 {
@@ -1604,6 +1589,7 @@ static struct attribute* sensetek_optical_sensors_dbg_attrs [] =
 #endif //CONFIG_STK_PS_ENGINEER_TUNING
     NULL,
 };
+
 // those attributes are only for engineer test/debug
 static struct attribute_group sensetek_optics_sensors_attrs_group =
 {
@@ -1628,7 +1614,6 @@ static int stk_sysfs_create_files(struct kobject *kobj,struct attribute** attrs)
 }
 
 static struct workqueue_struct *stk_oss_work_queue = NULL;
-
 
 static void stk_oss_work(struct work_struct *work)
 {
@@ -1672,7 +1657,6 @@ static void stk_oss_work(struct work_struct *work)
         set_als_new_thd_by_reading(reading);
 #endif //CONFIG_STK_PS_ALS_USE_CHANGE_THRESHOLD
         als_report_event(pStkPsData->als_input_dev,alscode2lux(reading));
-
     }
     if (ret&STK_PS_STATUS_PS_INT_FLAG_MASK)
     {
@@ -1718,8 +1702,6 @@ static void stk_oss_work(struct work_struct *work)
     STK_LOCK(0);
 }
 
-
-
 static irqreturn_t stk_oss_irq_handler(int irq, void *data)
 {
 	struct stkps31xx_data *pData = data;
@@ -1727,7 +1709,6 @@ static irqreturn_t stk_oss_irq_handler(int irq, void *data)
 	queue_work(stk_oss_work_queue,&pData->work);
 	return IRQ_HANDLED;
 }
-
 
 static int stk31xx_suspend(struct i2c_client *client, pm_message_t mesg)
 {
@@ -1780,7 +1761,6 @@ static int stk31xx_resume(struct i2c_client *client)
 
 	return 0;
 }
-
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void stk31xx_early_suspend(struct early_suspend *h)
@@ -1847,7 +1827,6 @@ static int stk_ps_probe(struct i2c_client *client,
         printk("STKPS -- No Support for I2C_FUNC_SMBUS_WORD_DATA\n");
         return -ENODEV;
     }
-
 
     if (id->driver_data == 0)
     {
@@ -1990,7 +1969,6 @@ static int stk_ps_probe(struct i2c_client *client,
     return -EINVAL;
 }
 
-
 static int stk_ps_remove(struct i2c_client *client)
 {
 	struct stk31xx_platform_data* plat_data;
@@ -2035,7 +2013,6 @@ static struct i2c_driver stk_ps_driver =
     .remove = stk_ps_remove,
     .id_table = stk_ps_id,
 };
-
 
 static int __init stk_i2c_ps31xx_init(void)
 {
