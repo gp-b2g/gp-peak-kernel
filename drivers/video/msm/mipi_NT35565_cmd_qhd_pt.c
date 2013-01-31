@@ -21,16 +21,16 @@ static struct mipi_dsi_phy_ctrl dsi_cmd_mode_phy_db = {
 	/* regulator */
 	{0x03, 0x01, 0x01, 0x00},
 	/* timing   */
-	{0xB4, 0x8D, 0x1D, 0x00, 0x20, 0x94, 0x20,
-	0x8F, 0x20, 0x03, 0x04},
+	{0xb9, 0x8e, 0x1f, 0x00, 0x98, 0x9c, 0x22, 0x90,
+	0x18, 0x03, 0x04},
 	/* phy ctrl */
 	{0x7f, 0x00, 0x00, 0x00},
 	/* strength */
-	{0xee, 0x02, 0x86, 0x00},	/* strength */
+	{0xbb, 0x02, 0x06, 0x00},
 	/* pll control */
-	{0x40, 0xf9, 0xb0, 0xda, 0x00, 0x50, 0x48, 0x63,
-	0x30, 0x07, 0x03,
-	0x05, 0x14, 0x03, 0x0, 0x0, 0x54, 0x06, 0x10, 0x04, 0x0},
+	{0x01, 0xec, 0x31, 0xd2, 0x00, 0x40, 0x37, 0x62,
+	0x01, 0x0f, 0x07,
+	0x05, 0x14, 0x03, 0x0, 0x0, 0x0, 0x20, 0x0, 0x02, 0x0},
 };
 
 static int mipi_cmd_nt35565_qhd_pt_init(void)
@@ -46,28 +46,25 @@ static int mipi_cmd_nt35565_qhd_pt_init(void)
 	pinfo.pdest = DISPLAY_1;
 	pinfo.wait_cycle = 0;
 	pinfo.bpp = 24;
-	pinfo.lcdc.h_back_porch = 50;
-	pinfo.lcdc.h_front_porch = 50;
-	pinfo.lcdc.h_pulse_width = 20;
-	pinfo.lcdc.v_back_porch = 11;
-	pinfo.lcdc.v_front_porch = 10;
-	pinfo.lcdc.v_pulse_width = 5;
+	pinfo.lcdc.h_back_porch = 100;
+	pinfo.lcdc.h_front_porch = 100;
+	pinfo.lcdc.h_pulse_width = 8;
+	pinfo.lcdc.v_back_porch = 20;
+	pinfo.lcdc.v_front_porch = 20;
+	pinfo.lcdc.v_pulse_width = 1;
 
 	pinfo.lcdc.border_clr = 0;	/* blk */
 	pinfo.lcdc.underflow_clr = 0xff;	/* blue */
 	pinfo.lcdc.hsync_skew = 0;
-	pinfo.bl_max = 32;
+	pinfo.bl_max = 20;
 	pinfo.bl_min = 0;
 	pinfo.fb_num = 2;
 
-	pinfo.clk_rate = 454000000;
+	pinfo.clk_rate = 499000000;
 
-	//pinfo.lcd.vsync_enable = TRUE;
-	//pinfo.lcd.hw_vsync_mode = TRUE;
-	pinfo.lcd.refx100 = 6000; /* adjust refx100 to prevent tearing */
-	pinfo.lcd.v_back_porch = 11;
-	pinfo.lcd.v_front_porch = 10;
-	pinfo.lcd.v_pulse_width = 5;
+	pinfo.lcd.vsync_enable = TRUE;
+	pinfo.lcd.hw_vsync_mode = TRUE;
+	pinfo.lcd.refx100 = 6100; /* adjust refx100 to prevent tearing */
 
 	pinfo.mipi.mode = DSI_CMD_MODE;
 	pinfo.mipi.dst_format = DSI_CMD_DST_FORMAT_RGB888;
@@ -75,10 +72,10 @@ static int mipi_cmd_nt35565_qhd_pt_init(void)
 	pinfo.mipi.rgb_swap = DSI_RGB_SWAP_RGB;
 	pinfo.mipi.data_lane0 = TRUE;
 	pinfo.mipi.data_lane1 = TRUE;
-	pinfo.mipi.t_clk_post = 0x22;
-	pinfo.mipi.t_clk_pre = 0x3f;
+	pinfo.mipi.t_clk_post = 0x20;
+	pinfo.mipi.t_clk_pre = 0x2F;
 	pinfo.mipi.stream = 0; /* dma_p */
-	pinfo.mipi.mdp_trigger = DSI_CMD_TRIGGER_SW;
+	pinfo.mipi.mdp_trigger = DSI_CMD_TRIGGER_SW_TE;
 	pinfo.mipi.dma_trigger = DSI_CMD_TRIGGER_SW;
 	pinfo.mipi.te_sel = 1; /* TE from vsync gpio */
 	pinfo.mipi.interleave_max = 1;

@@ -427,6 +427,14 @@ config GSENSOR_LIS3DH
 	help
 	 LIS3DH GSensor Driver implemented by cellon.
 
+config SENSORS_MMA845X
+        tristate "MMA8451/MMA8452/MMA8453 device driver"
+	depends on I2C
+        default n
+        help
+          If you say yes here you get support for the Freescale MMA8451/
+          MMA8452/MMA8453 sensors.
+
 config EP93XX_PWM
 	tristate "EP93xx PWM support"
 	depends on ARCH_EP93XX

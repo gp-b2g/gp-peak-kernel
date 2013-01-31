@@ -1634,12 +1634,8 @@ static void msm_pm_restart(char str, const char *cmd)
 	rmt_storage_client_shutdown_complete();
 #endif
 	msm_rpcrouter_close();
+	msm_proc_comm(PCOM_RESET_CHIP_IMM, &restart_reason, 0);
 
-	printk("restart str %c cmd %s",str,cmd);
-	if(str=='i')
-		msm_proc_comm(PCOM_RESET_CHIP_IMM, NULL, NULL);
-	else msm_proc_comm(PCOM_RESET_CHIP, &restart_reason, 0);
-	printk("%s sent\n", __func__);
 	for (;;)
 		;
 }

@@ -909,8 +909,7 @@ static int32_t enable_ps(uint8_t enable)
     	return reading; 			
         }
     
-	// Dummy report
-	ps_report_event(pStkPsData->ps_input_dev, -1);
+		ps_report_event(pStkPsData->ps_input_dev, 1);
         if (reading>=ps_code_high_thd)
         {
             ps_report_event(pStkPsData->ps_input_dev,0);

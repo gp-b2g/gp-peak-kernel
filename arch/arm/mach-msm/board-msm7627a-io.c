@@ -50,18 +50,21 @@
 #endif
 
 
-#if  defined(CONFIG_CELLON_PRJ_C8681)
+
 #ifdef CONFIG_RMI4_I2C
-#define S2202_ADDR	0x20
+#if defined(CONFIG_CELLON_PRJ_C8681)
+#define S2202_ADDR_20	0x20
+#define S2202_ADDR_70	0x70
 #define S2202_ATTN	82
 #define S2202_RST   30
-#endif /* CONFIG_RMI4_I2C */
 #else
-#ifdef CONFIG_RMI4_I2C
+
 #define S2202_ADDR	0x20
 #define S2202_ATTN	48
 #define S2202_RST   26
 #endif /* CONFIG_RMI4_I2C */
+#endif
+
 #ifdef CONFIG_TOUCHSCREEN_HX8526A
 #define HX8526A_ADDR     0x4a
 #define HX8526A_RST      26
@@ -71,7 +74,7 @@
 
 #define C8680_CTP_ID	115
 
-#endif /* CONFIG_CELLON_PRJ_C8681 */
+
 
 
 #define ATMEL_TS_I2C_NAME "maXTouch"
@@ -573,10 +576,21 @@ static struct rmi_device_platform_data s2202_platformdata = {
 //	.virtualbutton_map = &s2202_virtualbutton_map,
 };
 static struct i2c_board_info s2202_ts_devices_info[] __initdata = {
+#ifdef  CONFIG_CELLON_PRJ_C8681
+    {
+        I2C_BOARD_INFO("rmi_i2c_20", S2202_ADDR_20),
+        .platform_data = &s2202_platformdata,
+    },
+    {
+        I2C_BOARD_INFO("rmi_i2c_70", S2202_ADDR_70),
+        .platform_data = &s2202_platformdata,
+    },
+#else
     {
         I2C_BOARD_INFO("rmi_i2c", S2202_ADDR),
         .platform_data = &s2202_platformdata,
     },
+#endif
 
 };
 #endif
@@ -643,26 +657,40 @@ void atmel_gpio_uninit(void)
 int atmel_gpio_init(void)
 {
     int ret ;
-    ret = gpio_request(MXT_GPIO_INT,"atmel_int");
-    if(ret < 0){
-        printk("maxtouch get gpio int error\n");
-        return -EIO ;
-    }
-    ret = gpio_request(MXT_GPIO_RST,"atmel_rst") ;
-    if(ret < 0){
-        printk("maxtouch get gpio rst error\n");
-        gpio_free(MXT_GPIO_INT) ;
-        return -EIO ;
+
+    ret = gpio_request(MXT_GPIO_RST, "rmi4_rst");
+    if (ret) {
+    pr_err("%s: Failed to get attn gpio %d. Code: %d.",
+           __func__, MXT_GPIO_INT, ret);
+    return ret;
     }
 
-    ret = gpio_direction_input(MXT_GPIO_INT) ;
-    ret |= gpio_direction_output(MXT_GPIO_RST,1) ;
-    if(ret < 0){
-        printk("maxtouch set gpio direction error \n");
-        gpio_free(MXT_GPIO_INT) ;
-        gpio_free(MXT_GPIO_RST) ;
-        return -EIO ;
+    ret = gpio_tlmm_config(GPIO_CFG(MXT_GPIO_RST, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP,
+    		GPIO_CFG_8MA), GPIO_CFG_ENABLE);
+    if (ret) {
+    pr_err("%s: gpio_tlmm_config for %d failed\n",
+    	__func__, MXT_GPIO_RST);
+    return ret;
     }
+
+    gpio_set_value(MXT_GPIO_RST, 1);
+
+    ret = gpio_request(MXT_GPIO_INT, "rmi4_attn");
+    if (ret) {
+    pr_err("%s: Failed to get attn gpio %d. Code: %d.",
+           __func__, MXT_GPIO_INT, ret);
+    return ret;
+    }
+
+    ret = gpio_tlmm_config(GPIO_CFG(MXT_GPIO_INT, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP,
+    		GPIO_CFG_8MA), GPIO_CFG_ENABLE);
+    if(ret) {
+    pr_err("%s: gpio_tlmm_config for %d failed\n",
+    	__func__, MXT_GPIO_INT);
+    return ret;
+    }
+
+    gpio_set_value(MXT_GPIO_INT, 1);
 
   return 0 ;
 }

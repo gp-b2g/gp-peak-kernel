@@ -427,6 +427,8 @@ static int __devexit rmi_i2c_remove(struct i2c_client *client)
 static const struct i2c_device_id rmi_id[] = {
 	{ "rmi", 0 },
 	{ "rmi_i2c", 0 },
+	{ "rmi_i2c_20", 0 },
+	{ "rmi_i2c_70", 0 },
 	{ }
 };
 MODULE_DEVICE_TABLE(i2c, rmi_id);

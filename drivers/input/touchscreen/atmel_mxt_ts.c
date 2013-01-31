@@ -94,55 +94,93 @@ static const struct mxt_address_pair mxt_slave_addresses[] = {
 #define __UPDATE_CFG__
 
 static const u8 gp_config_data[] = {
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00,
-	0x1E, 0x0C, 0x32, 0x0A, 0x00, 0x05, 0x05, 0x00,
-	0x00, 0x00, 0x01, 0x00, 0x00, 0x83, 0x00, 0x00,
-	0x11, 0x0A, 0x01, 0x10, 0x32, 0x03, 0x03, 0x00,
-	0x01, 0x02, 0x21, 0x05, 0x0A, 0x0A, 0x0A, 0xbf,
-	0x03, 0x1b, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x0A, 0x0C, 0x83, 0x00, 0x0A,
-	0x01, 0x01, 0x01, 0x01, 0x2D, 0x03, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x19, 0x00,
-	0x00, 0x06, 0x0B, 0x10, 0x13, 0x15, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x03, 0x00, 0xEC, 0x2C, 0x4C, 0x1D, 0xF8,
-	0x2A, 0x58, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x03, 0x20, 0x20, 0x0A
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x05, 0x00,
+    0x1E, 0x0C, 0x32, 0x0A, 0x00, 0x14, 0x14, 0x00,
+    0x00, /*T8*/0x00, 0x19, 0x05, 0x01, 0x83, 0x00, 0x00,
+    0x11, 0x0A, 0x01, 0x10, /*T9_7*/0x28, 0x03, 0x03, 0x00,
+    0x01, 0x02, 0x21, 0x05, 0x0A, 0x0A, 0x0A, 0xbf,
+    0x03, 0x1b, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x40, 0x00, 0x0A, 0x0A, 0x83, 0x00, 0x0A,
+    0x01, 0x01, 0x01, 0x01, 0x28, 0x03, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x9F, 0x00,
+    0x00, 0x19, 0x00, 0xE7, 0xFF, 0x04, 0x14, 0x00,
+    0x00, 0x00, 0x0A, 0x0F, 0x14, 0xFF, 0x04, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x03, 0x00, 0xEC, 0x2C, 0x4C, 0x1D, 0xF8,
+    0x2A, 0x58, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x03, 0x10, 0x10, 0x0A
 };
 
 static const u8 c8680_config_data[] = {
-	0x00, 0x00,0x00, 0x00, 0x00, 0x04, 0x01, 0x00,
-	0x1E, 0x0C, 0x32, 0x0A, 0x00, 0x05, 0x05, 0x00,
-	0x00, 0x00, 0x01, 0x00, 0x00, 0x83, 0x00, 0x00,
-	0x11, 0x0A, 0x01, 0x10, 0x32, 0x03, 0x03, 0x00,
-	0x01, 0x02, 0x21, 0x05, 0x0A, 0x0A, 0x0A, 0xBF,
-	0x03, 0x1B, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x0A, 0x0C, 0x83, 0x00, 0x0A,
-	0x04, 0x01, 0x01, 0x01, 0x2D, 0x03, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x19, 0x00,
-	0x00, 0x06, 0x0B, 0x10, 0x13, 0x15, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x03, 0x00, 0xEC, 0x2C, 0x4C, 0x1D, 0xF8,
-	0x2A, 0x58, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x03, 0x20, 0x20, 0x0A
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x17, 0x00,
+    /*T_7*/0xff, 0xff, 0x32, /*T8*/0x0A, 0x00, 0x14, 0x14, 0x00,
+    0x00, /*T8_4*/0x00, 0x1e, 0x05, 0x01, /*T9*/0x83, 0x00, 0x00,
+    0x11, 0x0A, 0x01, 0x10, /*T9_7*/0x46, 0x03, 0x03, 0x00,
+    0x01, 0x02, 0x21, 0x05, 0x0A, 0x0A, 0x0A, 0xbf,
+    0x03, 0x1b, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x40, 0x00, 0x0A, 0x11, /*T15*/0x83, 0x00, 0x0A,
+    0x04, 0x01, 0x01, 0x01, /*T15_7*/0x32, 0x03, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x9F, 0x00,
+    0x00, 0x19, 0x00, 0xE7, 0xFF, 0x04, 0x14, 0x00,
+    0x00, 0x00, 0x0A, 0x0F, 0x14, 0xFF, 0x04, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x03, 0x00, 0xEC, 0x2C, 0x4C, 0x1D, 0xF8,
+    0x2A, 0x58, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x03, 0x10, 0x10, 0x0A
 };
 
+#ifdef CONFIG_CELLON_PRJ_C8669
+#define X_MAX  (480-1)
+#define X_MSB  ((X_MAX)>>8)&0xff
+#define X_LSB   (X_MAX)&0xff
+#define Y_MAX   (800-1)
+#define Y_MSB  ((Y_MAX)>>8)&0xff
+#define Y_LSB   (Y_MAX)&0xff
+static const u8 c8669_config_data[] = {
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x08, 0x00,
+    /*T7*/0xff, 0xff, 0x32, 0x0A, 0x00, 0x14, 0x14, 0x00,
+    0x00, 0x00, 0x19, 0x05, 0x01, 0x83, 0x00, 0x01,
+    0x11, 0x0B, 0x01, 0x10, 0x32, 0x03, /*switch9 */0x04, 0x00,
+    /*10-11*/0x03, 0x02, 0x21, 0x05, 0x0A, 0x0A, 0x0A, Y_LSB,
+    Y_MSB,X_LSB,X_MSB, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x0A, 0x0c, 0x83, 0x0E, 0x00,
+    0x03, 0x01, 0x01, /*T15*/0x01, 0x2d, 0x03, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x9F, 0x00,
+    0x00, 0x19, 0x00, 0xE7, 0xFF, 0x04, 0x14, 0x00,
+    0x00, 0x00, 0x0A, 0x0F, 0x14, 0xFF, 0x04, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x03, 0x00, 0xDB, 0x23, 0x3B, 0x14, 0xF0,
+    0x27, 0x50, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x02, 0x10, 0x10, 0x0A
+
+};
+
+
+
+#endif
+
 static char * driver_ver [] = {
- "add version info"
+ "add version info",
+ "update config file",
+ "optimize atmel tp"
 };
 
 static ssize_t atmel_driver_show(struct device *dev,
@@ -237,6 +275,11 @@ enum mxt_device_state { INIT, APPMODE, BOOTLOADER, ACTIVE, DEEPSLEEP};
 #define MXT_ACQUIRE_ATCHCALST	6
 #define MXT_ACQUIRE_ATCHCALSTHR	7
 
+#define MXT_T8_ATCHCALST               6
+#define MXT_T8_ATCHCALSTTHR            7
+#define MXT_T8_ATCHFRCCALTHR           8
+#define MXT_T8_ATCHFRCCALRATIO         9
+#define MXT_T6_CALIB_OFFSET            2
 /* MXT_TOUCH_MULT_T9 field */
 #define MXT_TOUCH_CTRL		0
 #define MXT_TOUCH_XORIGIN	1
@@ -426,16 +469,29 @@ struct mxt_finger {
 	int pressure;
 };
 
+#define X_LINE  17
+#ifdef CONFIG_CELLON_PRJ_C8669
+#define Y_LINE  12
+#else
+#define Y_LINE  11
+#endif
+#define SIZE_REFS  512
+#define MXT_PAGE_SIZE  128
+#define PAGE_NUM    4
+
 /* Each client has this additional data */
 struct mxt_data {
 	struct i2c_client *client;
 	struct input_dev *input_dev;
-    struct hrtimer timer ;
+    struct timer_list hrtimer ;
     int tp_type ;
+    int cali_bit ;
+    int cali_count ;
 	const struct mxt_platform_data *pdata;
 	const struct mxt_config_info *config_info;
 	struct workqueue_struct *atmel_wq;
 	struct work_struct work;
+    struct work_struct cali_work ;
 	enum mxt_device_state state;
 	struct mxt_object *object_table;
     u16 mem_size;
@@ -467,7 +523,10 @@ struct mxt_data {
 	int t38_start_addr;
 	bool update_cfg;
 	const char *fw_name;
-    u8 max_reportid;
+    u8 max_reportid ;
+    u8 refs_buf[SIZE_REFS] ;
+    short refs_array[X_LINE][Y_LINE] ;
+    short old_array[X_LINE][Y_LINE] ;
 };
 
 static struct dentry *debug_base;
@@ -494,6 +553,7 @@ static bool mxt_object_writable(unsigned int type)
        case MXT_PROCI_GRIPFACE_T20:
        case MXT_PROCG_NOISE_T22:
        case MXT_SPT_CTECONFIG_T46:
+       case MXT_SPT_CTECONFIG_T28:
 		return true;
 	default:
 		return false;
@@ -819,6 +879,20 @@ static int mxt_read_object(struct mxt_data *data,
 	return __mxt_read_reg(data->client, reg + offset, 1, val);
 }
 
+static int mxt_read_object_ext(struct mxt_data *data,
+				u8 type, u8 offset, u8 *val, u8 len)
+{
+	struct mxt_object *object;
+	u16 reg;
+
+	object = mxt_get_object(data, type);
+	if (!object)
+		return -EINVAL;
+
+	reg = object->start_address;
+	return __mxt_read_reg(data->client, reg + offset, len, val);
+}
+
 //return 0 success
 static int mxt_write_object(struct mxt_data *data,
 				 u8 type, u8 offset, u8 val)
@@ -834,6 +908,8 @@ static int mxt_write_object(struct mxt_data *data,
 	return mxt_write_reg(data->client, reg + offset, val);
 }
 
+static int cali_tp(struct mxt_data * data );
+
 static void mxt_input_report(struct mxt_data *data, int single_id)
 {
 	struct mxt_finger *finger = data->finger;
@@ -841,6 +917,7 @@ static void mxt_input_report(struct mxt_data *data, int single_id)
 	//int status = finger[single_id].status;
 	int finger_num = 0;
 	int id;
+    static int last_status = MXT_RELEASE ;
 
 	for (id = 0; id < MXT_MAX_FINGER; id++) {
 		if (!finger[id].status)
@@ -866,22 +943,30 @@ static void mxt_input_report(struct mxt_data *data, int single_id)
 		if (finger[id].status != MXT_RELEASE) {
             //dbg_printk("report key id[%d]\n",id);
 			finger_num++;
+            last_status = MXT_DETECT ;
 			input_report_abs(input_dev, ABS_MT_TOUCH_MAJOR,
-					finger[id].area);
+					MXT_MAX_AREA/2);
 			input_report_abs(input_dev, ABS_MT_POSITION_X,
 					finger[id].x);
 			input_report_abs(input_dev, ABS_MT_POSITION_Y,
 					finger[id].y);
 			input_report_abs(input_dev, ABS_MT_PRESSURE,
-					 finger[id].pressure);
+					 MXT_MAX_PRESSURE/2);
 		} else {
 		    //dbg_printk("staus set to 0\n");
 			finger[id].status = 0;
 		}
 	}
 
-
-    //dbg_printk(" all key report\n");
+    /*
+        antitouch calibration conditions:
+        1. all finger leave.
+        2. need calibration again.
+        3. last finger detect.
+        4. 10 seconds timeout from booting/resume system.
+    */
+    if(!finger_num)
+        last_status = MXT_RELEASE ;
     input_report_key(input_dev, BTN_TOUCH, finger_num > 0);
 	input_sync(input_dev);
 }
@@ -899,6 +984,83 @@ static void mxt_cleanup_finger(struct mxt_data *data)
     mxt_input_report(data, id);
 }
 
+static int mxt_read_refs(struct mxt_data *data)
+{
+    int ret = 0 ;
+    int i = 0 ,j=0;
+    short * buffer ;
+    u8 * tmp_buf ;
+    int count = 0 ;
+    int tmp ;
+
+    //info_printk("entry\n");
+
+    ret = mxt_write_object(data,MXT_GEN_COMMAND_T6,MXT_COMMAND_DIAGNOSTIC,0x11) ;
+    if(ret){
+        err_printk("write COMMAND T6 error\n");
+        return 1 ;
+    }
+
+    do{
+        msleep(5);
+        mxt_read_object(data,MXT_DEBUG_DIAGNOSTIC_T37,0,(u8 *)&ret) ;
+        count ++ ;
+     }while(ret!= 0x11 && count<=20) ;
+
+    //info_printk("refs value[%0x],count[%d]\n",ret,count);
+
+
+    tmp_buf = data->refs_buf ;
+    for(i=0;i<PAGE_NUM;i++){
+
+  mxt_read_object_ext(data,MXT_DEBUG_DIAGNOSTIC_T37,j+2,tmp_buf,MXT_PAGE_SIZE);
+  tmp_buf +=MXT_PAGE_SIZE ;
+
+    count = 0 ;
+     mxt_write_object(data,MXT_GEN_COMMAND_T6,MXT_COMMAND_DIAGNOSTIC,0x01) ;
+    do{
+         msleep(5);
+         mxt_read_object(data,MXT_DEBUG_DIAGNOSTIC_T37,1,(u8 *)&ret) ;
+         count ++ ;
+     }while(ret!=(i+1) && count<=20) ;
+
+    //info_printk("page value[%0x],count[%d]\n",ret,count);
+   }
+
+
+    buffer = (short *)data->refs_buf ;
+
+    for(i=0;i<X_LINE;i++){
+     for(j=0;j<Y_LINE;j++){
+        data->old_array[i][j] = data->refs_array[i][j] ;
+        data->refs_array[i][j] = *buffer++ ;
+       // info_printk("new:x%02d,y%02d,data[%d]\n",i,j,data->refs_array[i][j]);
+       // info_printk("old:x%02d,y%02d,data[%d]\n",i,j,data->old_array[i][j]);
+     }
+    }
+
+    for(i=0;i<X_LINE;i++){
+     for(j=0;j<Y_LINE;j++){
+       tmp = data->refs_array[i][j] - data->old_array[i][j] ;
+        if(tmp>200 || tmp<-200){
+          //info_printk("new:x%02d,y%02d,data[%d]\n",i,j,data->refs_array[i][j]);
+         // info_printk("old:x%02d,y%02d,data[%d]\n",i,j,data->old_array[i][j]);
+          mxt_write_object(data,MXT_GEN_COMMAND_T6,MXT_T6_CALIB_OFFSET,0x01);
+          goto out ;
+        }
+        //info_printk("x%02d,y%02d,data[%d]\n",i,j,data->refs_array[i][j]);
+     }
+    }
+   // info_printk("data->cali_count[%d]\n",data->cali_count);
+    data->cali_bit = 1 ;
+
+out:
+    info_printk("done\n");
+    return 0 ;
+}
+
+
+
 static void mxt_handle_calibration(struct mxt_data *data,
 				      struct mxt_message *message)
 {
@@ -906,6 +1068,12 @@ static void mxt_handle_calibration(struct mxt_data *data,
 	u8 status = message->message[0];
 
 	dev_warn(dev, "%s, T6 status: 0x%x.\n", __func__, status);
+    data->cali_bit = 0 ;
+    data->cali_count = 0 ;
+    if(status ==0x00){
+      //msleep(500);
+      mxt_read_refs(data);
+    }
 	if (status & MXT_COMMAND_MSG_CALIBRATE)
 		mxt_cleanup_finger(data);
 }
@@ -943,7 +1111,9 @@ static void mxt_input_touchevent(struct mxt_data *data,
 	int y;
 	int area;
 	int pressure;
-
+    #ifdef CONFIG_CELLON_PRJ_C8669
+    int tmp ;
+    #endif
     dbg_printk("finger id[%d]: status :",id) ;
     if(status &MXT_RELEASE)
         dbg_printk("RELEASE\n");
@@ -978,6 +1148,12 @@ static void mxt_input_touchevent(struct mxt_data *data,
 	if (data->pdata->panel_maxy < 1024)
 		y = y >> 2;
 
+   //switch x,y;
+#ifdef CONFIG_CELLON_PRJ_C8669
+    tmp = x ;
+    x   = y ;
+    y   = tmp ;
+#endif
 	area = message->message[4];
 	pressure = message->message[5];
 
@@ -1000,20 +1176,31 @@ static void mxt_input_touchevent(struct mxt_data *data,
 #define _b_x  360
 #define _s_x  500
 
+
+/*
+    key layout
+    one   icon : HOME
+    three icon : BACK,HOME,MENU
+    four  icon : MENU,HOME,BACK,SEARCH
+
+    key value
+    1,2,4,8
+*/
+
+
 static inline int is_key(struct mxt_data * data,int code)
 {
     switch(code){
         case 1 :
-        {
             if(data->tp_type==1)
                 return KEY_HOME ;
-            if(data->tp_type==4)
+            if(data->tp_type==3 || data->tp_type==4)
                 return KEY_MENU ;
-        }
         case 2 :
             return KEY_HOME ;
         case 4 :
-            return KEY_BACK ;
+           if(data->tp_type==3 || data->tp_type==4)
+               return KEY_BACK ;
         case 8:
             return KEY_SEARCH ;
             break ;
@@ -1033,7 +1220,7 @@ static int atmel_report_virtual_key(struct mxt_data * data,int code,int value)
     if(!key)return 0 ;
 
   if(!value){
-        info_printk("virtual key release\n");
+       // info_printk("virtual key release\n");
         status = MXT_RELEASE ;
     } else{
         status = MXT_DETECT ;
@@ -1062,7 +1249,7 @@ static int atmel_report_virtual_key(struct mxt_data * data,int code,int value)
             return 0 ;
     }
 
-    dbg_printk("report key [%d]\n",key);
+    //dbg_printk("report key [%d]\n",key);
     input_mt_slot(data->input_dev,0) ;
     input_mt_report_slot_state(data->input_dev, MT_TOOL_FINGER,
                     status != MXT_RELEASE);
@@ -1085,7 +1272,6 @@ static void mxt_handle_key_array(struct mxt_data *data,
 {
 	u32 keys_changed;
 
-    info_printk("new array[%d]\n",data->keyarray_new);
 	data->keyarray_new = message->message[1] |
 				(message->message[2] << 8) |
 				(message->message[3] << 16);
@@ -1099,7 +1285,7 @@ static void mxt_handle_key_array(struct mxt_data *data,
 	}
 
     #ifdef __KERNEL_KEY__
-	input_report_key(data->input_dev, is_key(data,keys_changed),data->keyarray_new&(keys_changed),);
+	input_report_key(data->input_dev, is_key(data,keys_changed),data->keyarray_new&(keys_changed));
 	input_sync(data->input_dev);
     #else
     atmel_report_virtual_key(data,keys_changed,data->keyarray_new & (keys_changed));
@@ -1192,8 +1378,12 @@ static int mxt_check_reg_init(struct mxt_data *data)
         err_printk("read tp type error\n");
         return -EIO ;
     }
-    if( type==1 || type==0){
-        cfg_data = gp_config_data;
+
+	//if type==0,default select one icon mode
+
+#ifndef CONFIG_CELLON_PRJ_C8669
+    if( type==1 ||type==0){
+        cfg_data = gp_config_data ;
         size     = sizeof(gp_config_data) ;
         data->tp_type = 1 ;
         info_printk("select one icon tp config data\n");
@@ -1207,6 +1397,14 @@ static int mxt_check_reg_init(struct mxt_data *data)
         data->tp_type = 0 ;
         return -EIO ;
     }
+
+#else
+    cfg_data = c8669_config_data ;
+    size     = sizeof(c8669_config_data);
+    data->tp_type = 3 ;
+    type = 3 ;
+    info_printk("select three icon tp config data\n");
+#endif
 
     info_printk("select %d icon tp config data\n",type);
     cfg_ver = cfg_data[CONFIG_VER_OFFSET] ;
@@ -1222,16 +1420,13 @@ static int mxt_check_reg_init(struct mxt_data *data)
 
 	for (i = 0; i < data->info.object_num; i++) {
 		object = data->object_table + i;
-
-		if (!mxt_object_writable(object->type))
-			continue;
-
      dbg_printk(": object->type = %d, object->size = %d\n", object->type, object->size);
-
+     if (!mxt_object_writable(object->type))
+                 continue;
 		for (j = 0; j < object->size; j++) {
 			config_offset = index + j;
-      dbg_printk(": config_offset = %d, data= %02x\n",
-                   config_offset, cfg_data[config_offset]);
+      dbg_printk(": config_offset = %d, data= %02x:%d\n",
+                   config_offset, cfg_data[config_offset],cfg_data[config_offset]);
 			if (config_offset > size) {
  				info_printk(": Not enough config data!\n");
  				return -EINVAL;
@@ -1534,9 +1729,6 @@ static int mxt_get_config(struct mxt_data *data)
 	return 0;
 }
 
-
-
-
 static int mxt_save_objects(struct mxt_data *data)
 {
 	struct i2c_client *client = data->client;
@@ -1691,7 +1883,11 @@ static ssize_t mxt_one_object_show(struct device *dev,
     int count =0 ;
     int j  ;
     u8 val, error;
+    if(one_object_type<=0)
+        return 0 ;
     object = mxt_get_object(data,one_object_type) ;
+    if(!object)
+        return 0 ;
     for (j = 0; j < object->size/* + 1*/; j++) {
 			error = mxt_read_object(data,
 						object->type, j, &val);
@@ -1725,7 +1921,7 @@ static ssize_t mxt_device_status_show(struct device *dev,
         count =  snprintf(buf,PAGE_SIZE,"%s\n","deepsleep");
     else
        count  =  snprintf(buf,PAGE_SIZE,"%s\n","none") ;
-
+       count += snprintf(buf+count,PAGE_SIZE,":%d\n",data->tp_type);
     return count ;
 }
 
@@ -1757,14 +1953,14 @@ static ssize_t mxt_object_show(struct device *dev,
 		if (count >= PAGE_SIZE)
 			return PAGE_SIZE - 1;
 
-		for (j = 0; j < object->size + 1; j++) {
+		for (j = 0; j < object->size; j++) {
 			error = mxt_read_object(data,
 						object->type, j, &val);
 			if (error)
 				return error;
 
 			count += snprintf(buf + count, PAGE_SIZE - count,
-					"\t[%2d]: %02x (%d)\n", j, val, val);
+					"\t[%2d]: %02d\n", j, val);
 			if (count >= PAGE_SIZE)
 				return PAGE_SIZE - 1;
 		}
@@ -2115,7 +2311,7 @@ static void mxt_input_close(struct input_dev *dev)
 
 static int mxt_reset(struct mxt_data *data)
 {
-	int error;
+    int error  = 0;
 
 	/* Re-Calibrate the touch to avoid some error*/
 	error = mxt_write_object(data, MXT_GEN_COMMAND_T6,
@@ -2140,8 +2336,6 @@ static int mxt_suspend(struct device *dev)
 
 	disable_irq(data->client->irq);
 
-	mxt_reset_delay(data);
-
 	if (cancel_work_sync(&data->work))
 		enable_irq(data->client->irq);
 
@@ -2158,11 +2352,12 @@ static int mxt_suspend(struct device *dev)
 	}
 
 	mutex_unlock(&input_dev->mutex);
-
+    data->cali_bit =  0 ;
+    data->cali_count = 0 ;
 	mxt_cleanup_finger(data);
-
-	mxt_reset_delay(data);
-
+    if(timer_pending(&data->hrtimer)){
+        del_timer_sync(&data->hrtimer) ;
+    }
 	return 0;
 }
 
@@ -2172,10 +2367,6 @@ static int mxt_resume(struct device *dev)
 	struct mxt_data *data = i2c_get_clientdata(client);
 	struct input_dev *input_dev = data->input_dev;
 	int error;
-
-	mxt_reset(data);
-
-	mxt_reset_delay(data);
 
 	mutex_lock(&input_dev->mutex);
 
@@ -2189,10 +2380,9 @@ static int mxt_resume(struct device *dev)
 	}
 
 	mutex_unlock(&input_dev->mutex);
-
+    mxt_reset(data);
+    data->cali_count = 0 ;
 	enable_irq(data->client->irq);
-
-	mxt_reset_delay(data);
 
 	return 0;
 }
@@ -2287,6 +2477,104 @@ static void __devinit mxt_debugfs_init(struct mxt_data *data)
 	}
 }
 
+#define CALI_SIZE 82
+
+#if 1
+#define TOUCH_P 35
+#define ANTOUCH_END 75
+#else
+#define TOUCH_P 37
+#define ANTOUCH_END 77
+#endif
+
+#define ANTOUCH_P 42
+#define CAL_VAL  10
+
+
+//0:calibration success   1:calibration
+static int cali_tp(struct mxt_data * data )
+{
+    int ret = 0 ;
+    int touch_sum = 0 ;
+    int antitouch_sum = 0 ;
+    int i ;
+    u8 tmp ;
+
+    dbg_printk(" calibration\n");
+
+    ret = mxt_write_object(data,MXT_GEN_COMMAND_T6,MXT_COMMAND_DIAGNOSTIC,0xF3) ;
+    if(ret){
+        err_printk("write COMMAND T6 error\n");
+        return 1 ;
+    }
+
+    msleep(10);
+    //read touch number
+    for(i=2;i< CALI_SIZE;i++)
+    {
+
+        ret = mxt_read_object(data,MXT_DEBUG_DIAGNOSTIC_T37,i,&tmp);
+        if(ret){
+           err_printk("read T37 error\n");
+           return 1 ;
+        }
+
+        //info_printk(" i[%d],tmp[%x] \n",i,tmp);
+        if( i<= TOUCH_P)
+        {
+           while(tmp){
+           touch_sum ++ ;
+           tmp = tmp&(tmp -1) ;
+           }
+        }else if(i >= ANTOUCH_P && i<= ANTOUCH_END){
+           while(tmp){
+           antitouch_sum ++ ;
+           tmp = tmp&(tmp-1) ;
+           }
+        }
+
+
+    }
+
+  dbg_printk("touch_sum[%d],antitouch_sum[%x]\n",touch_sum,antitouch_sum);
+
+
+    if((touch_sum==0 )&&(antitouch_sum==0)){
+    // calibration may be good
+    //todo close calibration
+    if(data->cali_count>=10){
+     mxt_write_object(data,MXT_GEN_ACQUIRE_T8,MXT_T8_ATCHCALST,0xff);
+     mxt_write_object(data,MXT_GEN_ACQUIRE_T8,MXT_T8_ATCHCALSTTHR,0x01);
+     mxt_write_object(data,MXT_GEN_ACQUIRE_T8,MXT_T8_ATCHFRCCALTHR,0x00);
+     mxt_write_object(data,MXT_GEN_ACQUIRE_T8,MXT_T8_ATCHFRCCALRATIO,0x00);
+     data->cali_bit = 1 ;//calibration success
+    }
+     dbg_printk(" calibration success\n");
+     return 0 ;
+    }else if(antitouch_sum>0/*touch_sum + CAL_VAL < antitouch_sum*/){
+     data->cali_bit = 0 ;//calibration again
+     dbg_printk("need calibration again\n");
+     mxt_write_object(data,MXT_GEN_COMMAND_T6,MXT_T6_CALIB_OFFSET,0x01);
+     return 1 ;
+   }
+
+    return 1 ;
+}
+
+
+static void atmel_ts_cali_work(struct work_struct *work)
+{
+	struct mxt_data *data = container_of(work, struct mxt_data, cali_work);
+
+    return ;
+
+    data->cali_count ++ ;
+
+    if(data->cali_count<=20 && !data->cali_bit){
+      cali_tp(data);
+      mod_timer(&data->hrtimer,jiffies + (HZ/2));
+    }
+}
 static void atmel_ts_work_func(struct work_struct *work)
 {
 	struct mxt_data *data = container_of(work, struct mxt_data, work);
@@ -2342,80 +2630,30 @@ end:
     if(object)
     mxt_input_report(data, id);
 
+    //info_printk("bit[%d],count[%d]\n",data->cali_bit,data->cali_count);
+    if(data->cali_bit&&data->cali_count<=30)
+      data->cali_count++ ;
+
+    if(data->cali_count==30){
+      mxt_write_object(data,MXT_GEN_ACQUIRE_T8,MXT_T8_ATCHCALST,0xff);
+      mxt_write_object(data,MXT_GEN_ACQUIRE_T8,MXT_T8_ATCHCALSTTHR,0x01);
+      mxt_write_object(data,MXT_GEN_ACQUIRE_T8,MXT_T8_ATCHFRCCALTHR,0x00);
+      mxt_write_object(data,MXT_GEN_ACQUIRE_T8,MXT_T8_ATCHFRCCALRATIO,0x00);
+    }
+
 	enable_irq(data->client->irq);
 
 }
 
-#define CALI_SIZE 64
-#define CAL_VAL  20
-
-//0:calibration success   1:calibration
-static int cali_tp(struct mxt_data * data )
+ static void timer_func(unsigned long timer)
 {
-    int ret = 0 ;
-    int touch_sum = 0 ;
-    int antitouch_sum = 0 ;
-    int i ;
-    u8 tmp ;
 
-    return 0 ;
-    ret = mxt_write_object(data,MXT_GEN_COMMAND_T6,MXT_COMMAND_DIAGNOSTIC,0x3F) ;
-    if(ret){
-        err_printk("write COMMAND T6 error\n");
-        return 1 ;
-    }
+    struct mxt_data *data = (struct mxt_data*)timer ;
 
-    //read touch number
-    for(i=0;i< CALI_SIZE;i++)
-    {
-        ret = mxt_read_object(data,MXT_DEBUG_DIAGNOSTIC_T37,i,&tmp);
-        if(ret){
-           err_printk("read T37 error\n");
-           return 1 ;
-        }
-        if(i<CALI_SIZE/2)
-        {
-           while(tmp){
-           touch_sum ++ ;
-           tmp = tmp&(tmp-1) ;
-           }
-        }else {
-           while(tmp){
-           antitouch_sum ++ ;
-           tmp = tmp&(tmp-1) ;
-           }
-        }
+    dbg_printk("timer [%d]\n",data->cali_count) ;
+	queue_work(data->atmel_wq, &data->cali_work);
 
-
-    }
-
-    if(touch_sum &&(antitouch_sum==0)){
-        // calibration may be good
-        //todo close calibration
-        return 0 ;
-    }else if(touch_sum+CAL_VAL<antitouch_sum){
-
-        return 1 ;
-   }
-
-    return 1 ;
-}
-
-static enum hrtimer_restart timer_func(struct hrtimer *timer)
-{
-    static int count = 0 ;
-    struct mxt_data *ts = container_of(timer, struct mxt_data, timer);
-    info_printk("timer [%d]\n",count) ;
-
-    if(count++>10){
-        count = 0 ;
-        return HRTIMER_NORESTART ;
-    }
-
-    if(cali_tp(ts))
-     hrtimer_start(&ts->timer, ktime_set(1,0), HRTIMER_MODE_REL);
-
-    return HRTIMER_NORESTART;
+    return ;
 }
 
 
@@ -2461,7 +2699,12 @@ static int __devinit mxt_probe(struct i2c_client *client,
 	__set_bit(EV_KEY, input_dev->evbit);
     __set_bit(EV_SYN,input_dev->evbit) ;
 	__set_bit(BTN_TOUCH, input_dev->keybit);
-
+    #ifdef __KERNEL_KEY__
+    __set_bit(KEY_MENU,input_dev->keybit);
+    __set_bit(KEY_BACK,input_dev->keybit);
+    __set_bit(KEY_HOME,input_dev->keybit);
+    __set_bit(KEY_SEARCH,input_dev->keybit);
+    #endif
 	/*
 	For multi touch
     disp_maxx = DEFAULT_X_RESOLUTION;
@@ -2518,7 +2761,7 @@ static int __devinit mxt_probe(struct i2c_client *client,
 
 
     INIT_WORK(&data->work, atmel_ts_work_func);
-
+    INIT_WORK(&data->cali_work, atmel_ts_cali_work);
     error = request_irq(gpio_to_irq(pdata->gpio_irq), mxt_irq_handler,
             IRQF_DISABLED|IRQF_TRIGGER_LOW, client->dev.driver->name, data);
     if (error) {
@@ -2577,9 +2820,15 @@ static int __devinit mxt_probe(struct i2c_client *client,
         info_printk("T9[0x%x]\n",i);
     }
 
-    hrtimer_init(&data->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-    data->timer.function = timer_func;
-    hrtimer_start(&data->timer, ktime_set(1, 0), HRTIMER_MODE_REL);
+    data->cali_bit   = 0 ;
+    data->cali_count = 0 ;
+
+    init_timer(&data->hrtimer);
+    data->hrtimer.function = timer_func;
+    data->hrtimer.data     = (unsigned long)data ;
+    data->hrtimer.expires  = jiffies + HZ ;
+    add_timer(&data->hrtimer) ;
+    mxt_write_object(data,MXT_GEN_COMMAND_T6,MXT_T6_CALIB_OFFSET,0x01);
     info_printk("max touch  probe success\n");
     return 0;
 

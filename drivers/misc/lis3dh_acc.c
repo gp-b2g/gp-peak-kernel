@@ -315,17 +315,21 @@ static int lis3dh_acc_hw_init(struct lis3dh_acc_data *acc)
 	int err = -1;
 	u8 buf[7];
 
-	printk(KERN_INFO "%s: hw init start\n", LIS3DH_ACC_DEV_NAME);
+	//printk(KERN_INFO "%s: hw init start\n", LIS3DH_ACC_DEV_NAME);
 
-	buf[0] = WHO_AM_I;
-	err = lis3dh_acc_i2c_read(acc, buf, 1);
-	printk(KERN_INFO "%d: who am i\n",buf[0]);
-	if (err < 0) {
-	dev_warn(&acc->client->dev, "Error reading WHO_AM_I: is device "
-		"available/working?\n");
+	//buf[0] = WHO_AM_I;
+	//err = lis3dh_acc_i2c_read(acc, buf, 1);
+	buf[0] = i2c_smbus_read_byte_data(acc->client, WHO_AM_I);
+	printk(KERN_INFO "lis3dh_acc chip id[%x]\n",buf[0]);
+	if (buf[0] !=  WHOAMI_LIS3DH_ACC) {
+		dev_err(&acc->client->dev,
+		"device unknown. Expected: 0x%x,"
+		" Replies: 0x%x\n", WHOAMI_LIS3DH_ACC, buf[0]);
+		err = -1; /* choose the right coded error */
 		goto err_firstread;
 	} else
 		acc->hw_working = 1;
+#if 0
 	if (buf[0] != WHOAMI_LIS3DH_ACC) {
 	dev_err(&acc->client->dev,
 		"device unknown. Expected: 0x%x,"
@@ -333,7 +337,7 @@ static int lis3dh_acc_hw_init(struct lis3dh_acc_data *acc)
 		err = -1; /* choose the right coded error */
 		goto err_unknown_device;
 	}
-	
+#endif	
 	lis3dh_chip_id = true; //gsh add
 	
 	buf[0] = CTRL_REG1;
@@ -392,16 +396,16 @@ static int lis3dh_acc_hw_init(struct lis3dh_acc_data *acc)
 		goto err_resume_state;
 
 	acc->hw_initialized = 1;
-	printk(KERN_INFO "%s: hw init done\n", LIS3DH_ACC_DEV_NAME);
+	//printk(KERN_INFO "%s: hw init done\n", LIS3DH_ACC_DEV_NAME);
 	return 0;
 
 err_firstread:
 	acc->hw_working = 0;
-err_unknown_device:
+//err_unknown_device:
 err_resume_state:
 	acc->hw_initialized = 0;
-	dev_err(&acc->client->dev, "hw init error 0x%x,0x%x: %d\n", buf[0],
-			buf[1], err);
+//	dev_err(&acc->client->dev, "hw init error 0x%x,0x%x: %d\n", buf[0],
+//			buf[1], err);
 	return err;
 }
 
@@ -434,7 +438,7 @@ static void lis3dh_acc_device_power_off(struct lis3dh_acc_data *acc)
 
 static int lis3dh_acc_device_power_on(struct lis3dh_acc_data *acc)
 {
-	int err = -1;
+	int err = 0;
 
 	if (acc->pdata->power_on) {
 		err = acc->pdata->power_on();
@@ -463,7 +467,7 @@ static int lis3dh_acc_device_power_on(struct lis3dh_acc_data *acc)
 		if(acc->pdata->gpio_int2 >= 0)
 			enable_irq(acc->irq2);
 	}
-	return 0;
+	return err;
 }
 
 static irqreturn_t lis3dh_acc_isr1(int irq, void *dev)
@@ -1276,15 +1280,13 @@ static int lis3dh_acc_probe(struct i2c_client *client,
 
 	memcpy(acc->pdata, client->dev.platform_data, sizeof(*acc->pdata));
 
-  printk(KERN_INFO "poll: %d   g_rang: %d negate_z : %d\n",acc->pdata->poll_interval,
-									acc->pdata->g_range,acc->pdata->negate_z);
+//  printk(KERN_INFO "poll: %d   g_rang: %d negate_z : %d\n",acc->pdata->poll_interval,
+//									acc->pdata->g_range,acc->pdata->negate_z);
 	err = lis3dh_acc_validate_pdata(acc);
 	if (err < 0) {
 		dev_err(&client->dev, "failed to validate platform data\n");
 		goto exit_kfree_pdata;
 	}
-
-	printk(KERN_INFO "line : %d  func: %s\n",__LINE__,__func__);
 
 	if (acc->pdata->init) {
 		err = acc->pdata->init();
@@ -1310,7 +1312,6 @@ static int lis3dh_acc_probe(struct i2c_client *client,
 							acc->pdata->gpio_int2);
 	}
 
-	printk(KERN_INFO "line : %d  func: %s\n",__LINE__,__func__);
 	memset(acc->resume_state, 0, ARRAY_SIZE(acc->resume_state));
 
 	acc->resume_state[RES_CTRL_REG1] = LIS3DH_ACC_ENABLE_ALL_AXES;
@@ -1332,14 +1333,12 @@ static int lis3dh_acc_probe(struct i2c_client *client,
 	acc->resume_state[RES_TT_TLAT] = 0x00;
 	acc->resume_state[RES_TT_TW] = 0x00;
 
-	printk(KERN_INFO "line : %d  func: %s\n",__LINE__,__func__);
 	err = lis3dh_acc_device_power_on(acc);
 	if (err < 0) {
 		dev_err(&client->dev, "power on failed: %d\n", err);
 		goto err_pdata_init;
 	}
 
-	printk(KERN_INFO "line : %d  func: %s\n",__LINE__,__func__);
 	atomic_set(&acc->enabled, 1);
 
 	err = lis3dh_acc_update_g_range(acc, acc->pdata->g_range);
@@ -1354,7 +1353,6 @@ static int lis3dh_acc_probe(struct i2c_client *client,
 		goto  err_power_off;
 	}
 
-	printk(KERN_INFO "line : %d  func: %s\n",__LINE__,__func__);
 	err = lis3dh_acc_input_init(acc);
 	if (err < 0) {
 		dev_err(&client->dev, "input init failed\n");
@@ -1370,7 +1368,6 @@ static int lis3dh_acc_probe(struct i2c_client *client,
 	}
 
 
-	printk(KERN_INFO "line : %d  func: %s\n",__LINE__,__func__);
 	//lis3dh_acc_device_power_off(acc);
 
 	/* As default, do not report information */
@@ -1420,7 +1417,6 @@ static int lis3dh_acc_probe(struct i2c_client *client,
 
 	dev_info(&client->dev, "%s: probed\n", LIS3DH_ACC_DEV_NAME);
 
-	printk(KERN_INFO "line : %d  func: %s\n",__LINE__,__func__);
 	return 0;
 
 err_destoyworkqueue2:

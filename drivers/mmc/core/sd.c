@@ -794,8 +794,8 @@ int mmc_sd_get_csd(struct mmc_host *host, struct mmc_card *card)
 	//jason.lee_fix_0002
 	//2012/11/23 for prevent sd card shatter when it bigger than 32GB 
 	//add
-	if (card->csd.capacity > SDHC_MAX_SIZE){
-		printk(KERN_INFO "lzj : SD size %d > 32 GiB\n",card->csd.capacity);
+	if (card->csd.capacity > SDHC_MAX_SIZE*2){
+		printk(KERN_INFO "SD size %d > 32 GiB\n",card->csd.capacity/1024/1024/2);
 		return EINVAL;
 	}
 	//end

@@ -764,7 +764,7 @@ int32_t hi542_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 		return rc;
 	}
 
-	CDBG("hi542_sensor id: 0x%x\n", chipid);
+	printk("hi542_sensor id: 0x%x\n", chipid);
 	printk("sensor_name: %s\n", s_ctrl->sensordata->sensor_name);
 	printk("camera_type: %d\n", s_ctrl->sensordata->camera_type);
 

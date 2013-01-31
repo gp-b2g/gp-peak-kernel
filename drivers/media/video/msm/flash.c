@@ -22,7 +22,7 @@
 #include <mach/camera.h>
 #include <mach/gpio.h>
 
-#ifdef CONFIG_MT9E013
+#ifdef CONFIG_CELLON_PRJ_C8681
 #include "tps61310.h"
 #endif
 //#define ORIGINAL_VERSION
@@ -81,7 +81,7 @@ static long msm_flash_ioctl(struct file *flip, unsigned int cmd, unsigned long a
 			led_state = arg;
 			
 			printk("##### MSM_FLASH_IOCTL_SET_LED_STATE ---> led_state == %d\n",led_state);
-			#ifdef CONFIG_MT9E013
+			#ifdef CONFIG_CELLON_PRJ_C8681
 			rc = tps61310_config(led_state);
 			if (rc < 0)
 				printk("##### %s line%d: tps61310_config failed !\n",__func__,__LINE__);
@@ -450,7 +450,7 @@ int msm_camera_flash_led2(
        return rc;
 }
 
-#ifndef CONFIG_MT9E013
+#ifndef CONFIG_CELLON_PRJ_C8681
 int msm_camera_flash_external(
 	struct msm_camera_sensor_flash_external *external,
 	unsigned led_state)

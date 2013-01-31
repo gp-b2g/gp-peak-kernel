@@ -220,7 +220,7 @@ static int mpu3050_gpio_setup(void) {
 }
 #endif
 
-#ifdef CONFIG_MT9E013
+#ifdef CONFIG_CELLON_PRJ_C8681 
 static struct i2c_board_info tps61310_i2c_info[] __initdata = {
 	/*zhuangxiaojian, 2012-08-30, C8681, add led flash for camera module {*/
 	{
@@ -249,6 +249,13 @@ static struct i2c_board_info bma2x2_i2c_info[] __initdata = {
 static struct i2c_board_info mc32x0_i2c_info[] __initdata = {
 	{
 		I2C_BOARD_INFO("mc32x0", 0x4c),
+	},
+};
+#endif
+#ifdef CONFIG_SENSORS_MMA845X
+static struct i2c_board_info mma8452_i2c_info[] __initdata = {
+	{
+		I2C_BOARD_INFO("mma845x",0x1D),
 	},
 };
 #endif
@@ -518,7 +525,7 @@ void __init msm7627a_sensor_init(void)
 	}
 #endif
 
-#ifdef CONFIG_MT9E013
+#ifdef CONFIG_CELLON_PRJ_C8681
 		i2c_register_board_info(MSM_GSBI1_QUP_I2C_BUS_ID,
 					tps61310_i2c_info,
 					ARRAY_SIZE(tps61310_i2c_info));
@@ -534,6 +541,12 @@ void __init msm7627a_sensor_init(void)
 		i2c_register_board_info(MSM_GSBI1_QUP_I2C_BUS_ID,
 					mc32x0_i2c_info,
 					ARRAY_SIZE(mc32x0_i2c_info));
+#endif
+#ifdef CONFIG_SENSORS_MMA845X
+	pr_info("i2c_register_board_info mma8452 ACC\n");
+	i2c_register_board_info(MSM_GSBI1_QUP_I2C_BUS_ID,
+					mma8452_i2c_info,
+					ARRAY_SIZE(mma8452_i2c_info));
 #endif
 #ifdef CONFIG_GSENSOR_LIS3DH
 		pr_info("i2c_register_board_info lis3dh_acc ACC\n");

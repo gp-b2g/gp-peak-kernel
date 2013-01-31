@@ -19,14 +19,7 @@ self driver for himax
 #include <linux/gpio.h>
 #include <linux/kernel.h>
 
-
-/********************************************************************
-  Modify History :
-  MID       : 20121122_01
-  Author    : Robin.Yin
-  Time      : 2012.11.22
-  Contents  : update firmware to support 5 finger number
-*********************************************************************/
+#define ChangeIref1u 1
 
 
 
@@ -58,13 +51,7 @@ printk(KERN_INFO"himax->%s_%d:"fmt,__FUNCTION__,__LINE__,##args)
 #define HIMAX_WO_ATTR HIMAX_RO_ATTR
 #endif
 
-//MID:20121122_01
-//begin
-#define  TOUCH_MAX_NUMBER 4
-#define  POINT_COUNT        (TOUCH_MAX_NUMBER*5) //-1
-#define  FINGER_TOTAL_SIZE    ( TOUCH_MAX_NUMBER*5 + 4) //+3
-#define  CHECKSUM_SIZE      (FINGER_TOTAL_SIZE -2)
-//end
+
 
 #define GPIO_OUTPUT_HI    1
 #define GPIO_OUTPUT_LO    0
@@ -81,7 +68,7 @@ printk(KERN_INFO"himax->%s_%d:"fmt,__FUNCTION__,__LINE__,##args)
 #define HIMAX_MAJOR_MAX 1
 #define HIMAX_WIDTH_MAX 10
 
-#define  point_area       16
+
 
 static struct workqueue_struct *himax_wq;
 
@@ -96,15 +83,29 @@ enum {
     HIMAX_STATE_DEEPSLEEP,
     HIMAX_STATE_IDLE
 };
+#define PRO_NAME_FLASH_ADDR        (0x2a8/4)
+#define PRO_NAME_FLASH_LEN         (3)
+#define POINT_NUMBER_ADDR          176 //0x02C0
+#define POINT_NUMBER_LEN            3
+
+#define FINGER_FOUR_PACKET_SIZE     24
+#define FINGER_FIVE_PACKET_SIZE     28
 
 static char * driver_ver [] = {
- "Improve the ability to resist temperature",
  "add 0x90 command to notifier TP IC usb charger status",
  "update firmware to support 5 finger number",
- " remove tp support 5 point function"
+ "remove tp support 5 point function ",
+ "compatible with 5 point firmware,and add temperature feature",
+ "add himax tp support 5 point function"
 };
 
+
 //#define  CONFIG_HX8526A_FW_UPDATE
+#define FW_VER_C8680    "Himax_FW_Truly_CT1291_Cellon_C8680_V16-0_2012-12-13_1053.i"
+#define FW_VER_C8680QM  "Himax_FW_Truly_CT4F0064_Cellon_C8680QM_V70_2012-12-05_2002.i"
+#define FW_VER_C8680GP  "Himax_FW_Truly_Cellon_C8680-4-Point_V12-3_2012-12-04_1514.i"
+
+
 struct himax_ts_data {
     uint16_t addr;
     struct i2c_client *client;
@@ -113,26 +114,360 @@ struct himax_ts_data {
     int use_irq;
     unsigned int irq_count ; /* irq counts */
     char himax_state ;/*active,deep sleep */
+    int  bit_map ;
+    int  point_num ;
+    char * finger_buf ;//24 or 28 Byte
+    bool cmd_92    ; //set five finger
     struct device dev ;
     struct hrtimer timer;
     unsigned long interval;//ms
     const char * fw_name ;
+    char fw_ver[POINT_NUMBER_LEN*4+1] ;
     int err_count ;
 #ifdef CONFIG_HX8526A_FW_UPDATE
     struct regulator * regulator ;
 #endif
     bool upgrade ;  //1:success ;
     struct work_struct  work;
+#ifdef __SELF_REPORT__
     struct touch_points_info points[TOUCH_MAX_NUMBER];
+#endif
     int (*power)(int on);
 #ifdef CONFIG_HAS_EARLYSUSPEND
     struct early_suspend early_suspend;
 #endif
 };
+
 static void himax_ts_reset(struct himax_platform_data *pdata);
 static int  himax_ts_poweron(struct himax_ts_data * ts);
+
+#define PROJECT_C8680                 "CT1291"
+#define PROJECT_C8680_FOUR_VER_MIN     "V00"
+#define PROJECT_C8680_FF_VER_MIN       "V16"
+#define PROJECT_C8680_FOUR_VER_MAX     "V20"
+#define PROJECT_C8680_FIVE_VER_MIN     "V21"
+#define PROJECT_C8680_FIVE_VER_MAX     "V49"
+
+#define PROJECT_C8680QM                 "C8680QM"
+#define PROJECT_C8680QM_FOUR_VER_MIN     "V70"
+#define PROJECT_C8680QM_FF_VER_MIN       "V75"
+#define PROJECT_C8680QM_FOUR_VER_MAX     "V79"
+#define PROJECT_C8680QM_FIVE_VER_MIN     "V50"
+#define PROJECT_C8680QM_FIVE_VER_MAX     "V69"
+
+#define PROJECT_C8680GP                  "C8680GP"
+#define PROJECT_C8680GP_FOUR_VER_MIN      "V80"
+#define PROJECT_C8680GP_FF_VER_MIN        "V85"
+#define PROJECT_C8680GP_FOUR_VER_MAX      "V89"
+#define PROJECT_C8680GP_FIVE_VER_MIN      "V90"
+#define PROJECT_C8680GP_FIVE_VER_MAX      "V99"
+#define C8680GP_X_MIN  265
+#define C8680GP_X_MAX  280
+#define C8680GP_Y_MIN  980
+#define C8680GP_X_POINT 200
+#define C8680GP_Y_POINT 1008
+
+
+#define POINT_NONE_BIT             BIT(0)
+#define PROJECT_C8680_BIT          BIT(1)
+#define PROJECT_C8680QM_BIT        BIT(2)
+#define PROJECT_C8680GP_BIT        BIT(4)
+#define PROJECT_NAME_NONE          BIT(3)
+
+#define FINGER_FOUR        4
+#define FINGER_FIVE        5
+#define FINGER_NONE        0
+
+#define PROJECT_NONE       0
+#define C8680_VAL      1
+#define C8680QM_VAL    2
+#define C8680GP_VAL    3
+
+
+int himax_i2c_read(struct himax_ts_data * ts,unsigned char addr, int datalen, unsigned char data[], int *readlen)
+ {
+     int ret = 0;
+     struct i2c_msg msg[2];
+     uint8_t start_reg;
+     //uint8_t buf[128] = {0};
+
+
+     start_reg = addr;
+     msg[0].addr = ts->client->addr;
+     msg[0].flags = 0;
+     msg[0].len = 1;
+     msg[0].buf = &start_reg;
+
+     msg[1].addr = ts->client->addr;
+     msg[1].flags = I2C_M_RD;
+     msg[1].len =  datalen;
+     msg[1].buf = data;
+
+     ret = i2c_transfer(ts->client->adapter, msg, 2);
+     if (ret < 0) {
+         memset(data, 0xff , 24);
+
+         return 0;
+     }
+     return 0;
+ }
+
+
+static int hx8526_read_flash(struct himax_ts_data * ts,unsigned char *buf, unsigned int addr, unsigned int length)
+ {
+	unsigned char index_byte,index_page,index_sector;
+    int readLen;
+	unsigned char buf0[7];
+	unsigned int i;
+	unsigned int j = 0;
+
+	index_byte = (addr & 0x001F);
+	index_page = ((addr & 0x03E0) >> 5);
+	index_sector = ((addr & 0x1C00) >> 10);
+
+	for (i = addr; i < addr + length; i++)
+	{
+		buf0[0] = 0x44;
+		buf0[1] = i&0x1F;
+		buf0[2] = (i>>5)&0x1F;
+		buf0[3] = (i>>10)&0x1F;
+
+		i2c_master_send(ts->client, buf0,4 );//himax_i2c_master_write(slave_address, 4, buf0);
+		udelay(10);
+
+		buf0[0] = 0x46;
+		i2c_master_send(ts->client, buf0,1 );//himax_i2c_master_write(slave_address, 1, buf0);
+		udelay(10);
+
+		//Himax: Read FW Version to buf
+		himax_i2c_read(ts,0x59, 4, &buf[0+j], &readLen);
+		udelay(10);
+		j += 4;
+	}
+
+	return 1;
+}
+/*return value: 0:error 1: c8680  2 : c8680QM
+C8680   : CT1291
+0-15    : 4 point
+16-20   : 4 or 5 point
+21-49   : 5 point
+
+C8680QM   :C8680QM
+50-69     :5 point
+70-74     :4 point
+75-79     :4 or 5 point
+
+//one icon
+C8680GP   :C8680GP
+80-84     :4 point
+85-89     :4 or 5 point
+90-99     :5 point
+
+*/
+static inline int get_point(struct himax_ts_data *ts)
+{
+        if(ts->bit_map&PROJECT_NAME_NONE)
+            return FINGER_NONE ;
+        else if(ts->bit_map&PROJECT_C8680_BIT){
+            if(strncmp(ts->fw_ver,PROJECT_C8680_FOUR_VER_MAX,3)<=0){
+                if(strncmp(ts->fw_ver,PROJECT_C8680_FF_VER_MIN,3)>=0){
+                 ts->cmd_92 = true ; //send cmd 92 to switch 5 finger number
+                 return FINGER_FIVE ;
+                 }else return FINGER_FOUR ;
+
+           }else if(strncmp(ts->fw_ver,PROJECT_C8680_FIVE_VER_MIN,3)>=0 &&
+                strncmp(ts->fw_ver,PROJECT_C8680_FIVE_VER_MAX,3)<=0){
+                   return FINGER_FIVE ;
+                }
+
+        }else if(ts->bit_map&PROJECT_C8680QM_BIT){
+            if(strncmp(ts->fw_ver,PROJECT_C8680QM_FOUR_VER_MIN,3)>=0 &&
+               strncmp(ts->fw_ver,PROJECT_C8680QM_FOUR_VER_MAX,3)<=0){
+                if(strncmp(ts->fw_ver,PROJECT_C8680QM_FF_VER_MIN,3)>=0){
+                    ts->cmd_92 = true ;
+                    return FINGER_FIVE ;
+                }else return FINGER_FOUR ;
+
+            }else if(strncmp(ts->fw_ver,PROJECT_C8680QM_FIVE_VER_MIN,3)>=0 &&
+                strncmp(ts->fw_ver,PROJECT_C8680QM_FIVE_VER_MAX,3)<=0)
+                return FINGER_FIVE ;
+        }else if(ts->bit_map&PROJECT_C8680GP_BIT){
+            if(strncmp(ts->fw_ver,PROJECT_C8680GP_FOUR_VER_MIN,3)>=0 &&
+               strncmp(ts->fw_ver,PROJECT_C8680GP_FOUR_VER_MAX,3)<=0){
+                if(strncmp(ts->fw_ver,PROJECT_C8680GP_FF_VER_MIN,3)>=0){
+                    ts->cmd_92 = true ;
+                    return FINGER_FIVE ;
+                }else return FINGER_FOUR ;
+
+            }else if(strncmp(ts->fw_ver,PROJECT_C8680GP_FIVE_VER_MIN,3)>=0 &&
+                strncmp(ts->fw_ver,PROJECT_C8680GP_FIVE_VER_MAX,3)<=0)
+                return FINGER_FIVE ;
+        }
+
+    err_printk("not detect finger number \n");
+    return FINGER_NONE ;
+}
+static int detect_point_number(struct himax_ts_data *ts)
+{
+    unsigned char buf[POINT_NUMBER_LEN*4 +1];
+
+    unsigned char cmd[5];
+
+    //Himax: Power On Flow
+    cmd[0] = 0x42;
+    cmd[1] = 0x02;
+    i2c_master_send(ts->client, cmd, 2);//himax_i2c_master_write(slave_address, 2, cmd);
+    udelay(10);
+
+    cmd[0] = 0x36;
+    cmd[1] = 0x0F;
+    cmd[2] = 0x53;
+    i2c_master_send(ts->client, cmd, 3);//himax_i2c_master_write(slave_address, 3, cmd);
+    udelay(10);
+
+    //Himax: Check Flash Pre-Patch
+    cmd[0] = 0xDD;
+    cmd[1] = 0x06; //Himax: Modify by case
+    cmd[2] = 0x02;
+    i2c_master_send(ts->client, cmd, 3);//himax_i2c_master_write(slave_address, 3, cmd);
+    udelay(10);
+
+    cmd[0] = 0x81;
+    i2c_master_send(ts->client, cmd, 1);//himax_i2c_master_write(slave_address, 1, cmd);
+    udelay(10);
+
+    //Himax: Flash Read Enable
+    cmd[0] = 0x43;
+    cmd[1] = 0x01;
+    cmd[2] = 0x00;
+    cmd[3] = 0x02;
+    i2c_master_send(ts->client, cmd, 4);//himax_i2c_master_write(slave_address, 4, cmd);
+    udelay(10);
+
+    //Himax: Read FW Major Version
+    if (hx8526_read_flash(ts,buf, POINT_NUMBER_ADDR, POINT_NUMBER_LEN) < 0){
+        err_printk("read project name error \n");
+        return 0 ;
+    }
+
+    buf[POINT_NUMBER_LEN*4] = '\0' ;
+
+    //Himax: Flash Read Disable
+    cmd[0] = 0x43;
+    cmd[1] = 0x00;
+    cmd[2] = 0x00;
+    cmd[3] = 0x02;
+    i2c_master_send(ts->client, cmd, 4);//himax_i2c_master_write(slave_address, 4, cmd);
+    udelay(10);
+
+    info_printk("point number [%s]\n",buf);
+    strncpy(ts->fw_ver,buf,POINT_NUMBER_LEN*4+1) ;
+    ts->point_num = get_point(ts) ;
+    return 0 ;
+}
+
+/*
+  1:C8680
+  2:C8680QM
+  3:C8680GP
+  -1:error
+*/
+static inline int get_project(struct himax_ts_data *ts)
+{
+    if(ts->bit_map & PROJECT_C8680_BIT)
+        return C8680_VAL ;
+    else if(ts->bit_map &PROJECT_C8680QM_BIT)
+        return C8680QM_VAL ;
+    else if(ts->bit_map &PROJECT_C8680GP_BIT)
+        return C8680GP_VAL ;
+    return PROJECT_NONE ;
+
+}
+
+static int detect_project_name(struct himax_ts_data * ts)
+{
+        unsigned char buf[PRO_NAME_FLASH_LEN*4 +1];
+        int ret ;
+//        unsigned int i;
+        unsigned char cmd[5];
+
+        //Himax: Power On Flow
+        cmd[0] = 0x42;
+        cmd[1] = 0x02;
+        ret = i2c_master_send(ts->client, cmd, 2);//himax_i2c_master_write(slave_address, 2, cmd);
+        if(ret <=0){
+        err_printk(" detect project name error [%d]\n",ret);
+        return -ENODEV ;
+        }
+        udelay(10);
+
+        cmd[0] = 0x36;
+        cmd[1] = 0x0F;
+        cmd[2] = 0x53;
+        i2c_master_send(ts->client, cmd, 3);//himax_i2c_master_write(slave_address, 3, cmd);
+        udelay(10);
+
+        //Himax: Check Flash Pre-Patch
+        cmd[0] = 0xDD;
+        cmd[1] = 0x06; //Himax: Modify by case
+        cmd[2] = 0x02;
+        i2c_master_send(ts->client, cmd, 3);//himax_i2c_master_write(slave_address, 3, cmd);
+        udelay(10);
+
+        cmd[0] = 0x81;
+        i2c_master_send(ts->client, cmd, 1);//himax_i2c_master_write(slave_address, 1, cmd);
+        udelay(10);
+
+        //Himax: Flash Read Enable
+        cmd[0] = 0x43;
+        cmd[1] = 0x01;
+        cmd[2] = 0x00;
+        cmd[3] = 0x02;
+        i2c_master_send(ts->client, cmd, 4);//himax_i2c_master_write(slave_address, 4, cmd);
+        udelay(10);
+
+        //Himax: Read FW Major Version
+        if (hx8526_read_flash(ts,buf, PRO_NAME_FLASH_ADDR, PRO_NAME_FLASH_LEN) < 0){
+            err_printk("read project name error \n");
+            return 0 ;
+        }
+        buf[PRO_NAME_FLASH_LEN*4] = '\0' ;
+
+        //Himax: Flash Read Disable
+        cmd[0] = 0x43;
+        cmd[1] = 0x00;
+        cmd[2] = 0x00;
+        cmd[3] = 0x02;
+        i2c_master_send(ts->client, cmd, 4);//himax_i2c_master_write(slave_address, 4, cmd);
+        udelay(10);
+
+        info_printk(" raw buf  [%s]\n",buf);
+
+
+        if(!strncasecmp(buf,PROJECT_C8680,strlen(PROJECT_C8680))){
+          info_printk(" project name  [%s]\n",PROJECT_C8680);
+          ts->bit_map |= PROJECT_C8680_BIT ;
+          ts->fw_name = FW_VER_C8680 ;
+        }else if(!strncasecmp(buf,PROJECT_C8680QM,strlen(PROJECT_C8680QM))){
+          info_printk(" project name  [%s]\n",PROJECT_C8680QM);
+          ts->bit_map |= PROJECT_C8680QM_BIT ;
+          ts->fw_name = FW_VER_C8680QM ;
+        }else if(!strncasecmp(buf,PROJECT_C8680GP,strlen(PROJECT_C8680GP))){
+          info_printk(" project name  [%s]\n",buf);
+          ts->bit_map |= PROJECT_C8680GP_BIT ;
+          ts->fw_name = FW_VER_C8680GP ;
+          }else {
+          info_printk("project name none\n");
+          ts->bit_map |= PROJECT_NAME_NONE ;
+          return -ENODEV ;
+        }
+
+
+       return  detect_point_number(ts);
+
+}
 #ifdef CONFIG_HX8526A_FW_UPDATE
-#define FW_VER_NAME   "Himax_FW_Truly_Cellon_V12_2012-11-06_1403.i"
 #define FW_VER_MAJ_FLASH_ADDR       33 //0x0085
 #define FW_VER_MAJ_FLASH_LENG       1
 #define FW_VER_MIN_FLASH_ADDR       182 //0x02D8
@@ -143,10 +478,19 @@ static int  himax_ts_poweron(struct himax_ts_data * ts);
 #define CFG_VER_MIN_FLASH_LENG      3
 #define REGULATOR_MNI_VAL           3000000
 #define REGULATOR_MAX_VAL           3000000
-static unsigned char HIMAX_FW[]=
+static unsigned char HIMAX_FW_C8680[]=
 {
-	#include FW_VER_NAME //Paul Check
+	#include FW_VER_C8680 //Paul Check
 };
+static unsigned char HIMAX_FW_C8680QM[]=
+{
+	#include FW_VER_C8680QM //Paul Check
+};
+static unsigned char HIMAX_FW_C8680GP[]=
+{
+	#include FW_VER_C8680GP //Paul Check
+};
+
 unsigned char SFR_3u_1[16][2] = {{0x18,0x06},{0x18,0x16},{0x18,0x26},{0x18,0x36},{0x18,0x46},
                            	{0x18,0x56},{0x18,0x66},{0x18,0x76},{0x18,0x86},{0x18,0x96},
 				{0x18,0xA6},{0x18,0xB6},{0x18,0xC6},{0x18,0xD6},{0x18,0xE6},{0x18,0xF6}};
@@ -158,11 +502,370 @@ unsigned char SFR_6u_1[16][2] = {{0x98,0x04},{0x98,0x14},{0x98,0x24},{0x98,0x34}
 
 #endif
 
+#if ChangeIref1u
+#define TarIref 1
+		unsigned char SFR_1u_1[16][2] = {{0x18,0x07},{0x18,0x17},{0x18,0x27},{0x18,0x37},{0x18,0x47},
+			{0x18,0x57},{0x18,0x67},{0x18,0x77},{0x18,0x87},{0x18,0x97},
+			{0x18,0xA7},{0x18,0xB7},{0x18,0xC7},{0x18,0xD7},{0x18,0xE7},
+			{0x18,0xF7}};
+
+		unsigned char SFR_2u_1[16][2] = {{0x98,0x06},{0x98,0x16},{0x98,0x26},{0x98,0x36},{0x98,0x46},
+			{0x98,0x56},{0x98,0x66},{0x98,0x76},{0x98,0x86},{0x98,0x96},
+			{0x98,0xA6},{0x98,0xB6},{0x98,0xC6},{0x98,0xD6},{0x98,0xE6},
+			{0x98,0xF6}};
+
+		unsigned char SFR_3u_11[16][2] = {{0x18,0x06},{0x18,0x16},{0x18,0x26},{0x18,0x36},{0x18,0x46},
+			{0x18,0x56},{0x18,0x66},{0x18,0x76},{0x18,0x86},{0x18,0x96},
+			{0x18,0xA6},{0x18,0xB6},{0x18,0xC6},{0x18,0xD6},{0x18,0xE6},
+			{0x18,0xF6}};
+
+		unsigned char SFR_4u_1[16][2] = {{0x98,0x05},{0x98,0x15},{0x98,0x25},{0x98,0x35},{0x98,0x45},
+			{0x98,0x55},{0x98,0x65},{0x98,0x75},{0x98,0x85},{0x98,0x95},
+			{0x98,0xA5},{0x98,0xB5},{0x98,0xC5},{0x98,0xD5},{0x98,0xE5},
+			{0x98,0xF5}};
+
+		unsigned char SFR_5u_1[16][2] = {{0x18,0x05},{0x18,0x15},{0x18,0x25},{0x18,0x35},{0x18,0x45},
+			{0x18,0x55},{0x18,0x65},{0x18,0x75},{0x18,0x85},{0x18,0x95},
+			{0x18,0xA5},{0x18,0xB5},{0x18,0xC5},{0x18,0xD5},{0x18,0xE5},
+			{0x18,0xF5}};
+
+		unsigned char SFR_6u_11[16][2] = {{0x98,0x04},{0x98,0x14},{0x98,0x24},{0x98,0x34},{0x98,0x44},
+			{0x98,0x54},{0x98,0x64},{0x98,0x74},{0x98,0x84},{0x98,0x94},
+			{0x98,0xA4},{0x98,0xB4},{0x98,0xC4},{0x98,0xD4},{0x98,0xE4},
+			{0x98,0xF4}};
+
+		unsigned char SFR_7u_1[16][2] = {{0x18,0x04},{0x18,0x14},{0x18,0x24},{0x18,0x34},{0x18,0x44},
+			{0x18,0x54},{0x18,0x64},{0x18,0x74},{0x18,0x84},{0x18,0x94},
+			{0x18,0xA4},{0x18,0xB4},{0x18,0xC4},{0x18,0xD4},{0x18,0xE4},
+			{0x18,0xF4}};
+#endif
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void himax_ts_early_suspend(struct early_suspend *h);
 static void himax_ts_late_resume(struct early_suspend *h);
 #endif
 
+#if ChangeIref1u
+void himax_unlock_flash_Iref(struct himax_ts_data * ts)
+{
+    struct i2c_client * i2c_client = ts->client ;
+    unsigned char cmd[5];
+
+	/* unlock sequence start */
+	cmd[0] = 0x01;cmd[1] = 0x00;cmd[2] = 0x06;
+	i2c_smbus_write_i2c_block_data(i2c_client, 0x43, 3, &cmd[0]);
+
+	cmd[0] = 0x03;cmd[1] = 0x00;cmd[2] = 0x00;
+	i2c_smbus_write_i2c_block_data(i2c_client, 0x44, 3, &cmd[0]);
+
+	cmd[0] = 0x00;cmd[1] = 0x00;cmd[2] = 0x3D;cmd[3] = 0x03;
+	i2c_smbus_write_i2c_block_data(i2c_client, 0x45, 4, &cmd[0]);
+
+	i2c_smbus_write_i2c_block_data(i2c_client, 0x4A, 0, &cmd[0]);
+	mdelay(50);
+	/* unlock sequence stop */
+}
+
+int ChangeIrefSPP(struct himax_ts_data * ts)
+{
+	//struct i2c_client * i2c_client = ts->client ;
+
+	unsigned char i;
+	//int readLen;
+	unsigned char cmd[5];
+	//unsigned char Iref[2] = {0x00,0x00};
+
+	unsigned char spp_source[16] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,		//SPP
+						  	        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};		//SPP
+
+	unsigned char spp_target[16] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,		//SPP
+ 						  	        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};		//SPP
+	unsigned char retry;
+	unsigned char spp_ok;
+
+	info_printk("entern Himax ChangeIrefSPP by zhuxinglong\n");
+
+	//--------------------------------------------------------------------------
+	//Inital
+	//--------------------------------------------------------------------------
+	cmd[0] = 0x42;
+	cmd[1] = 0x02;
+	if(i2c_master_send(ts->client, cmd, 2) < 0)
+	{
+		err_printk("entern Himax ChangeIrefSPP by zhuxinglong1\n");
+		return -ENODEV;
+	}
+	udelay(10);
+
+	cmd[0] = 0x81;
+	if(i2c_master_send(ts->client, cmd, 1) < 0)
+	{
+		err_printk("entern Himax ChangeIrefSPP by zhuxinglong2\n");
+		return -ENODEV;
+	}
+	mdelay(160);
+
+	//--------------------------------------------------------------------------
+	//read 16-byte SPP to spp_source
+	//--------------------------------------------------------------------------
+	cmd[0] = 0x43;
+	cmd[1] = 0x01;
+	cmd[2] = 0x00;
+	cmd[3] = 0x1A;
+	if(i2c_master_send(ts->client, cmd, 4) < 0)
+	{
+		err_printk("entern Himax ChangeIrefSPP by zhuxinglong3\n");
+		return 0;
+	}
+	udelay(10);
+
+	//4 words
+	for (i = 0; i < 4; i++)
+	{
+		cmd[0] = 0x44;
+		cmd[1] = i;			//word
+		cmd[2] = 0x00;		//page
+		cmd[3] = 0x00;		//sector
+		if(i2c_master_send(ts->client, cmd, 4) < 0)
+		{
+			printk("entern Himax ChangeIrefSPP by zhuxinglong4\n");
+			return 0;
+		}
+		udelay(10);
+
+		cmd[0] = 0x46;
+		if(i2c_master_send(ts->client, cmd, 1) < 0)
+		{
+			printk("entern Himax ChangeIrefSPP by zhuxinglong5\n");
+			return 0;
+		}
+		udelay(10);
+
+		cmd[0] = 0x59;
+		if(i2c_master_send(ts->client, cmd, 1) < 0)
+		{
+			printk("entern Himax ChangeIrefSPP by zhuxinglong6\n");
+			return 0;
+		}
+		mdelay(5);				//check this
+
+		if(i2c_master_recv(ts->client, cmd, 4) < 0)
+			return 0;
+		udelay(10);
+
+		//save data
+		spp_source[4*i + 0] = cmd[0];
+		spp_source[4*i + 1] = cmd[1];
+		spp_source[4*i + 2] = cmd[2];
+		spp_source[4*i + 3] = cmd[3];
+
+		printk("entern Himax ChangeIrefSPP by zhuxinglong7 cmd0 = 0x%x\n",cmd[0]);
+		printk("entern Himax ChangeIrefSPP by zhuxinglong7 cmd1 = 0x%x\n",cmd[1]);
+		printk("entern Himax ChangeIrefSPP by zhuxinglong7 cmd2 = 0x%x\n",cmd[2]);
+		printk("entern Himax ChangeIrefSPP by zhuxinglong7 cmd3 = 0x%x\n",cmd[3]);
+		//printk("entern Himax ChangeIrefSPP by zhuxinglong7 cmd4 = 0x%x\n",cmd[4]);
+		printk("entern Himax ChangeIrefSPP by zhuxinglong7\n");
+	}
+
+	//--------------------------------------------------------------------------
+	//Search 3u Iref
+	//--------------------------------------------------------------------------
+	for (i = 0; i < 16; i++)
+	{
+		if(spp_source[0]==SFR_1u_1[i][0] && spp_source[1]==SFR_1u_1[i][1])
+		{
+			//found in 1uA
+			return (1);				//OK
+		}
+	}
+
+	spp_ok = 0;
+	for (i = 0; i < 16; i++)
+	{
+		if(spp_source[0]==SFR_3u_11[i][0] && spp_source[1]==SFR_3u_11[i][1])
+		{
+			//found in 3uA
+			spp_ok = 1;
+
+			spp_source[0]= SFR_1u_1[i][0];
+			spp_source[1]= SFR_1u_1[i][1];
+			break;
+		}
+	}
+
+	if (spp_ok == 0)
+	{
+		//no matched pair in SFR_1u_1 or SFR_3u_1
+		return 0;
+	}
+
+	//--------------------------------------------------------------------------
+	//write SPP (retry for 3 times if errors occur)
+	//--------------------------------------------------------------------------
+	for (retry = 0; retry < 3; retry++)
+	{
+		himax_unlock_flash_Iref(ts);
+
+		//write 16-byte SPP
+		cmd[0] = 0x43;
+		cmd[1] = 0x01;
+		cmd[2] = 0x00;
+		cmd[3] = 0x1A;
+		if(i2c_master_send(ts->client, cmd, 4) < 0)
+			return 0;
+		udelay(10);
+
+		cmd[0] = 0x4A;
+		if(i2c_master_send(ts->client, cmd, 1) < 0)
+			return 0;
+		udelay(10);
+
+		for (i = 0; i < 4; i++)
+		{
+			cmd[0] = 0x44;
+			cmd[1] = i;			//word
+			cmd[2] = 0x00;		//page
+			cmd[3] = 0x00;		//sector
+			if(i2c_master_send(ts->client, cmd, 4) < 0)
+				return 0;
+			udelay(10);
+
+			cmd[0] = 0x45;
+			cmd[1] = spp_source[4 * i + 0];
+			cmd[2] = spp_source[4 * i + 1];
+			cmd[3] = spp_source[4 * i + 2];
+			cmd[4] = spp_source[4 * i + 3];
+			if(i2c_master_send(ts->client, cmd, 5) < 0)
+				return 0;
+			udelay(10);
+
+			cmd[0] = 0x4B;		//write SPP
+			if(i2c_master_send(ts->client, cmd, 1) < 0)
+				return 0;
+			udelay(10);
+		}
+
+		cmd[0] = 0x4C;
+		if(i2c_master_send(ts->client, cmd, 1) < 0)
+			return 0;
+		mdelay(50);
+
+		//read 16-byte SPP to spp_target
+		cmd[0] = 0x43;
+		cmd[1] = 0x01;
+		cmd[2] = 0x00;
+		cmd[3] = 0x1A;
+		if(i2c_master_send(ts->client, cmd, 4) < 0)
+		{
+			printk("entern Himax ChangeIrefSPP by zhuxinglong3\n");
+			return 0;
+		}
+		udelay(10);
+
+		for (i = 0; i < 4; i++)
+		{
+			cmd[0] = 0x44;
+			cmd[1] = i;			//word
+			cmd[2] = 0x00;		//page
+			cmd[3] = 0x00;		//sector
+			if(i2c_master_send(ts->client, cmd, 4) < 0)
+			{
+				printk("entern Himax ChangeIrefSPP by zhuxinglong4\n");
+				return 0;
+			}
+			udelay(10);
+
+			cmd[0] = 0x46;
+			if(i2c_master_send(ts->client, cmd, 1) < 0)
+			{
+				printk("entern Himax ChangeIrefSPP by zhuxinglong5\n");
+				return 0;
+			}
+			udelay(10);
+
+			cmd[0] = 0x59;
+			if(i2c_master_send(ts->client, cmd, 1) < 0)
+			{
+				printk("entern Himax ChangeIrefSPP by zhuxinglong6\n");
+				return 0;
+			}
+			mdelay(5);		//check this
+
+			if(i2c_master_recv(ts->client, cmd, 4) < 0)
+				return 0;
+			udelay(10);
+
+			spp_target[4*i + 0] = cmd[0];
+			spp_target[4*i + 1] = cmd[1];
+			spp_target[4*i + 2] = cmd[2];
+			spp_target[4*i + 3] = cmd[3];
+
+			printk("entern Himax ChangeIrefSPP by zhuxinglong9 cmd0 = 0x%x\n",cmd[0]);
+			printk("entern Himax ChangeIrefSPP by zhuxinglong9 cmd1 = 0x%x\n",cmd[1]);
+			printk("entern Himax ChangeIrefSPP by zhuxinglong9 cmd2 = 0x%x\n",cmd[2]);
+			printk("entern Himax ChangeIrefSPP by zhuxinglong9 cmd3 = 0x%x\n",cmd[3]);
+			//printk("entern Himax ChangeIrefSPP by zhuxinglong9 cmd4 = 0x%x\n",cmd[4]);
+			printk("entern Himax ChangeIrefSPP by zhuxinglong9\n");
+		}
+
+		//compare source and target
+		spp_ok = 1;
+		for (i = 0; i < 16; i++)
+		{
+			if (spp_target[i] != spp_source[i])
+			{
+				spp_ok = 0;
+			}
+		}
+
+		if (spp_ok == 1)
+		{
+			printk("entern Himax ChangeIrefSPP by zhuxinglong10\n");
+			return 1;	//Modify Success
+		}
+
+		//error --> reset SFR
+		cmd[0] = 0x43;
+		cmd[1] = 0x01;
+		cmd[2] = 0x00;
+		cmd[3] = 0x06;
+		if(i2c_master_send(ts->client, cmd, 4) < 0)
+			return 0;
+		udelay(10);
+
+		//write 16-byte SFR
+		for (i = 0; i < 4; i++)
+		{
+			cmd[0] = 0x44;
+			cmd[1] = i;			//word
+			cmd[2] = 0x00;		//page
+			cmd[3] = 0x00;		//sector
+			if(i2c_master_send(ts->client, cmd, 4) < 0)
+				return 0;
+			udelay(10);
+
+			cmd[0] = 0x45;
+			cmd[1] = spp_source[4 * i + 0];
+			cmd[2] = spp_source[4 * i + 1];
+			cmd[3] = spp_source[4 * i + 2];
+			cmd[4] = spp_source[4 * i + 3];
+			if(i2c_master_send(ts->client, cmd, 5) < 0)
+				return 0;
+			udelay(10);
+
+			cmd[0] = 0x4A;		//write SFR
+			if(i2c_master_send(ts->client, cmd, 1) < 0)
+				return 0;
+			udelay(10);
+		}
+
+    }	//retry
+
+	info_printk("entern Himax ChangeIrefSPP by zhuxinglong8\n");
+	return 1;			//No 3u Iref setting
+
+
+}
+#endif
 static int himax_init_panel(struct himax_ts_data *ts)
 {
     return 0;
@@ -330,6 +1033,16 @@ OUT:
 }
 #else
 
+static inline void is_project_C8680GP(struct himax_ts_data * ts,unsigned long * x,unsigned long * y)
+{
+
+    if(*x >=C8680GP_X_MIN&&*x<=C8680GP_X_MAX&&
+        *y>=C8680GP_Y_MIN&&(get_project(ts)==C8680GP_VAL)){
+        *x = C8680GP_X_POINT ;
+        *y = C8680GP_Y_POINT ;
+    }
+
+}
 
  static void report_function(struct work_struct *work)
 {
@@ -340,16 +1053,44 @@ OUT:
 
 	unsigned long x, y;
     static int report_key = 0 ;
+    static int protocol = 0 ;
+    static int packet_size = 0 ;
+    uint8_t * buf ;
 	struct i2c_msg msg[2];
 	uint8_t start_reg;
-	uint8_t buf[FINGER_TOTAL_SIZE];//MID:20121122_01
+
 	uint32_t finger_num;
     uint32_t * buf_32 ;
+
+
 	struct himax_ts_data *ts = container_of(work, struct himax_ts_data, work);
+    if(!ts->point_num){
+       err_printk(" finger number is not detect %d\n",ts->point_num);
+       goto OUT ;
+    }
+
+    if(!protocol){
+        protocol++ ;
+
+        if(ts->point_num==4)
+         packet_size = FINGER_FOUR_PACKET_SIZE ;
+        else if(ts->point_num==5)
+         packet_size = FINGER_FIVE_PACKET_SIZE ;
+
+        ts->finger_buf = kmalloc(packet_size,GFP_KERNEL) ;
+        info_printk("finger number [%d],packet_size[%d]\n",ts->point_num,
+            packet_size);
+        if(!ts->finger_buf){
+            protocol-- ;
+            goto OUT ;
+        }
+
+    }
 #ifdef __USB_CHARGER_STATUS__
         charger_notifier_call(ts,!!get_usb_charger_status());
 #endif
 	start_reg = 0x86;
+    buf = (uint8_t *)ts->finger_buf ;
 
 	msg[0].addr = ts->client->addr;
 	msg[0].flags = 0;
@@ -358,7 +1099,7 @@ OUT:
 
 	msg[1].addr = ts->client->addr;
 	msg[1].flags = I2C_M_RD;
-	msg[1].len =  FINGER_TOTAL_SIZE; //MID:20121122_01
+	msg[1].len =  packet_size;
 	msg[1].buf = &buf[0];
 
 	ret = i2c_transfer(ts->client->adapter, msg, 2);
@@ -374,14 +1115,14 @@ OUT:
 	}
 
     //MID:20121122_01
-    for (i = 0 ; i < CHECKSUM_SIZE; i++)
+    for (i = 0 ; i < packet_size-2; i++)
     {
         checksum += buf[i];
     }
 
-    i = buf[CHECKSUM_SIZE];
+    i = buf[packet_size-2];
     i <<= 8;
-    i |= buf[CHECKSUM_SIZE+1];
+    i |= buf[packet_size-1];
     if (checksum != i)
     {
         err_printk("i2c checksum error ret[%d]\n",ret);
@@ -391,10 +1132,10 @@ OUT:
         }
         goto OUT ;
     }
-    //MID:20121122_01
-	finger_num=buf[POINT_COUNT]&0x0F;
+
+	finger_num=buf[packet_size - 4]&0x0F;
     buf_32 = (uint32_t *)buf ;
-//    info_printk("finger number [%x]\n",finger_num);
+   // info_printk("finger number [%x]\n",finger_num);
 
     #if 0
     for(i=0;i<6;i++)
@@ -404,7 +1145,7 @@ OUT:
     //MID:20121122_01
     if((finger_num>0)&&(finger_num<=5))
     {
-	    for(i=0; i<TOUCH_MAX_NUMBER; i++)
+	    for(i=0; i<ts->point_num; i++)
 	    {
 
            if((buf[i*4] == 0xff && buf[i*4+1] == 0xff && buf[i*4+2] == 0xff  &&buf[i*4+3] == 0xff)){
@@ -415,6 +1156,9 @@ OUT:
                 ret = x;
                 x   = y ;
                 y   = ret ;
+
+             is_project_C8680GP(ts,&x,&y) ;
+
              //info_printk("x=%ld,y=%ld\n",x,y);
 			 if(x > HIMAX_X_MAX  ||  y > HIMAX_Y_MAX){
                     continue ;
@@ -493,6 +1237,7 @@ static irqreturn_t himax_ts_irq_handler(int irq, void *dev_id)
     }else {
         info_printk("irq queue error %d\n",ret);
     }
+
     return IRQ_HANDLED;
 }
 
@@ -565,6 +1310,17 @@ static int himax_ts_poweron(struct himax_ts_data *ts)
         return ret ;
     }
 
+
+     //add for 4/5 point switch
+   if(ts->cmd_92==true){
+      buf0[0] = 0x92;
+      buf0[1] = 0x01;        //noneZero :five finger ;Zero :four finger
+      ret = i2c_master_send(ts->client, buf0, 2);//set output
+      if(ret < 0) {
+       err_printk(KERN_ERR "i2c_master_send failed addr = 0x%x\n",ts->client->addr);
+       return ret ;
+      }
+   }
 
     buf0[0] = 0x83;
     ret = i2c_master_send(ts->client, buf0, 1);//sense on
@@ -928,8 +1684,10 @@ static ssize_t himax_fw_ver_show(struct device *dev,
 {
 
     struct himax_ts_data * ts = dev_get_drvdata(dev) ;
-
-    return snprintf(buf,PAGE_SIZE,"fw:%s:%d\n",ts->fw_name,ts->upgrade);
+    int count = 0 ;
+    count += snprintf(buf,PAGE_SIZE,"fw_name:%s:%d\n",ts->fw_name,ts->upgrade);
+    count += snprintf(buf+count,PAGE_SIZE,"fw_ver:%s:%d\n",ts->fw_ver,ts->point_num);
+    return count ;
 }
 static ssize_t himax_driver_show(struct device *dev,
                        struct device_attribute *attr,
@@ -1023,77 +1781,6 @@ void himax_FlashMode(struct i2c_client * i2c_client,int enter)
 	i2c_smbus_write_i2c_block_data(i2c_client, 0x43, 1, &cmd[0]);
 }
 
- int himax_i2c_read(struct himax_ts_data * ts,unsigned char addr, int datalen, unsigned char data[], int *readlen)
- {
- /*
-#if  0//MSM8X60_ARCH || MSM7225A_ARCH || MSM7227A_ARCH || MSM7627A_ARCH || MSM7630_ARCH || MSM8225_ARCH
-     return i2c_gsbi_read(TP_GSBI, slave_address, addr, datalen, data, readlen);
-#else
-     return i2c_read(slave_address, addr, 1, data, datalen);
-#endif
- */
- //struct himax_ts_data *ts = container_of(work, struct himax_ts_data, work);
-     int ret = 0;
-     struct i2c_msg msg[2];
-     uint8_t start_reg;
-     //uint8_t buf[128] = {0};
-
-
-     start_reg = addr;
-     msg[0].addr = ts->client->addr;
-     msg[0].flags = 0;
-     msg[0].len = 1;
-     msg[0].buf = &start_reg;
-
-     msg[1].addr = ts->client->addr;
-     msg[1].flags = I2C_M_RD;
-     msg[1].len =  datalen;
-     msg[1].buf = data;
-
-     ret = i2c_transfer(ts->client->adapter, msg, 2);
-     if (ret < 0) {
-         memset(data, 0xff , 24);
-
-         return 0;
-     }
-     return 0;
- }
-
-
- static int hx8526_read_flash(struct himax_ts_data * ts,unsigned char *buf, unsigned int addr, unsigned int length)
- {
-	unsigned char index_byte,index_page,index_sector;
-    int readLen;
-	unsigned char buf0[7];
-	unsigned int i;
-	unsigned int j = 0;
-
-	index_byte = (addr & 0x001F);
-	index_page = ((addr & 0x03E0) >> 5);
-	index_sector = ((addr & 0x1C00) >> 10);
-
-	for (i = addr; i < addr + length; i++)
-	{
-		buf0[0] = 0x44;
-		buf0[1] = i&0x1F;
-		buf0[2] = (i>>5)&0x1F;
-		buf0[3] = (i>>10)&0x1F;
-
-		i2c_master_send(ts->client, buf0,4 );//himax_i2c_master_write(slave_address, 4, buf0);
-		udelay(10);
-
-		buf0[0] = 0x46;
-		i2c_master_send(ts->client, buf0,1 );//himax_i2c_master_write(slave_address, 1, buf0);
-		udelay(10);
-
-		//Himax: Read FW Version to buf
-		himax_i2c_read(ts,0x59, 4, &buf[0+j], &readLen);
-		udelay(10);
-		j += 4;
-	}
-
-	return 1;
-}
 
 
 //1:need upgrade
@@ -1103,9 +1790,24 @@ u8 himax_read_FW_ver(struct himax_ts_data * ts) //OK
 	unsigned char FW_VER_MIN_FLASH_buff[FW_VER_MIN_FLASH_LENG*4 ];
 	unsigned char CFG_VER_MAJ_FLASH_buff[CFG_VER_MAJ_FLASH_LENG*4];
 	unsigned char CFG_VER_MIN_FLASH_buff[CFG_VER_MIN_FLASH_LENG*4];
+    unsigned char * FW ;
     int ret = 0 ;
 	unsigned int i;
 	unsigned char cmd[5];
+
+
+    if(get_project(ts)==1)
+        FW = HIMAX_FW_C8680 ;
+    else if (get_project(ts)==2)
+        FW = HIMAX_FW_C8680QM ;
+    else if (get_project(ts)==3)
+        FW = HIMAX_FW_C8680GP ;
+    else{
+        err_printk("project name not detect!!!!\n");
+        return 0 ;
+    }
+
+
 
 	//Himax: Power On Flow
 	cmd[0] = 0x42;
@@ -1159,8 +1861,8 @@ u8 himax_read_FW_ver(struct himax_ts_data * ts) //OK
 	for (i = 0; i < FW_VER_MAJ_FLASH_LENG * 4; i++)
 	{
           info_printk("%d:flash major [%x],fw major[%x]\n",i,FW_VER_MAJ_FLASH_buff[i],
-            *(HIMAX_FW + (FW_VER_MAJ_FLASH_ADDR * 4) + i));
-		 if (FW_VER_MAJ_FLASH_buff[i] != *(HIMAX_FW + (FW_VER_MAJ_FLASH_ADDR * 4) + i))
+            *(FW + (FW_VER_MAJ_FLASH_ADDR * 4) + i));
+		 if (FW_VER_MAJ_FLASH_buff[i] != *(FW + (FW_VER_MAJ_FLASH_ADDR * 4) + i))
 			return 1;
 	}
 
@@ -1169,9 +1871,9 @@ u8 himax_read_FW_ver(struct himax_ts_data * ts) //OK
 	{
 
         info_printk("%d:flash minor [%x],fw minor[%x]\n",i,FW_VER_MIN_FLASH_buff[i],
-            *(HIMAX_FW + (FW_VER_MIN_FLASH_ADDR * 4) + i));
+            *(FW + (FW_VER_MIN_FLASH_ADDR * 4) + i));
 
-		if (FW_VER_MIN_FLASH_buff[i] != *(HIMAX_FW + (FW_VER_MIN_FLASH_ADDR * 4) + i))
+		if (FW_VER_MIN_FLASH_buff[i] != *(FW + (FW_VER_MIN_FLASH_ADDR * 4) + i))
 			return 1;
 	}
 
@@ -1180,9 +1882,9 @@ u8 himax_read_FW_ver(struct himax_ts_data * ts) //OK
 	{
 
     	info_printk("%d:cfg major [%x],fw major[%x]\n",i,CFG_VER_MAJ_FLASH_buff[i],
-            *(HIMAX_FW + (CFG_VER_MAJ_FLASH_ADDR * 4) + i));
+            *(FW + (CFG_VER_MAJ_FLASH_ADDR * 4) + i));
 
-		if (CFG_VER_MAJ_FLASH_buff[i] != *(HIMAX_FW + (CFG_VER_MAJ_FLASH_ADDR * 4) + i))
+		if (CFG_VER_MAJ_FLASH_buff[i] != *(FW + (CFG_VER_MAJ_FLASH_ADDR * 4) + i))
 			return 1;
 	}
 
@@ -1191,9 +1893,9 @@ u8 himax_read_FW_ver(struct himax_ts_data * ts) //OK
 	{
 
         info_printk("%d:cfg min [%x],fw major[%x]\n",i,CFG_VER_MIN_FLASH_buff[i],
-                    *(HIMAX_FW + (CFG_VER_MIN_FLASH_ADDR * 4) + i));
+                    *(FW + (CFG_VER_MIN_FLASH_ADDR * 4) + i));
 
-		if (CFG_VER_MIN_FLASH_buff[i] != *(HIMAX_FW + (CFG_VER_MIN_FLASH_ADDR * 4) + i))
+		if (CFG_VER_MIN_FLASH_buff[i] != *(FW + (CFG_VER_MIN_FLASH_ADDR * 4) + i))
 			return 1;
 	}
 
@@ -1392,21 +2094,29 @@ void himax_lock_flash(struct himax_ts_data * ts)
 //return 1:Success, 0:Fail
 static int fts_ctpm_fw_upgrade_with_i_file(struct himax_ts_data * ts)
 {
-  struct i2c_client * i2c_client = ts->client ;
-	//Get the Firmware.bin and Length
-  unsigned char* ImageBuffer = HIMAX_FW;
-  int fullFileLength = sizeof(HIMAX_FW); //Paul Check
+    struct i2c_client * i2c_client = ts->client ;
+    unsigned char* ImageBuffer ;
+    int fullFileLength ; //Paul Check
+    int i, j;
+    unsigned char cmd[5], last_byte, prePage;
+    int FileLength;
+    uint8_t checksumResult = 0;
 
-  //Set RST PIN
-  //int RST = ? //Paul Check
 
-  int i, j;
-	unsigned char cmd[5], last_byte, prePage;
-	int FileLength;
-	uint8_t checksumResult = 0;
+    if(get_project(ts)==1){
+        ImageBuffer = HIMAX_FW_C8680 ;
+        fullFileLength = sizeof(HIMAX_FW_C8680) ;
+    }else if(get_project(ts)==2){
+        ImageBuffer = HIMAX_FW_C8680QM ;
+        fullFileLength = sizeof(HIMAX_FW_C8680QM) ;
+    }else if(get_project(ts)==3){
+        ImageBuffer = HIMAX_FW_C8680GP ;
+        fullFileLength = sizeof(HIMAX_FW_C8680GP) ;
+    }
 
-	//Try 3 Times
-	for (j = 0; j < 3; j++)
+
+	//Try 1 Times
+	for (j = 0; j < 1; j++)
 	{
 		FileLength = fullFileLength - 2;
 
@@ -1525,11 +2235,16 @@ static int himax_fw_upgrade(struct himax_ts_data * ts)
 {
 
     int upgrade = 0 ;
+    int ret ;
+    ret = detect_project_name(ts) ;
+    if(ret < 0){
+      err_printk("detect project name error ret[%d]\n",ret);
+      return -ENODEV ;
+    }
 
-    ts->fw_name = FW_VER_NAME ;
 
     upgrade = himax_read_FW_ver(ts) ;
-    if(upgrade){
+    if(upgrade==1){
       struct himax_platform_data * pdata = dev_get_platdata(&ts->client->dev);
       info_printk("TP need upgrade firmware\n");
      if(fts_ctpm_fw_upgrade_with_i_file(ts) == 0){
@@ -1552,7 +2267,7 @@ static int himax_ts_probe(struct i2c_client *client, const struct i2c_device_id 
     struct himax_ts_data *ts ;
     struct himax_platform_data *pdata;
     int ret = -1;
-    int i ;
+
 
     info_printk("himax TS probe\n"); //[Step 1]
     pdata = dev_get_platdata(&client->dev);
@@ -1571,11 +2286,12 @@ static int himax_ts_probe(struct i2c_client *client, const struct i2c_device_id 
         ret = -ENOMEM;
         goto err_alloc_data_failed;
     }
-
+#ifdef __SELF_REPORT__
     for(i=0;i<TOUCH_MAX_NUMBER;i++) {
         ts->points[i].pre_status = TOUCH_UP ;
         ts->points[i].cur_status = TOUCH_UP ;
     }
+#endif
 
     INIT_WORK(&ts->work, himax_ts_work_func);
     client->irq = gpio_to_irq(pdata->gpio_int);
@@ -1596,15 +2312,33 @@ static int himax_ts_probe(struct i2c_client *client, const struct i2c_device_id 
         return ret ;
     }
     gpio_direction_output(pdata->gpio_rst,GPIO_OUTPUT_HI) ;
-    himax_ts_reset(pdata) ;
+
     ts->upgrade   = 1 ;
     ts->err_count = 0 ;
-#ifdef CONFIG_HX8526A_FW_UPDATE
-    ret = himax_fw_upgrade(ts);
+    ts->cmd_92    = false ;
+
+#if ChangeIref1u
+	ret = ChangeIrefSPP(ts );
+	msleep(20);		//Wake_huang added @ 2012-11-29
+	if(ret <= 0){
+		//himax_ts_reset(dev_get_platdata(&ts->client->dev));	//Hardware Reset
+        err_printk("ChangeIrefSPP error\n");
+    }
 #endif
+
+
+   himax_ts_reset(pdata) ;
+
+#ifdef CONFIG_HX8526A_FW_UPDATE
+   ret = himax_fw_upgrade(ts);
+#endif
+
+    ret = detect_project_name(ts) ;
+    if(ret<0)goto FREE ;
 
     ret = himax_ts_poweron(ts) ;
     if(ret < 0 ){
+ FREE:
         gpio_free(pdata->gpio_rst);
         gpio_free(pdata->gpio_int);
         kfree(ts);
@@ -1638,7 +2372,7 @@ static int himax_ts_probe(struct i2c_client *client, const struct i2c_device_id 
     input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, 960, 0, 0);
     input_set_abs_params(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0, HIMAX_MAJOR_MAX, 0, 0); //Finger Size
     input_set_abs_params(ts->input_dev, ABS_MT_WIDTH_MAJOR, 0, HIMAX_WIDTH_MAX, 0, 0); //Touch Size
-    input_set_abs_params(ts->input_dev, ABS_MT_TRACKING_ID,0,TOUCH_MAX_NUMBER-1,0,0);
+    //input_set_abs_params(ts->input_dev, ABS_MT_TRACKING_ID,0,TOUCH_MAX_NUMBER-1,0,0);
 
     ret = input_register_device(ts->input_dev);
     if (ret) {
@@ -1698,6 +2432,7 @@ static int himax_ts_remove(struct i2c_client *client)
     else
         hrtimer_cancel(&ts->timer);
     input_unregister_device(ts->input_dev);
+    kfree(ts->finger_buf);
     kfree(ts);
     return 0;
 }

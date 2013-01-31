@@ -128,7 +128,7 @@ static void extract_header(const u8 *data, int pos, struct image_header *header)
 	       RMI_PRODUCT_ID_LENGTH);
 	header->product_id[PRODUCT_ID_SIZE] = 0;
 	memcpy(header->product_info, &data[pos + PRODUCT_INFO_OFFSET],
-	       RMI_PRODUCT_ID_LENGTH);
+	       RMI_DATE_CODE_LENGTH);
 }
 
 static int rescan_pdt(struct reflash_data *data)
@@ -755,7 +755,7 @@ static int get_sensor_id(struct reflash_data *data)
 
 
 char *c8680_img_name[4] = { NULL,  "0102",  NULL,  NULL };
-char *c8681_img_name[4] = { "0001", "0103",   NULL,  NULL };
+char *c8681_img_name[4] = { "0002", "0103",   NULL,  NULL };
 
 #define id_to_index(id)  (((id[0] & 0b0110) >> 1) & 0b11)
 
