@@ -188,7 +188,7 @@ static struct dsi_cmd_desc nt35565_display_off_cmds[] = {
 
 static struct dsi_cmd_desc nt35565_cmd_display_on_cmds[] = {
 	{DTYPE_DCS_WRITE, 1, 0, 0, 120, sizeof(exit_sleep), exit_sleep},
-	{DTYPE_DCS_WRITE, 1, 0, 0, 10, sizeof(display_on), display_on},
+	{DTYPE_DCS_WRITE, 1, 0, 0, 0, sizeof(display_on), display_on},
 
 	{DTYPE_GEN_WRITE1, 1, 0, 0, 0, sizeof(cmd0), cmd0},
 
@@ -196,7 +196,7 @@ static struct dsi_cmd_desc nt35565_cmd_display_on_cmds[] = {
 	{DTYPE_GEN_WRITE1, 1, 0, 0, 0, sizeof(gamma1), gamma1},
 	{DTYPE_GEN_WRITE1, 1, 0, 0, 0, sizeof(gamma2), gamma2},
 	{DTYPE_GEN_WRITE1, 1, 0, 0, 0, sizeof(gamma3), gamma3},
-	{DTYPE_GEN_WRITE1, 1, 0, 0, 10, sizeof(gamma4), gamma4},
+	{DTYPE_GEN_WRITE1, 1, 0, 0, 0, sizeof(gamma4), gamma4},
 	{DTYPE_GEN_WRITE1, 1, 0, 0, 0, sizeof(gamma5), gamma5},
 	{DTYPE_GEN_WRITE1, 1, 0, 0, 0, sizeof(gamma6), gamma6},
 	{DTYPE_GEN_WRITE1, 1, 0, 0, 0, sizeof(gamma7), gamma7},
@@ -247,9 +247,9 @@ static struct dsi_cmd_desc nt35565_cmd_display_on_cmds[] = {
 	{DTYPE_GEN_WRITE1, 1, 0, 0, 0, sizeof(gamma52), gamma52},
 	{DTYPE_GEN_WRITE1, 1, 0, 0, 0, sizeof(gamma53), gamma53},
 	{DTYPE_GEN_WRITE1, 1, 0, 0, 0, sizeof(gamma54), gamma54},
-	{DTYPE_GEN_WRITE1, 1, 0, 0, 10, sizeof(gamma55), gamma55},
+	{DTYPE_GEN_WRITE1, 1, 0, 0, 0, sizeof(gamma55), gamma55},
 	{DTYPE_GEN_WRITE1, 1, 0, 0, 0, sizeof(gamma56), gamma56},
-	{DTYPE_GEN_WRITE1, 1, 0, 0, 10, sizeof(gamma57), gamma57},
+	{DTYPE_GEN_WRITE1, 1, 0, 0, 0, sizeof(gamma57), gamma57},
 	{DTYPE_GEN_WRITE1, 1, 0, 0, 0, sizeof(gamma58), gamma58},
 	{DTYPE_GEN_WRITE1, 1, 0, 0, 0, sizeof(gamma59), gamma59},
 	{DTYPE_GEN_WRITE1, 1, 0, 0, 0, sizeof(gamma60), gamma60},
@@ -463,8 +463,6 @@ static int mipi_nt35565_lcd_init(void)
 
 	return platform_driver_register(&this_driver);
 }
-module_init(mipi_nt35565_lcd_init);
-
 int mipi_nt35565_device_register(struct msm_panel_info *pinfo,
 					u32 channel, u32 panel)
 {
@@ -475,6 +473,12 @@ int mipi_nt35565_device_register(struct msm_panel_info *pinfo,
 		return -ENODEV;
 
 	ch_used[channel] = TRUE;
+
+	ret = mipi_nt35565_lcd_init();
+	if (ret) {
+		pr_err("mipi_nt35565_lcd_init() failed with ret %u\n", ret);
+		return ret;
+	}
 
 	pdev = platform_device_alloc("mipi_NT35565", (panel << 8)|channel);
 	if (!pdev)
