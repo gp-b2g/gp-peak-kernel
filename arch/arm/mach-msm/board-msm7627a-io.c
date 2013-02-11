@@ -74,9 +74,6 @@
 
 #define C8680_CTP_ID	115
 
-
-
-
 #define ATMEL_TS_I2C_NAME "maXTouch"
 #define ATMEL_X_OFFSET 13
 #define ATMEL_Y_OFFSET 0

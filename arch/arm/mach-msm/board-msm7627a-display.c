@@ -293,7 +293,7 @@ static struct platform_device lcdc_truly_panel_device = {
 };
 
 static struct regulator_bulk_data regs_lcdc[] = {
-	{ .supply = "gp2",   .min_uV = 2850000, .max_uV = 2850000 },
+	{ .supply = "gp2",   .min_uV = 2850000, .max_uV = 3300000 },
 	{ .supply = "msme1", .min_uV = 1800000, .max_uV = 1800000 },
 };
 static uint32_t lcdc_gpio_initialized;
@@ -1354,7 +1354,7 @@ static int msm_fb_dsi_client_reset(void)
 }
 
 static struct regulator_bulk_data regs_dsi[] = {
-	{ .supply = "gp2",   .min_uV = 2850000, .max_uV = 2850000 },
+	{ .supply = "gp2",   .min_uV = 2850000, .max_uV = 3300000 },
 	{ .supply = "msme1", .min_uV = 1800000, .max_uV = 1800000 },
 };
 

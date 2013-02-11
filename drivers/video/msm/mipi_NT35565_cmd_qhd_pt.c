@@ -17,20 +17,19 @@
 static struct msm_panel_info pinfo;
 
 static struct mipi_dsi_phy_ctrl dsi_cmd_mode_phy_db = {
-	/* DSI Bit Clock at 500 MHz, 2 lane, RGB888 */
 	/* regulator */
-	{0x03, 0x01, 0x01, 0x00},
-	/* timing   */
-	{0xB4, 0x8D, 0x1D, 0x00, 0x20, 0x94, 0x20,
-	0x8F, 0x20, 0x03, 0x04},
+	{0x03, 0x01, 0x01, 0x00, 0x00}, 
+	/* timing */
+	{0xc3, 0x90, 0x30, 0x22, 0xa4, 0xa2, 0x29, 
+	0x98, 0x24, 0x10, 0x14}, 
 	/* phy ctrl */
-	{0x7f, 0x00, 0x00, 0x00},
-	/* strength */
-	{0xee, 0x02, 0x86, 0x00},	/* strength */
-	/* pll control */
-	{0x40, 0xf9, 0xb0, 0xda, 0x00, 0x50, 0x48, 0x63,
-	0x30, 0x07, 0x03,
-	0x05, 0x14, 0x03, 0x0, 0x0, 0x54, 0x06, 0x10, 0x04, 0x0},
+	{0x7f, 0x00, 0x00, 0x00}, 
+	/* strength */ 
+	{0xee, 0x02, 0x86, 0x00}, 
+	/* pll control */ 
+	{0x40, 0xec, 0xb1, 0xda, 0x00, 0x50, 0x48, 0x63, 
+	0x30, 0x07, 0x03, 
+	0x05, 0x14, 0x03, 0x0, 0x0, 0x54, 0x20, 0x10, 0x04, 0x0},
 };
 
 static int mipi_cmd_nt35565_qhd_pt_init(void)
@@ -46,11 +45,11 @@ static int mipi_cmd_nt35565_qhd_pt_init(void)
 	pinfo.pdest = DISPLAY_1;
 	pinfo.wait_cycle = 0;
 	pinfo.bpp = 24;
-	pinfo.lcdc.h_back_porch = 50;
-	pinfo.lcdc.h_front_porch = 50;
+	pinfo.lcdc.h_back_porch = 20;
+	pinfo.lcdc.h_front_porch = 40;
 	pinfo.lcdc.h_pulse_width = 1;
-	pinfo.lcdc.v_back_porch = 11;
-	pinfo.lcdc.v_front_porch = 10;
+	pinfo.lcdc.v_back_porch = 8;
+	pinfo.lcdc.v_front_porch = 8;
 	pinfo.lcdc.v_pulse_width = 1;
 
 	pinfo.lcdc.border_clr = 0;	/* blk */
@@ -60,11 +59,8 @@ static int mipi_cmd_nt35565_qhd_pt_init(void)
 	pinfo.bl_min = 0;
 	pinfo.fb_num = 2;
 
-	pinfo.clk_rate = 499000000;
-
-	//pinfo.lcd.vsync_enable = TRUE;
-	//pinfo.lcd.hw_vsync_mode = TRUE;
-	pinfo.lcd.refx100 = 6200; /* adjust refx100 to prevent tearing */
+	pinfo.clk_rate = 554000000;
+	pinfo.lcd.refx100 = 6250; /* adjust refx100 to prevent tearing */
 
 	pinfo.mipi.mode = DSI_CMD_MODE;
 	pinfo.mipi.dst_format = DSI_CMD_DST_FORMAT_RGB888;
@@ -77,7 +73,7 @@ static int mipi_cmd_nt35565_qhd_pt_init(void)
 	pinfo.mipi.stream = 0; /* dma_p */
 	pinfo.mipi.mdp_trigger = DSI_CMD_TRIGGER_SW;
 	pinfo.mipi.dma_trigger = DSI_CMD_TRIGGER_SW;
-	pinfo.mipi.te_sel = 0; /* TE from vsync gpio */
+	pinfo.mipi.te_sel = 1; /* TE from vsync gpio */
 	pinfo.mipi.interleave_max = 1;
 	pinfo.mipi.insert_dcs_cmd = TRUE;
 	pinfo.mipi.wr_mem_continue = 0x3c;
