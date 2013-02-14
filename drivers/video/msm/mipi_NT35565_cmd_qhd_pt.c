@@ -17,19 +17,20 @@
 static struct msm_panel_info pinfo;
 
 static struct mipi_dsi_phy_ctrl dsi_cmd_mode_phy_db = {
+	/* DSI Bit Clock at 500 MHz, 2 lane, RGB888 */
 	/* regulator */
-	{0x03, 0x01, 0x01, 0x00, 0x00}, 
-	/* timing */
-	{0xc3, 0x90, 0x30, 0x22, 0xa4, 0xa2, 0x29, 
-	0x98, 0x24, 0x10, 0x14}, 
+	{0x03, 0x01, 0x01, 0x00},
+	/* timing   */
+	{0xB4, 0x8D, 0x1D, 0x00, 0x20, 0x94, 0x20,
+	0x8F, 0x20, 0x03, 0x04},
 	/* phy ctrl */
-	{0x7f, 0x00, 0x00, 0x00}, 
-	/* strength */ 
-	{0xee, 0x02, 0x86, 0x00}, 
-	/* pll control */ 
-	{0x40, 0xec, 0xb1, 0xda, 0x00, 0x50, 0x48, 0x63, 
-	0x30, 0x07, 0x03, 
-	0x05, 0x14, 0x03, 0x0, 0x0, 0x54, 0x20, 0x10, 0x04, 0x0},
+	{0x7f, 0x00, 0x00, 0x00},
+	/* strength */
+	{0xee, 0x02, 0x86, 0x00},	/* strength */
+	/* pll control */
+	{0x40, 0xf9, 0xb0, 0xda, 0x00, 0x50, 0x48, 0x63,
+	0x30, 0x07, 0x03,
+	0x05, 0x14, 0x03, 0x0, 0x0, 0x54, 0x06, 0x10, 0x04, 0x0},
 };
 
 static int mipi_cmd_nt35565_qhd_pt_init(void)
@@ -45,12 +46,12 @@ static int mipi_cmd_nt35565_qhd_pt_init(void)
 	pinfo.pdest = DISPLAY_1;
 	pinfo.wait_cycle = 0;
 	pinfo.bpp = 24;
-	pinfo.lcdc.h_back_porch = 20;
-	pinfo.lcdc.h_front_porch = 40;
-	pinfo.lcdc.h_pulse_width = 1;
-	pinfo.lcdc.v_back_porch = 8;
-	pinfo.lcdc.v_front_porch = 8;
-	pinfo.lcdc.v_pulse_width = 1;
+	pinfo.lcdc.h_back_porch = 50;
+	pinfo.lcdc.h_front_porch = 50;
+	pinfo.lcdc.h_pulse_width = 20;
+	pinfo.lcdc.v_back_porch = 11;
+	pinfo.lcdc.v_front_porch = 10;
+	pinfo.lcdc.v_pulse_width = 5;
 
 	pinfo.lcdc.border_clr = 0;	/* blk */
 	pinfo.lcdc.underflow_clr = 0xff;	/* blue */
@@ -59,8 +60,14 @@ static int mipi_cmd_nt35565_qhd_pt_init(void)
 	pinfo.bl_min = 0;
 	pinfo.fb_num = 2;
 
-	pinfo.clk_rate = 554000000;
-	pinfo.lcd.refx100 = 6250; /* adjust refx100 to prevent tearing */
+	pinfo.clk_rate = 454000000;
+
+	//pinfo.lcd.vsync_enable = TRUE;
+	//pinfo.lcd.hw_vsync_mode = TRUE;
+	pinfo.lcd.refx100 = 6000; /* adjust refx100 to prevent tearing */
+	pinfo.lcd.v_back_porch = 11;
+	pinfo.lcd.v_front_porch = 10;
+	pinfo.lcd.v_pulse_width = 5;
 
 	pinfo.mipi.mode = DSI_CMD_MODE;
 	pinfo.mipi.dst_format = DSI_CMD_DST_FORMAT_RGB888;

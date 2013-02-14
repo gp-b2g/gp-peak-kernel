@@ -24,6 +24,7 @@
 #include "sd.h"
 #include "sd_ops.h"
 
+//int cardinit = 1;
 //jason.lee_fix_0002
 //2012/11/23 for prevent sd card shatter when it bigger than 32GB 
 //add
@@ -726,6 +727,13 @@ int mmc_sd_get_cid(struct mmc_host *host, u32 ocr, u32 *cid, u32 *rocr)
 	 * respond.
 	 */
 	mmc_go_idle(host);
+#if 0
+    if (cardinit) {
+        printk("mmc: init card flag.\n");
+        msleep(50);
+        cardinit = 0;
+    }
+#endif
 
 	/*
 	 * If SD_SEND_IF_COND indicates an SD 2.0
@@ -786,6 +794,15 @@ int mmc_sd_get_csd(struct mmc_host *host, struct mmc_card *card)
 	err = mmc_send_csd(card, card->raw_csd);
 	if (err)
 		return err;
+#if 0	
+	/* Fix for some buggy card with CSD tacc == 0*/
+	if(!card->csd.tacc_ns)
+	{
+		printk(KERN_INFO "This SDCARD CSD tacc is zero! Fix it for 100ms\n");
+		card->csd.tacc_ns = 100000 * 1000;
+	}	
+#endif	
+
 
 	err = mmc_decode_csd(card);
 	if (err)
@@ -794,6 +811,7 @@ int mmc_sd_get_csd(struct mmc_host *host, struct mmc_card *card)
 	//jason.lee_fix_0002
 	//2012/11/23 for prevent sd card shatter when it bigger than 32GB 
 	//add
+	printk(KERN_INFO "SD size %d Mib\n",card->csd.capacity/1024/2);
 	if (card->csd.capacity > SDHC_MAX_SIZE*2){
 		printk(KERN_INFO "SD size %d > 32 GiB\n",card->csd.capacity/1024/1024/2);
 		return EINVAL;
@@ -939,24 +957,28 @@ static int mmc_sd_init_card(struct mmc_host *host, u32 ocr,
 
 	BUG_ON(!host);
 	WARN_ON(!host->claimed);
-
+	printk(KERN_DEBUG "%s: lzj thread pid = %d.\n", mmc_hostname(host), current->pid);
+	//cardinit = 1;
 	err = mmc_sd_get_cid(host, ocr, cid, &rocr);
-	if (err)
+	if (err){
+		printk(KERN_DEBUG "%s: lzj mmc_sd_get_cid error.\n", mmc_hostname(host));
 		return err;
-
+	}
 	if (oldcard) {
-		if (memcmp(cid, oldcard->raw_cid, sizeof(cid)) != 0)
+		if (memcmp(cid, oldcard->raw_cid, sizeof(cid)) != 0){
+			printk(KERN_DEBUG "%s: lzj oldcard memcmp error.\n", mmc_hostname(host));
 			return -ENOENT;
-
+		}
 		card = oldcard;
 	} else {
 		/*
 		 * Allocate card structure.
 		 */
 		card = mmc_alloc_card(host, &sd_type);
-		if (IS_ERR(card))
+		if (IS_ERR(card)){
+			printk(KERN_DEBUG "%s: lzj mmc_alloc_card error.\n", mmc_hostname(host));
 			return PTR_ERR(card);
-
+		}
 		card->type = MMC_TYPE_SD;
 		memcpy(card->raw_cid, cid, sizeof(card->raw_cid));
 	}
@@ -966,17 +988,19 @@ static int mmc_sd_init_card(struct mmc_host *host, u32 ocr,
 	 */
 	if (!mmc_host_is_spi(host)) {
 		err = mmc_send_relative_addr(host, &card->rca);
-		if (err)
+		if (err){
+			printk(KERN_DEBUG "%s: lzj mmc_send_relative_addr error.\n", mmc_hostname(host));
 			return err;
-
+		}
 		mmc_set_bus_mode(host, MMC_BUSMODE_PUSHPULL);
 	}
 
 	if (!oldcard) {
 		err = mmc_sd_get_csd(host, card);
-		if (err)
+		if (err){
+			printk(KERN_DEBUG "%s: lzj mmc_sd_get_csd error.\n", mmc_hostname(host));
 			return err;
-
+		}
 		mmc_decode_cid(card);
 	}
 
@@ -985,20 +1009,24 @@ static int mmc_sd_init_card(struct mmc_host *host, u32 ocr,
 	 */
 	if (!mmc_host_is_spi(host)) {
 		err = mmc_select_card(card);
-		if (err)
+		if (err){
+			printk(KERN_DEBUG "%s: lzj mmc_select_card error.\n", mmc_hostname(host));
 			return err;
+		}
 	}
 
 	err = mmc_sd_setup_card(host, card, oldcard != NULL);
-	if (err)
+	if (err){
+		printk(KERN_DEBUG "%s: lzj mmc_sd_setup_card error.\n", mmc_hostname(host));
 		goto free_card;
-
+	}
 	/* Initialization sequence for UHS-I cards */
 	if (rocr & SD_ROCR_S18A) {
 		err = mmc_sd_init_uhs_card(card);
-		if (err)
+		if (err){
+			printk(KERN_DEBUG "%s: lzj mmc_sd_init_uhs_card error.\n", mmc_hostname(host));
 			goto free_card;
-
+		}
 		/* Card is an ultra-high-speed card */
 		mmc_sd_card_set_uhs(card);
 
@@ -1018,8 +1046,10 @@ static int mmc_sd_init_card(struct mmc_host *host, u32 ocr,
 		err = mmc_sd_switch_hs(card);
 		if (err > 0)
 			mmc_sd_go_highspeed(card);
-		else if (err)
+		else if (err){
+			printk(KERN_DEBUG "%s: lzj mmc_sd_switch_hs error.\n", mmc_hostname(host));
 			goto free_card;
+		}
 
 		/*
 		 * Set bus speed.
@@ -1032,20 +1062,21 @@ static int mmc_sd_init_card(struct mmc_host *host, u32 ocr,
 		if ((host->caps & MMC_CAP_4_BIT_DATA) &&
 			(card->scr.bus_widths & SD_SCR_BUS_WIDTH_4)) {
 			err = mmc_app_set_bus_width(card, MMC_BUS_WIDTH_4);
-			if (err)
+			if (err){
+				printk(KERN_DEBUG "%s: lzj mmc_app_set_bus_width error.\n", mmc_hostname(host));
 				goto free_card;
-
+			}
 			mmc_set_bus_width(host, MMC_BUS_WIDTH_4);
 		}
 	}
-
+	printk(KERN_DEBUG "%s: lzj %s end .\n", mmc_hostname(host),__func__);
 	host->card = card;
 	return 0;
 
 free_card:
 	if (!oldcard)
 		mmc_remove_card(card);
-
+	printk(KERN_DEBUG "%s: %s error %d end .\n", mmc_hostname(host),__func__,err);
 	return err;
 }
 
@@ -1056,7 +1087,7 @@ static void mmc_sd_remove(struct mmc_host *host)
 {
 	BUG_ON(!host);
 	BUG_ON(!host->card);
-
+	printk(" lzj %s \n", __func__);
 	mmc_remove_card(host->card);
 
 	mmc_claim_host(host);
@@ -1069,7 +1100,10 @@ static void mmc_sd_remove(struct mmc_host *host)
  */
 static int mmc_sd_alive(struct mmc_host *host)
 {
-	return mmc_send_status(host->card, NULL);
+	int ret;
+	ret = mmc_send_status(host->card, NULL);
+	printk(" lzj %s : %d \n", __func__,ret);
+	return ret;
 }
 
 /*

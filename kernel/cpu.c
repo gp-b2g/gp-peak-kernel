@@ -475,7 +475,7 @@ out:
 	cpu_maps_update_done();
 }
 
-static int __init alloc_frozen_cpus(void)
+static int alloc_frozen_cpus(void)
 {
 	if (!alloc_cpumask_var(&frozen_cpus, GFP_KERNEL|__GFP_ZERO))
 		return -ENOMEM;
@@ -548,7 +548,7 @@ cpu_hotplug_pm_callback(struct notifier_block *nb,
 }
 
 
-static int __init cpu_hotplug_pm_sync_init(void)
+int cpu_hotplug_pm_sync_init(void)
 {
 	pm_notifier(cpu_hotplug_pm_callback, 0);
 	return 0;

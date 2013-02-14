@@ -130,19 +130,10 @@ static int __init init_cpufreq_transition_notifier_list(void)
 }
 pure_initcall(init_cpufreq_transition_notifier_list);
 
-static int off __read_mostly;
-int cpufreq_disabled(void)
-{
-	return off;
-}
-void disable_cpufreq(void)
-{
-	off = 1;
-}
 static LIST_HEAD(cpufreq_governor_list);
 static DEFINE_MUTEX(cpufreq_governor_mutex);
 
-static struct cpufreq_policy *__cpufreq_cpu_get(unsigned int cpu, int sysfs)
+struct cpufreq_policy *cpufreq_cpu_get(unsigned int cpu)
 {
 	struct cpufreq_policy *data;
 	unsigned long flags;
@@ -166,7 +157,7 @@ static struct cpufreq_policy *__cpufreq_cpu_get(unsigned int cpu, int sysfs)
 	if (!data)
 		goto err_out_put_module;
 
-	if (!sysfs && !kobject_get(&data->kobj))
+	if (!kobject_get(&data->kobj))
 		goto err_out_put_module;
 
 	spin_unlock_irqrestore(&cpufreq_driver_lock, flags);
@@ -179,25 +170,16 @@ err_out_unlock:
 err_out:
 	return NULL;
 }
-
-struct cpufreq_policy *cpufreq_cpu_get(unsigned int cpu)
-{
-	return __cpufreq_cpu_get(cpu, 0);
-}
 EXPORT_SYMBOL_GPL(cpufreq_cpu_get);
 
-static void __cpufreq_cpu_put(struct cpufreq_policy *data, int sysfs)
-{
-	if (!sysfs)
-		kobject_put(&data->kobj);
-	module_put(cpufreq_driver->owner);
-}
 
 void cpufreq_cpu_put(struct cpufreq_policy *data)
 {
-	__cpufreq_cpu_put(data, 0);
+	kobject_put(&data->kobj);
+	module_put(cpufreq_driver->owner);
 }
 EXPORT_SYMBOL_GPL(cpufreq_cpu_put);
+
 
 /*********************************************************************
  *            EXTERNALLY AFFECTING FREQUENCY CHANGES                 *
@@ -1261,26 +1243,6 @@ unsigned int cpufreq_quick_get(unsigned int cpu)
 }
 EXPORT_SYMBOL(cpufreq_quick_get);
 
-/**
- * cpufreq_quick_get_max - get the max reported CPU frequency for this CPU
- * @cpu: CPU number
- *
- * Just return the max possible frequency for a given CPU.
- */
-unsigned int cpufreq_quick_get_max(unsigned int cpu)
-{
-	struct cpufreq_policy *policy = cpufreq_cpu_get(cpu);
-	unsigned int ret_freq = 0;
-
-	if (policy) {
-		ret_freq = policy->max;
-		cpufreq_cpu_put(policy);
-	}
-
-	return ret_freq;
-}
-EXPORT_SYMBOL(cpufreq_quick_get_max);
-
 
 static unsigned int __cpufreq_get(unsigned int cpu)
 {
@@ -1502,9 +1464,6 @@ int __cpufreq_driver_target(struct cpufreq_policy *policy,
 {
 	int retval = -EINVAL;
 
-	if (cpufreq_disabled())
-		return -ENODEV;
-
 	pr_debug("target for CPU %u: %u kHz, relation %u\n", policy->cpu,
 		target_freq, relation);
 	if (cpu_online(policy->cpu) && cpufreq_driver->target)
@@ -1613,9 +1572,6 @@ int cpufreq_register_governor(struct cpufreq_governor *governor)
 	if (!governor)
 		return -EINVAL;
 
-	if (cpufreq_disabled())
-		return -ENODEV;
-
 	mutex_lock(&cpufreq_governor_mutex);
 
 	err = -EBUSY;
@@ -1637,9 +1593,6 @@ void cpufreq_unregister_governor(struct cpufreq_governor *governor)
 #endif
 
 	if (!governor)
-		return;
-
-	if (cpufreq_disabled())
 		return;
 
 #ifdef CONFIG_HOTPLUG_CPU
@@ -1887,9 +1840,6 @@ int cpufreq_register_driver(struct cpufreq_driver *driver_data)
 	unsigned long flags;
 	int ret;
 
-	if (cpufreq_disabled())
-		return -ENODEV;
-
 	if (!driver_data || !driver_data->verify || !driver_data->init ||
 	    ((!driver_data->setpolicy) && (!driver_data->target)))
 		return -EINVAL;
@@ -1978,9 +1928,6 @@ EXPORT_SYMBOL_GPL(cpufreq_unregister_driver);
 static int __init cpufreq_core_init(void)
 {
 	int cpu;
-
-	if (cpufreq_disabled())
-		return -ENODEV;
 
 	for_each_possible_cpu(cpu) {
 		per_cpu(cpufreq_policy_cpu, cpu) = -1;

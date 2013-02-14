@@ -22,4 +22,4 @@ struct map_desc;
 
 void __init bootmem_init(void);
 void arm_mm_memblock_reserve(void);
-void create_mapping(struct map_desc *md);
+void __init create_mapping(struct map_desc *md);

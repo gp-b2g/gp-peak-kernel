@@ -485,8 +485,7 @@ static void kgsl_gpummu_default_setstate(struct kgsl_mmu *mmu,
 }
 
 static void kgsl_gpummu_setstate(struct kgsl_mmu *mmu,
-				struct kgsl_pagetable *pagetable,
-				unsigned int context_id)
+				struct kgsl_pagetable *pagetable)
 {
 	if (mmu->flags & KGSL_FLAGS_STARTED) {
 		/* page table not current, then setup mmu to use new
@@ -500,7 +499,7 @@ static void kgsl_gpummu_setstate(struct kgsl_mmu *mmu,
 			kgsl_mmu_pt_get_flags(pagetable, mmu->device->id);
 
 			/* call device specific set page table */
-			kgsl_setstate(mmu, context_id, KGSL_MMUFLAGS_TLBFLUSH |
+			kgsl_setstate(mmu, KGSL_MMUFLAGS_TLBFLUSH |
 				KGSL_MMUFLAGS_PTUPDATE);
 		}
 	}
@@ -523,14 +522,6 @@ static int kgsl_gpummu_init(struct kgsl_mmu *mmu)
 			"for GPUMMU: %x\n", CONFIG_MSM_KGSL_PAGE_TABLE_SIZE);
 			return -EINVAL;
 		}
-
-		/* allocate memory used for completing r/w operations that
-		 * cannot be mapped by the MMU
-		 */
-		status = kgsl_allocate_contiguous(&mmu->setstate_memory, 64);
-		if (!status)
-			kgsl_sharedmem_set(&mmu->setstate_memory, 0, 0,
-					   mmu->setstate_memory.size);
 	}
 
 	dev_info(mmu->device->dev, "|%s| MMU type set for device is GPUMMU\n",
@@ -592,7 +583,7 @@ static int kgsl_gpummu_start(struct kgsl_mmu *mmu)
 	kgsl_regwrite(mmu->device, MH_MMU_VA_RANGE,
 		      (KGSL_PAGETABLE_BASE |
 		      (CONFIG_MSM_KGSL_PAGE_TABLE_SIZE >> 16)));
-	kgsl_setstate(mmu, KGSL_MEMSTORE_GLOBAL, KGSL_MMUFLAGS_TLBFLUSH);
+	kgsl_setstate(mmu, KGSL_MMUFLAGS_TLBFLUSH);
 	mmu->flags |= KGSL_FLAGS_STARTED;
 
 	return 0;
@@ -738,7 +729,7 @@ struct kgsl_mmu_ops gpummu_ops = {
 	.mmu_pagefault = kgsl_gpummu_pagefault,
 	.mmu_get_current_ptbase = kgsl_gpummu_get_current_ptbase,
 	.mmu_enable_clk = NULL,
-	.mmu_disable_clk_on_ts = NULL,
+	.mmu_disable_clk = NULL,
 	.mmu_get_hwpagetable_asid = NULL,
 	.mmu_get_pt_lsb = NULL,
 	.mmu_get_reg_map_desc = NULL,

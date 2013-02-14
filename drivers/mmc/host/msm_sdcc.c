@@ -62,8 +62,20 @@
 
 #define DRIVER_NAME "msm-sdcc"
 
+//#define MMC1_SDCC_DEBUG_INFO
+#ifdef MMC1_SDCC_DEBUG_INFO
+#define DBG(host, fmt, args...)	\
+	{ if (!strcmp(mmc_hostname(host->mmc),"mmc1")) printk("%s: %s: " fmt "\n", mmc_hostname(host->mmc), __func__ , args);}
+#else
 #define DBG(host, fmt, args...)	\
 	pr_debug("%s: %s: " fmt "\n", mmc_hostname(host->mmc), __func__ , args)
+#endif
+
+#define MSM_SDCC_DEBUG
+#ifdef MSM_SDCC_DEBUG
+#define SDCCDBG(fmt,args...)\
+	printk("###### lzj : %s : " fmt "\n",__func__,args)
+#endif
 
 #define IRQ_DEBUG 0
 #define SPS_SDCC_PRODUCER_PIPE_INDEX	1
@@ -87,6 +99,7 @@ static int msmsdcc_prep_xfer(struct msmsdcc_host *host, struct mmc_data
 
 static u64 dma_mask = DMA_BIT_MASK(32);
 static unsigned int msmsdcc_pwrsave = 1;
+static bool en_runtime_suspend = 1;
 
 static struct mmc_command dummy52cmd;
 static struct mmc_request dummy52mrq = {
@@ -603,7 +616,7 @@ static void msmsdcc_sps_complete_tlet(unsigned long data)
 	struct sps_pipe *sps_pipe_handle;
 	struct msmsdcc_host *host = (struct msmsdcc_host *)data;
 	struct sps_event_notify *notify = &host->sps.notify;
-
+	SDCCDBG(" begin %d ",1);
 	spin_lock_irqsave(&host->lock, flags);
 	if (host->sps.dir == DMA_FROM_DEVICE)
 		sps_pipe_handle = host->sps.prod.pipe_handle;
@@ -4701,6 +4714,7 @@ msmsdcc_probe(struct platform_device *pdev)
 	int ret = 0;
 	int i;
 
+	SDCCDBG(" begin %d ",1);
 	if (pdev->dev.of_node) {
 		plat = msmsdcc_populate_pdata(&pdev->dev);
 		of_property_read_u32((&pdev->dev)->of_node,
@@ -4846,8 +4860,9 @@ msmsdcc_probe(struct platform_device *pdev)
 
 	tasklet_init(&host->sps.tlet, msmsdcc_sps_complete_tlet,
 			(unsigned long)host);
+	SDCCDBG("is_dma_mode %d",host->is_dma_mode);
 	if (host->is_dma_mode) {
-		/* Setup DMA */
+		/* Setup DMA */		
 		ret = msmsdcc_init_dma(host);
 		if (ret)
 			goto ioremap_free;
@@ -4855,7 +4870,7 @@ msmsdcc_probe(struct platform_device *pdev)
 		host->dma.channel = -1;
 		host->dma.crci = -1;
 	}
-
+	SDCCDBG("Setup pclk_src_dfab :  %d",plat->pclk_src_dfab);
 	/*
 	 * Setup SDCC clock if derived from Dayatona
 	 * fabric core clock.
@@ -4930,6 +4945,7 @@ msmsdcc_probe(struct platform_device *pdev)
 
 #define MSM_MMC_DEFAULT_CPUDMA_LATENCY 200 /* usecs */
 	/* pm qos request to prevent apps idle power collapse */
+	SDCCDBG("host->plat->cpu_dma_latency :  %d",host->plat->cpu_dma_latency);
 	if (host->plat->cpu_dma_latency)
 		host->cpu_dma_latency = host->plat->cpu_dma_latency;
 	else
@@ -5053,7 +5069,7 @@ msmsdcc_probe(struct platform_device *pdev)
 	 */
 	disable_irq(core_irqres->start);
 	host->sdcc_irq_disabled = 1;
-
+	SDCCDBG("sdiowakeup_irq : %d ",plat->sdiowakeup_irq);
 	if (plat->sdiowakeup_irq) {
 		wake_lock_init(&host->sdio_wlock, WAKE_LOCK_SUSPEND,
 				mmc_hostname(mmc));
@@ -5438,7 +5454,8 @@ msmsdcc_runtime_suspend(struct device *dev)
 		goto out;
 	}
 
-	pr_debug("%s: %s: start\n", mmc_hostname(mmc), __func__);
+	//pr_debug("%s: %s: start\n", mmc_hostname(mmc), __func__);
+	printk("################################%s: %s: start\n", mmc_hostname(mmc), __func__);
 	if (mmc) {
 		host->sdcc_suspending = 1;
 		mmc->suspend_task = current;
@@ -5546,6 +5563,8 @@ msmsdcc_runtime_resume(struct device *dev)
 	return 0;
 }
 
+module_param_named(en_suspend, en_runtime_suspend, bool, S_IRUGO | S_IWUSR);
+
 static int msmsdcc_runtime_idle(struct device *dev)
 {
 	struct mmc_host *mmc = dev_get_drvdata(dev);
@@ -5553,9 +5572,10 @@ static int msmsdcc_runtime_idle(struct device *dev)
 
 	if (host->plat->is_sdio_al_client)
 		return 0;
-
-	/* Idle timeout is not configurable for now */
-	pm_schedule_suspend(dev, MSM_MMC_IDLE_TIMEOUT);
+        if (likely(en_runtime_suspend)) {
+		/* Idle timeout is not configurable for now */
+		pm_schedule_suspend(dev, MSM_MMC_IDLE_TIMEOUT);
+	}
 
 	return -EAGAIN;
 }
@@ -5575,7 +5595,7 @@ static int msmsdcc_pm_suspend(struct device *dev)
 
 	if (!pm_runtime_suspended(dev))
 		rc = msmsdcc_runtime_suspend(dev);
-
+	msleep(75);
 	return rc;
 }
 

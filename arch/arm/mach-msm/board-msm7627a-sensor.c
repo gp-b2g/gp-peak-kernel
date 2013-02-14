@@ -339,7 +339,7 @@ static struct stk31xx_platform_data stk31xx_data = {
 	.transmittance = 800,
 	.ps_high_thd   = 120,
 	.ps_low_thd    = 100,
-	.int_pin       = PS31XX_INT
+	.int_pin       = PS31XX_INT,
 };
 
 static struct i2c_board_info ps31xx_light_i2c_info[] __initdata = {

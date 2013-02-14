@@ -148,7 +148,7 @@ inline uint32_t alscode2lux(uint32_t alscode)
 
     alscode/=als_transmittance;
 
-    printk("%s: alscode fixed = %d\n", __func__, alscode);
+    //printk("%s: alscode fixed = %d\n", __func__, alscode);
 #if 1
     if (alscode > 220)
            alscode = 220 + ((alscode - 220) / 20);
@@ -175,15 +175,15 @@ static void init_code_threshold_table(void)
     uint32_t alscode;
 
     code_threshold_table[0] = 0;
-    INFO("alscode[0]=%d\n",0);
+    //INFO("alscode[0]=%d\n",0);
     for (i=1,j=0;i<LUX_THD_TABLE_SIZE;i++,j++)
     {
         alscode = lux2alscode(lux_threshold_table[j]);
-        INFO("alscode[%d]=%d\n",i,alscode);
+        //INFO("alscode[%d]=%d\n",i,alscode);
         code_threshold_table[i] = (uint16_t)(alscode);
     }
     code_threshold_table[i] = 0xffff;
-    INFO("alscode[%d]=%d\n",i,alscode);
+    //INFO("alscode[%d]=%d\n",i,alscode);
 }
 
 static uint32_t get_lux_interval_index(uint16_t alscode)
@@ -208,7 +208,7 @@ inline void set_als_new_thd_by_reading(uint16_t alscode)
         high_thd = (1<<16) -1;
     if (low_thd <0)
         low_thd = 0;
-    printk("%s: alscode %d high_thd %d low_thd %d\n", __func__, alscode, high_thd, low_thd);
+    //printk("%s: alscode %d high_thd %d low_thd %d\n", __func__, alscode, high_thd, low_thd);
     set_als_thd_h((uint16_t)high_thd);
     set_als_thd_l((uint16_t)low_thd);
 }
@@ -311,10 +311,10 @@ static int32_t set_als_it(uint8_t it)
 
 static int32_t set_als_gain(uint8_t gain)
 {
-	if(gain >= 2)
+	/*if(gain >= 2)
 	{
 		INFO("STK PS : als_gain = %d\n", gain);		
-	}	
+	}	*/
     pStkPsData->als_cmd_reg &= (~STK_ALS_CMD_GAIN_MASK);
     pStkPsData->als_cmd_reg |= (STK_ALS_CMD_GAIN_MASK & STK_ALS_CMD_GAIN(gain));
     return i2c_smbus_write_byte_data(pStkPsData->client,STK_ALS_CMD_REG,pStkPsData->als_cmd_reg);
@@ -446,7 +446,7 @@ static int sitronix_ts_permission_thread(void *data)
 	mm_segment_t fs = get_fs();
 	set_fs(KERNEL_DS);
 	
-	INFO("%s start\n", __func__);
+	//INFO("%s start\n", __func__);
 	do{
 		INFO("delay %d ms\n", sitronix_ps_delay_permission_thread_start);
 		msleep(sitronix_ps_delay_permission_thread_start);
@@ -457,7 +457,7 @@ static int sitronix_ts_permission_thread(void *data)
 		break;
 	}while(ret == -ENOENT);
 	set_fs(fs);
-	INFO("%s exit\n", __func__);
+	//INFO("%s exit\n", __func__);
 	return 0;
 }
 #endif // SITRONIX_PERMISSION_THREAD
@@ -542,7 +542,7 @@ static int32_t set_ps_cali_file(char * w_buf, int8_t buf_size)
 		}
     }
     filp_close(cali_file,NULL);	
-	INFO("STK PS %s successfully\n", __func__);
+	//INFO("STK PS %s successfully\n", __func__);
 	return 0;
 }
 
@@ -590,7 +590,7 @@ static int32_t calc_ct_cali_thd(int16_t ps_stat_data[], int16_t ps_thd_data[])
 {
 	ps_thd_data[STK_LOW_THD] = ps_stat_data[STK_DATA_MAX] + STK_THD_L_ABOVE_CT;
 	ps_thd_data[STK_HIGH_THD] = ps_stat_data[STK_DATA_MAX] + STK_THD_H_ABOVE_CT;	
-	printk("STK PS : PS_threshold_high=0x%x\n PS_threshold_low=0x%x\n Max crosstalk=0x%x\n", ps_thd_data[STK_HIGH_THD], ps_thd_data[STK_LOW_THD], ps_stat_data[STK_DATA_MAX]);				
+	//printk("STK PS : PS_threshold_high=0x%x\n PS_threshold_low=0x%x\n Max crosstalk=0x%x\n", ps_thd_data[STK_HIGH_THD], ps_thd_data[STK_LOW_THD], ps_stat_data[STK_DATA_MAX]);				
 	if(ps_thd_data[STK_HIGH_THD] > STK_THD_MAX || ps_thd_data[STK_LOW_THD] > STK_THD_MAX) 
 	{
 		ERR("STK PS %s: threshold is too large!\n", __func__);
@@ -609,7 +609,7 @@ static int32_t calc_greycard_cali_thd(int16_t ps_stat_data[], int16_t ps_thd_dat
 	ps_thd_data[STK_LOW_THD] = ps_stat_data[STK_DATA_MIN] - STK_DIFF_GREY_N_THD_L;
 	ps_thd_data[STK_HIGH_THD] = ps_stat_data[STK_DATA_MIN] - STK_DIFF_GREY_N_THD_H;	
 	
-	printk("STK PS : PS_threshold_high=0x%x\n PS_threshold_low=0x%x\n min ps reading=0x%x\n", ps_thd_data[STK_HIGH_THD], ps_thd_data[STK_LOW_THD], ps_stat_data[STK_DATA_MIN]);					
+	//printk("STK PS : PS_threshold_high=0x%x\n PS_threshold_low=0x%x\n min ps reading=0x%x\n", ps_thd_data[STK_HIGH_THD], ps_thd_data[STK_LOW_THD], ps_stat_data[STK_DATA_MIN]);					
 	if(ps_thd_data[STK_HIGH_THD] > STK_THD_MAX || ps_thd_data[STK_LOW_THD] > STK_THD_MAX) 
 	{
 		ERR("STK PS %s: threshold is too large\n ", __func__);
@@ -750,7 +750,7 @@ static int32_t get_several_ps_data(int16_t ps_stat_data[])
 	}	
 	ave_ps_int32 /= STK_CALI_SAMPLE_NO;	
 	ps_stat_data[STK_DATA_AVE] = (int16_t)ave_ps_int32;
-	INFO("STK PS %s: ave_ps_int32 =%d\n", __func__,  ave_ps_int32);
+	//INFO("STK PS %s: ave_ps_int32 =%d\n", __func__,  ave_ps_int32);
 	STK_LOCK(1);
 	enable_ps(0);	/* force disable after cali to make sure interrupt is correct*/
 	STK_LOCK(0);	
@@ -782,7 +782,7 @@ static int32_t set_ps_cali(void)
 		}
 		set_ps_thd_to_driver(ps_thd_data);	
 		set_ps_thd_to_file(ps_thd_data);			
-		printk("STK PS : PS calibration was done successfully\n");			
+		//printk("STK PS : PS calibration was done successfully\n");			
 	}
 	else
 		ERR("STK PS %s: calibration fail, errno=%d\n", __func__, ret);
@@ -799,7 +799,7 @@ static int32_t set_ps_cali(void)
 		
 		set_ps_thd_to_driver(ps_thd_data);	
 		set_ps_thd_to_file(ps_thd_data);
-		printk("STK PS : PS calibration was done successfully\n");			
+		//printk("STK PS : PS calibration was done successfully\n");			
 	}
 	else
 		ERR("STK PS %s: calibration fail, errno=%d\n", __func__, ret);	
@@ -814,7 +814,7 @@ static int32_t set_ps_cali(void)
 			return ret;
 		}
 		set_ps_thd_to_driver(ps_thd_data);				
-		printk("STK PS : PS calibration was done successfully, min = %d avg = %d max = %d\n", ps_statistic_data[0], ps_statistic_data[1], ps_statistic_data[2]);			
+		//printk("STK PS : PS calibration was done successfully, min = %d avg = %d max = %d\n", ps_statistic_data[0], ps_statistic_data[1], ps_statistic_data[2]);			
 	}
 	else if (ret == -2)
 	{
@@ -848,7 +848,7 @@ inline void als_report_event(struct input_dev* dev,int32_t report_value)
     pStkPsData->als_lux_last = report_value;
 	input_report_abs(dev, ABS_MISC, report_value);
 	input_sync(dev);
-	INFO("STK PS : als input event %d lux\n",report_value);
+	//INFO("STK PS : als input event %d lux\n",report_value);
 }
 
 inline void ps_report_event(struct input_dev* dev,int32_t report_value)
@@ -863,7 +863,7 @@ inline void ps_report_event(struct input_dev* dev,int32_t report_value)
 	input_report_abs(dev, ABS_DISTANCE, report_value);
 	input_sync(dev);
 	wake_lock_timeout(&proximity_sensor_wakelock, 2*HZ);
-	INFO("STK PS : ps input event %d cm\n",report_value);
+	//INFO("STK PS : ps input event %d cm\n",report_value);
 }
 
 static int32_t enable_ps(uint8_t enable)
@@ -882,8 +882,8 @@ static int32_t enable_ps(uint8_t enable)
 		{
 			thd_l_auto = ps_thd_l;
 			thd_h_auto = ps_thd_h;	
-			INFO("STK PS %s : read PS calibration data from file, thd_l_auto=%d, thd_h_auto=%d\n", 
-				__func__, thd_l_auto, thd_h_auto);			
+			//INFO("STK PS %s : read PS calibration data from file, thd_l_auto=%d, thd_h_auto=%d\n", 
+			//	__func__, thd_l_auto, thd_h_auto);			
 			if(thd_h_auto <= STK_THD_MAX && thd_l_auto <= STK_THD_MAX)
 			{
 				set_ps_thd_h(thd_h_auto);
@@ -902,7 +902,7 @@ static int32_t enable_ps(uint8_t enable)
     if (enable) {
 	msleep(100);
         reading = get_ps_reading();
-        INFO("%s : ps code = %d ps_code_high_thd = %d\n",__func__,reading, ps_code_high_thd);
+        //INFO("%s : ps code = %d ps_code_high_thd = %d\n",__func__,reading, ps_code_high_thd);
         if(reading < 0)
         {
     	ERR("stk_oss_work:get_ps_reading fail, ret=%d", reading);
@@ -1019,7 +1019,7 @@ static ssize_t ps_enable_store(struct kobject *kobj,
                                const char *buf, size_t len)
 {
     uint32_t value = simple_strtoul(buf, NULL, 10);
-    INFO("STK PS31xx Driver : Enable PS : %d\n",value);
+    //INFO("STK PS31xx Driver : Enable PS : %d\n",value);
     STK_LOCK(1);
     enable_ps(value);
     STK_LOCK(0);
@@ -1050,7 +1050,7 @@ static ssize_t als_enable_store(struct kobject *kobj,
                                 const char *buf, size_t len)
 {
     uint32_t value = simple_strtoul(buf, NULL, 10);
-    INFO("STK PS31xx Driver : Enable ALS : %d\n",value);
+    //INFO("STK PS31xx Driver : Enable ALS : %d\n",value);
     STK_LOCK(1);
     enable_als(value);
     STK_LOCK(0);
@@ -1130,8 +1130,8 @@ static ssize_t ps_cali_show(struct kobject * kobj, struct kobj_attribute * attr,
 	{		
 		thd_auto[STK_LOW_THD] = ps_thd_l;
 		thd_auto[STK_HIGH_THD] = ps_thd_h;	
-		INFO("STK PS %s : read PS calibration data from file, thd_auto[STK_LOW_THD]=%d, thd_auto[STK_HIGH_THD]=%d\n", 
-		__func__, thd_auto[STK_LOW_THD], thd_auto[STK_HIGH_THD]);			
+		//INFO("STK PS %s : read PS calibration data from file, thd_auto[STK_LOW_THD]=%d, thd_auto[STK_HIGH_THD]=%d\n", 
+		//__func__, thd_auto[STK_LOW_THD], thd_auto[STK_HIGH_THD]);			
 	
 		if(thd_auto[STK_HIGH_THD] <= STK_THD_MAX && thd_auto[STK_LOW_THD] <= STK_THD_MAX)		
 			set_ps_thd_to_driver(thd_auto);			
@@ -1431,12 +1431,7 @@ static ssize_t all_reg_show(struct kobject * kobj, struct kobj_attribute * attr,
 			STK_LOCK(0);
 			ERR("all_reg_show:i2c_smbus_read_byte_data fail, ret=%d", ps_reg[cnt]);	
 			return -EINVAL;
-		}
-		else
-		{
-			INFO("reg[%2X]=0x%2X\n", cnt+1, ps_reg[cnt]);
-		}
-		
+		}		
 	}
 	ps_reg[12] = i2c_smbus_read_byte_data(pStkPsData->client, STK_PS_GC_REG);
 	if(ps_reg[12] < 0)
@@ -1445,7 +1440,7 @@ static ssize_t all_reg_show(struct kobject * kobj, struct kobj_attribute * attr,
 		ERR("all_reg_show:i2c_smbus_read_byte_data fail, ret=%d", ps_reg[12]);	
 		return -EINVAL;
 	}
-	INFO("reg[0x82]=0x%2X\n", ps_reg[12]);	
+	//INFO("reg[0x82]=0x%2X\n", ps_reg[12]);	
     STK_LOCK(0);
 
     return sprintf(buf, "%2X %2X %2X %2X %2X %2X %2X %2X %2X %2X %2X %2X %2x\n", ps_reg[0], ps_reg[1], ps_reg[2], ps_reg[3], 
@@ -1468,7 +1463,7 @@ static ssize_t recv_store(struct kobject *kobj, struct kobj_attribute *attr, con
 		return ret;	
 	}
 	recv_data = i2c_smbus_read_byte_data(pStkPsData->client,value);
-	printk("STK PS: reg 0x%x=0x%x\n", (int)value, recv_data);
+	//printk("STK PS: reg 0x%x=0x%x\n", (int)value, recv_data);
 	return len;
 }
 
@@ -1497,7 +1492,7 @@ static ssize_t send_store(struct kobject *kobj, struct kobj_attribute *attr, con
 		ERR("STK PS %s:strict_strtoul failed, ret=0x%x", __func__, ret);
 		return ret;	
 	}
-	INFO("STK PS: write reg 0x%x=0x%x\n", addr, cmd);		
+	//INFO("STK PS: write reg 0x%x=0x%x\n", addr, cmd);		
 	/*
 		if(2 != sscanf(buf, "%2x %2x", &addr, &cmd))
 		{
@@ -1639,7 +1634,7 @@ static void stk_oss_work(struct work_struct *work)
     {
 		disable_flag = STK_PS_STATUS_ALS_INT_FLAG_MASK;
         reading = get_als_reading();
-		printk("%s: als_code = %d\n", __func__, reading);
+		//printk("%s: als_code = %d\n", __func__, reading);
 		if(reading < 0)
 		{
 			STK_LOCK(0);
@@ -1661,7 +1656,7 @@ static void stk_oss_work(struct work_struct *work)
     {
 
         reading = get_ps_reading();
-        INFO("%s : ps code = %d ps_code_high_thd = %d\n",__func__,reading, ps_code_high_thd);
+       // INFO("%s : ps code = %d ps_code_high_thd = %d\n",__func__,reading, ps_code_high_thd);
 		if(reading < 0)
 		{
 			STK_LOCK(0);
@@ -1714,7 +1709,7 @@ static int stk31xx_suspend(struct i2c_client *client, pm_message_t mesg)
 	int32_t enable;
 	int err;
 
-	INFO("%s\n", __func__);
+	//INFO("%s\n", __func__);
 	STK_LOCK(1);
     	enable = (pStkPsData->ps_cmd_reg & STK_PS_CMD_SD_MASK)?0:1;    		
 	if(enable)
@@ -1743,7 +1738,7 @@ static int stk31xx_resume(struct i2c_client *client)
 	int32_t enable;
 	int err;
 
-	INFO("%s\n", __func__);
+	//INFO("%s\n", __func__);
 	STK_LOCK(1);
     	enable = (pStkPsData->ps_cmd_reg & STK_PS_CMD_SD_MASK)?0:1;    		
 	if(enable)
@@ -1765,7 +1760,7 @@ static int stk31xx_resume(struct i2c_client *client)
 static void stk31xx_early_suspend(struct early_suspend *h)
 {
 	int32_t enable;
-	INFO("%s", __func__);
+	//INFO("%s", __func__);
 
     	STK_LOCK(1);
     	enable = (pStkPsData->als_cmd_reg & STK_ALS_CMD_SD_MASK)?0:1;    		
@@ -1782,7 +1777,7 @@ static void stk31xx_late_resume(struct early_suspend *h)
 {
 	int32_t enable;
 	
-	INFO("%s", __func__);	
+	//INFO("%s", __func__);	
     	STK_LOCK(1);
     	enable = (pStkPsData->als_cmd_reg & STK_ALS_CMD_SD_MASK)?0:1;    		
 	if(enable)
@@ -1797,7 +1792,7 @@ static void stk31xx_late_resume(struct early_suspend *h)
 
 bool ps31xx_sensor_id(void)
 {
-     printk("cellon read ps31xx_sensor_id = %d\n", psensor_is_good);
+    // printk("cellon read ps31xx_sensor_id = %d\n", psensor_is_good);
      
      if (psensor_is_good >= 0)
 	return true;
@@ -1815,7 +1810,7 @@ static int stk_ps_probe(struct i2c_client *client,
     int err;
     struct stkps31xx_data* ps_data;
 	struct stk31xx_platform_data* plat_data;
-    INFO("STK PS : I2C Probing");
+    //INFO("STK PS : I2C Probing");
     if (!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_BYTE_DATA))
     {
         printk("STKPS -- No Support for I2C_FUNC_SMBUS_BYTE_DATA\n");
@@ -1886,7 +1881,7 @@ static int stk_ps_probe(struct i2c_client *client,
 
             return err;
         }
-        INFO("STK PS : register als input device OK\n");
+        //INFO("STK PS : register als input device OK\n");
         err = input_register_device(ps_data->ps_input_dev);
         if (err<0)
         {
@@ -1902,7 +1897,7 @@ static int stk_ps_probe(struct i2c_client *client,
         pStkPsData = ps_data;
         ps_data->ps_delay = PS_ODR_DELAY;
         ps_data->als_delay = ALS_ODR_DELAY;
-        printk("STK PS : gpio #=%d, irq=%d\n",plat_data->int_pin, gpio_to_irq(plat_data->int_pin));
+        //printk("STK PS : gpio #=%d, irq=%d\n",plat_data->int_pin, gpio_to_irq(plat_data->int_pin));
 		client->irq = gpio_to_irq(plat_data->int_pin);
         if (client->irq<=0)
         {
@@ -2053,7 +2048,7 @@ static int __init stk_i2c_ps31xx_init(void)
 	if(IS_ERR(SitronixPermissionThread))
 	SitronixPermissionThread = NULL;
 #endif // SITRONIX_PERMISSION_THREAD	
-	INFO("STK PS Module initialized.\n");
+	//INFO("STK PS Module initialized.\n");
     return 0;
 }
 

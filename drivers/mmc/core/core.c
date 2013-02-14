@@ -827,9 +827,8 @@ int __mmc_claim_host_rpm(struct mmc_host *host, atomic_t *abort, int rpm_enabled
 	DECLARE_WAITQUEUE(wait, current);
 	unsigned long flags;
 	int stop;
-#ifdef CONFIG_PM_RUNTIME
 	int count = 0;
-#endif
+
 	might_sleep();
 
 	add_wait_queue(&host->wq, &wait);
@@ -2211,7 +2210,7 @@ static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
 		mmc_hostname(host), __func__, host->f_init);
 #endif
 	mmc_power_up(host);
-	mmc_go_idle(host);
+
 	/*
 	 * Some eMMCs (with VCCQ always on) may not be reset after power up, so
 	 * do a hardware reset if possible.
@@ -2233,9 +2232,8 @@ static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
 		return 0;
 
 	mmc_power_off(host);
-	//mdelay(50);
+	mdelay(50);
 	mmc_power_up(host);
-	mmc_go_idle(host);
 	mmc_send_if_cond(host, host->ocr_avail);
 
 	if (!host->ios.vdd)
