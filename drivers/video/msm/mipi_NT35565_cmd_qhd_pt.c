@@ -56,14 +56,11 @@ static int mipi_cmd_nt35565_qhd_pt_init(void)
 	pinfo.lcdc.border_clr = 0;	/* blk */
 	pinfo.lcdc.underflow_clr = 0xff;	/* blue */
 	pinfo.lcdc.hsync_skew = 0;
-	pinfo.bl_max = 32;
+	pinfo.bl_max = 20;
 	pinfo.bl_min = 0;
 	pinfo.fb_num = 2;
 
 	pinfo.clk_rate = 454000000;
-
-	//pinfo.lcd.vsync_enable = TRUE;
-	//pinfo.lcd.hw_vsync_mode = TRUE;
 	pinfo.lcd.refx100 = 6000; /* adjust refx100 to prevent tearing */
 	pinfo.lcd.v_back_porch = 11;
 	pinfo.lcd.v_front_porch = 10;

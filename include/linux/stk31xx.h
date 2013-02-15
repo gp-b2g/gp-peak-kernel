@@ -145,7 +145,7 @@ struct stkps31xx_data {
 };
 
 #define ALS_MIN_DELAY   100
-#define PS_MIN_DELAY    10
+#define PS_MIN_DELAY    25
 
 #if (defined(STK_MANUAL_CT_CALI) || defined(STK_MANUAL_GREYCARD_CALI) || defined(STK_AUTO_CT_CALI_SATU) || defined(STK_AUTO_CT_CALI_NO_SATU))
 #define STK_CALI_SAMPLE_NO		5

@@ -61,9 +61,6 @@ static int mipi_cmd_otm9608a_qhd_pt_init(void)
 	pinfo.fb_num = 2;
 
 	pinfo.clk_rate = 499000000;
-
-	pinfo.lcd.vsync_enable = TRUE;
-	pinfo.lcd.hw_vsync_mode = TRUE;
 	pinfo.lcd.refx100 = 6100; /* adjust refx100 to prevent tearing */
 
 	pinfo.mipi.mode = DSI_CMD_MODE;

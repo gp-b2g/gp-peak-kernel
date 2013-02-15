@@ -12,7 +12,7 @@
 
 #define EVDEV_MINOR_BASE	64
 #define EVDEV_MINORS		32
-#define EVDEV_MIN_BUFFER_SIZE	64U
+#define EVDEV_MIN_BUFFER_SIZE	128U
 #define EVDEV_BUF_PACKETS	8
 
 #include <linux/poll.h>
