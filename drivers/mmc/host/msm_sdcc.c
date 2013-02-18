@@ -99,7 +99,6 @@ static int msmsdcc_prep_xfer(struct msmsdcc_host *host, struct mmc_data
 
 static u64 dma_mask = DMA_BIT_MASK(32);
 static unsigned int msmsdcc_pwrsave = 1;
-static bool en_runtime_suspend = 1;
 
 static struct mmc_command dummy52cmd;
 static struct mmc_request dummy52mrq = {
@@ -5448,67 +5447,70 @@ msmsdcc_runtime_suspend(struct device *dev)
 	struct msmsdcc_host *host = mmc_priv(mmc);
 	int rc = 0;
 	unsigned long flags;
-
-	if (host->plat->is_sdio_al_client) {
-		rc = 0;
-		goto out;
-	}
-
-	//pr_debug("%s: %s: start\n", mmc_hostname(mmc), __func__);
-	printk("################################%s: %s: start\n", mmc_hostname(mmc), __func__);
-	if (mmc) {
-		host->sdcc_suspending = 1;
-		mmc->suspend_task = current;
-
-		/*
-		 * MMC core thinks that host is disabled by now since
-		 * runtime suspend is scheduled after msmsdcc_disable()
-		 * is called. Thus, MMC core will try to enable the host
-		 * while suspending it. This results in a synchronous
-		 * runtime resume request while in runtime suspending
-		 * context and hence inorder to complete this resume
-		 * requet, it will wait for suspend to be complete,
-		 * but runtime suspend also can not proceed further
-		 * until the host is resumed. Thus, it leads to a hang.
-		 * Hence, increase the pm usage count before suspending
-		 * the host so that any resume requests after this will
-		 * simple become pm usage counter increment operations.
-		 */
-		pm_runtime_get_noresume(dev);
-		/* If there is pending detect work abort runtime suspend */
-		if (unlikely(work_busy(&mmc->detect.work)))
-			rc = -EAGAIN;
-		else
-			rc = mmc_suspend_host(mmc);
-		pm_runtime_put_noidle(dev);
-
-		if (!rc) {
-			spin_lock_irqsave(&host->lock, flags);
-			host->sdcc_suspended = true;
-			spin_unlock_irqrestore(&host->lock, flags);
-			if (mmc->card && mmc_card_sdio(mmc->card) &&
-				mmc->ios.clock) {
-				/*
-				 * If SDIO function driver doesn't want
-				 * to power off the card, atleast turn off
-				 * clocks to allow deep sleep (TCXO shutdown).
-				 */
-				mmc_host_clk_hold(mmc);
-				spin_lock_irqsave(&mmc->clk_lock, flags);
-				mmc->clk_old = mmc->ios.clock;
-				mmc->ios.clock = 0;
-				mmc->clk_gated = true;
-				spin_unlock_irqrestore(&mmc->clk_lock, flags);
-				mmc_set_ios(mmc);
-				mmc_host_clk_release(mmc);
-			}
+	if (host->pdev_id != 1) {
+		if (host->plat->is_sdio_al_client) {
+			rc = 0;
+			goto out;
 		}
-		host->sdcc_suspending = 0;
-		mmc->suspend_task = NULL;
-		if (rc && wake_lock_active(&host->sdio_suspend_wlock))
-			wake_unlock(&host->sdio_suspend_wlock);
+
+		//pr_debug("%s: %s: start\n", mmc_hostname(mmc), __func__);
+		printk("################################%s: %s: start\n", mmc_hostname(mmc), __func__);
+		if (mmc) {
+			host->sdcc_suspending = 1;
+			mmc->suspend_task = current;
+
+			/*
+			 * MMC core thinks that host is disabled by now since
+			 * runtime suspend is scheduled after msmsdcc_disable()
+			 * is called. Thus, MMC core will try to enable the host
+			 * while suspending it. This results in a synchronous
+			 * runtime resume request while in runtime suspending
+			 * context and hence inorder to complete this resume
+			 * requet, it will wait for suspend to be complete,
+			 * but runtime suspend also can not proceed further
+			 * until the host is resumed. Thus, it leads to a hang.
+			 * Hence, increase the pm usage count before suspending
+			 * the host so that any resume requests after this will
+			 * simple become pm usage counter increment operations.
+			 */
+			pm_runtime_get_noresume(dev);
+			/* If there is pending detect work abort runtime suspend */
+			if (unlikely(work_busy(&mmc->detect.work)))
+				rc = -EAGAIN;
+			else
+				rc = mmc_suspend_host(mmc);
+			pm_runtime_put_noidle(dev);
+
+			if (!rc) {
+				spin_lock_irqsave(&host->lock, flags);
+				host->sdcc_suspended = true;
+				spin_unlock_irqrestore(&host->lock, flags);
+				if (mmc->card && mmc_card_sdio(mmc->card) &&
+					mmc->ios.clock) {
+					/*
+					 * If SDIO function driver doesn't want
+					 * to power off the card, atleast turn off
+					 * clocks to allow deep sleep (TCXO shutdown).
+					 */
+					mmc_host_clk_hold(mmc);
+					spin_lock_irqsave(&mmc->clk_lock, flags);
+					mmc->clk_old = mmc->ios.clock;
+					mmc->ios.clock = 0;
+					mmc->clk_gated = true;
+					spin_unlock_irqrestore(&mmc->clk_lock, flags);
+					mmc_set_ios(mmc);
+					mmc_host_clk_release(mmc);
+				}
+			}
+			host->sdcc_suspending = 0;
+			mmc->suspend_task = NULL;
+			if (rc && wake_lock_active(&host->sdio_suspend_wlock))
+				wake_unlock(&host->sdio_suspend_wlock);
+		}
+		pr_debug("%s: %s: ends with err=%d\n", mmc_hostname(mmc), __func__, rc);
+	}else{
+		return 0;
 	}
-	pr_debug("%s: %s: ends with err=%d\n", mmc_hostname(mmc), __func__, rc);
 out:
 	/* set bus bandwidth to 0 immediately */
 	msmsdcc_msm_bus_cancel_work_and_set_vote(host, NULL);
@@ -5563,8 +5565,6 @@ msmsdcc_runtime_resume(struct device *dev)
 	return 0;
 }
 
-module_param_named(en_suspend, en_runtime_suspend, bool, S_IRUGO | S_IWUSR);
-
 static int msmsdcc_runtime_idle(struct device *dev)
 {
 	struct mmc_host *mmc = dev_get_drvdata(dev);
@@ -5572,10 +5572,9 @@ static int msmsdcc_runtime_idle(struct device *dev)
 
 	if (host->plat->is_sdio_al_client)
 		return 0;
-        if (likely(en_runtime_suspend)) {
-		/* Idle timeout is not configurable for now */
-		pm_schedule_suspend(dev, MSM_MMC_IDLE_TIMEOUT);
-	}
+
+	/* Idle timeout is not configurable for now */
+	pm_schedule_suspend(dev, MSM_MMC_IDLE_TIMEOUT);
 
 	return -EAGAIN;
 }
@@ -5595,7 +5594,7 @@ static int msmsdcc_pm_suspend(struct device *dev)
 
 	if (!pm_runtime_suspended(dev))
 		rc = msmsdcc_runtime_suspend(dev);
-	msleep(75);
+	//msleep(75);
 	return rc;
 }
 

@@ -22,6 +22,8 @@
 #include "pm.h"
 #include "board-msm7627a.h"
 
+#define SD_CARD_SLOT 1
+
 #if (defined(CONFIG_MMC_MSM_SDC1_SUPPORT)\
 	|| defined(CONFIG_MMC_MSM_SDC2_SUPPORT)\
 	|| defined(CONFIG_MMC_MSM_SDC3_SUPPORT)\
@@ -214,17 +216,20 @@ static int msm_sdcc_setup_vreg(int dev_id, unsigned int enable)
 			pr_err("%s: could not enable regulator: %d\n",
 						__func__, rc);
 	} else {
-		clear_bit(dev_id, &vreg_sts);
+		if (SD_CARD_SLOT != dev_id)
+		{
+			clear_bit(dev_id, &vreg_sts);
 
-		rc = regulator_disable(curr);
-		if (rc)
-			pr_err("%s: could not disable regulator: %d\n",
-						__func__, rc);
-		rc = pmic_vreg_pull_down_switch(ON_CMD, PM_VREG_PDOWN_MMC_ID);
-		if (rc)
-			pr_err("%s: pmic_vreg_pull_down_switch failed = %d\n", __func__, rc);
+			rc = regulator_disable(curr);
+			if (rc)
+				pr_err("%s: could not disable regulator: %d\n",
+							__func__, rc);
+			rc = pmic_vreg_pull_down_switch(ON_CMD, PM_VREG_PDOWN_MMC_ID);
+			if (rc)
+				pr_err("%s: pmic_vreg_pull_down_switch failed = %d\n", __func__, rc);
 
-		mdelay(5);		
+			mdelay(5);		
+		}
 	}
 	return rc;
 }
