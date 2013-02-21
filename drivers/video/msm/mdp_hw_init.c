@@ -634,8 +634,8 @@ void mdp_hw_init(int splash)
 #ifndef CONFIG_FB_MSM_MDP22
 	if (!splash)
 		MDP_OUTP(MDP_BASE + 0xE0000, 0);
-		MDP_OUTP(MDP_BASE + 0x100, 0xffffffff);
-		MDP_OUTP(MDP_BASE + 0x90070, 0);
+	MDP_OUTP(MDP_BASE + 0x100, 0xffffffff);
+	MDP_OUTP(MDP_BASE + 0x90070, 0);
 #endif
 
 	/*
