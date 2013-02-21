@@ -22,8 +22,6 @@
 #include "pm.h"
 #include "board-msm7627a.h"
 
-#define SD_CARD_SLOT 1
-
 #if (defined(CONFIG_MMC_MSM_SDC1_SUPPORT)\
 	|| defined(CONFIG_MMC_MSM_SDC2_SUPPORT)\
 	|| defined(CONFIG_MMC_MSM_SDC3_SUPPORT)\
@@ -216,25 +214,21 @@ static int msm_sdcc_setup_vreg(int dev_id, unsigned int enable)
 			pr_err("%s: could not enable regulator: %d\n",
 						__func__, rc);
 	} else {
-		if (SD_CARD_SLOT != dev_id)
-		{
-			clear_bit(dev_id, &vreg_sts);
+		clear_bit(dev_id, &vreg_sts);
 
-			rc = regulator_disable(curr);
-			if (rc)
-				pr_err("%s: could not disable regulator: %d\n",
-							__func__, rc);
-			rc = pmic_vreg_pull_down_switch(ON_CMD, PM_VREG_PDOWN_MMC_ID);
-			if (rc)
-				pr_err("%s: pmic_vreg_pull_down_switch failed = %d\n", __func__, rc);
+		rc = regulator_disable(curr);
+		if (rc)
+			pr_err("%s: could not disable regulator: %d\n",
+						__func__, rc);
+		rc = pmic_vreg_pull_down_switch(ON_CMD, PM_VREG_PDOWN_MMC_ID);
+		if (rc)
+			pr_err("%s: pmic_vreg_pull_down_switch failed = %d\n", __func__, rc);
 
-			mdelay(5);		
-		}
+		mdelay(5);		
 	}
 	return rc;
 }
 
-//extern int cardinit;
 static uint32_t msm_sdcc_setup_power(struct device *dv, unsigned int vdd)
 {
 	int rc = 0;
@@ -257,7 +251,7 @@ static unsigned int msm7627a_sdcc_slot_status(struct device *dev)
 {
 	int status;
 
-	status = gpio_tlmm_config(GPIO_CFG(gpio_sdc1_hw_det, 2, GPIO_CFG_INPUT,
+	status = gpio_tlmm_config(GPIO_CFG(gpio_sdc1_hw_det, 0, GPIO_CFG_INPUT,
 				GPIO_CFG_PULL_UP, GPIO_CFG_8MA),
 				GPIO_CFG_ENABLE);
 	if (status)
