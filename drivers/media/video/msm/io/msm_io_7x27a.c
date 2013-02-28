@@ -21,7 +21,6 @@
 #include <mach/msm_bus.h>
 #include <mach/msm_bus_board.h>
 
-#undef DEBUG_CSI
 
 /* MIPI	CSI controller registers */
 #define	MIPI_PHY_CONTROL		0x00000000
@@ -154,20 +153,6 @@ void __iomem *csibase;
 void __iomem *appbase;
 
 
-
-void msm_io_w(u32 data, void __iomem *addr)
-{
-	CDBG("%s: %08x %08x\n", __func__, (int) (addr), (data));
-	writel_relaxed((data), (addr));
-}
-
-u32 msm_io_r(void __iomem *addr)
-{
-	uint32_t data = readl_relaxed(addr);
-	CDBG("%s: %08x %08x\n", __func__, (int) (addr), (data));
-	return data;
-}
-
 int msm_camio_vfe_clk_rate_set(int rate)
 {
 	int rc = 0;
@@ -289,7 +274,6 @@ void msm_camio_clk_rate_set_2(struct clk *clk, int rate)
 	clk_set_rate(clk, rate);
 }
 
-#ifdef DEBUG_CSI
 static irqreturn_t msm_io_csi_irq(int irq_num, void *data)
 {
 	uint32_t irq;
@@ -303,7 +287,6 @@ static irqreturn_t msm_io_csi_irq(int irq_num, void *data)
 		pr_info("Unsupported packet format is received\n");
 	return IRQ_HANDLED;
 }
-#endif
 
 int msm_camio_enable(struct platform_device *pdev)
 {
@@ -329,12 +312,11 @@ int msm_camio_enable(struct platform_device *pdev)
 		rc = -ENOMEM;
 		goto csi_busy;
 	}
-#ifdef DEBUG_CSI
 	rc = request_irq(camio_ext.csiirq, msm_io_csi_irq,
 				IRQF_TRIGGER_RISING, "csi", 0);
 	if (rc < 0)
 		goto csi_irq_fail;
-#endif
+
 	msleep(20);
 	val = (20 <<
 		MIPI_PHY_D0_CONTROL2_SETTLE_COUNT_SHFT) |
@@ -396,9 +378,7 @@ void msm_camio_disable(struct platform_device *pdev)
 	msm_camera_io_w(val, csibase + MIPI_PHY_CL_CONTROL);
 	msleep(20);
 
-#ifdef DEBUG_CSI
 	free_irq(camio_ext.csiirq, 0);
-#endif
 	iounmap(csibase);
 	iounmap(appbase);
 	CDBG("disable clocks\n");

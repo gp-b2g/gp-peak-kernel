@@ -2,7 +2,7 @@
  * MSM architecture CPU clock driver header
  *
  * Copyright (C) 2007 Google, Inc.
- * Copyright (c) 2007-2012, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2007-2012, The Linux Foundation. All rights reserved.
  * Author: San Mehat <san@android.com>
  *
  * This software is licensed under the terms of the GNU General Public
@@ -114,3 +114,4 @@ extern struct acpuclk_soc_data acpuclk_8625_soc_data;
 extern struct acpuclk_soc_data acpuclk_8625ab_soc_data;
 
 #endif /*__ARCH_ARM_MACH_MSM_ACPUCLOCK_H*/
+

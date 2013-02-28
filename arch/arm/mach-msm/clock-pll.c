@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -320,6 +320,7 @@ static struct pll_rate pll_l_rate[] = {
 	{41, 800000000},
 	{50, 960000000},
 	{52, 1008000000},
+	{57, 1104000000},
 	{60, 1152000000},
 	{62, 1200000000},
 	{63, 1209600000},

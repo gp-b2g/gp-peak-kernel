@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -32,6 +32,7 @@ VREG_CONSUMERS(L2) = {
 	REGULATOR_SUPPLY("mipi_csi_vdd",	"msm_csid.2"),
 	REGULATOR_SUPPLY("lvds_pll_vdda",	"lvds.0"),
 	REGULATOR_SUPPLY("dsi1_pll_vdda",	"mipi_dsi.1"),
+	REGULATOR_SUPPLY("dsi_pll_vdda",	"mdp.0"),
 };
 VREG_CONSUMERS(L3) = {
 	REGULATOR_SUPPLY("8921_l3",		NULL),
@@ -84,6 +85,9 @@ VREG_CONSUMERS(L12) = {
 	REGULATOR_SUPPLY("cam_vdig",		"4-0020"),
 	REGULATOR_SUPPLY("8921_l12",		NULL),
 };
+VREG_CONSUMERS(L13) = {
+	REGULATOR_SUPPLY("8921_l13",		NULL),
+};
 VREG_CONSUMERS(L14) = {
 	REGULATOR_SUPPLY("8921_l14",		NULL),
 };
@@ -127,6 +131,8 @@ VREG_CONSUMERS(L25) = {
 	REGULATOR_SUPPLY("CDC_VDDA_A_1P2V",	"tabla-slim"),
 	REGULATOR_SUPPLY("VDDD_CDC_D",		"tabla2x-slim"),
 	REGULATOR_SUPPLY("CDC_VDDA_A_1P2V",	"tabla2x-slim"),
+	REGULATOR_SUPPLY("VDDD_CDC_D",		"0-000d"),
+	REGULATOR_SUPPLY("CDC_VDDA_A_1P2V",	"0-000d"),
 };
 VREG_CONSUMERS(L26) = {
 	REGULATOR_SUPPLY("8921_l26",		NULL),
@@ -171,6 +177,10 @@ VREG_CONSUMERS(S4) = {
 	REGULATOR_SUPPLY("CDC_VDD_CP",		"tabla2x-slim"),
 	REGULATOR_SUPPLY("CDC_VDDA_TX",		"tabla2x-slim"),
 	REGULATOR_SUPPLY("CDC_VDDA_RX",		"tabla2x-slim"),
+	REGULATOR_SUPPLY("VDDIO_CDC",		"0-000d"),
+	REGULATOR_SUPPLY("CDC_VDD_CP",		"0-000d"),
+	REGULATOR_SUPPLY("CDC_VDDA_TX",		"0-000d"),
+	REGULATOR_SUPPLY("CDC_VDDA_RX",		"0-000d"),
 	REGULATOR_SUPPLY("riva_vddpx",		"wcnss_wlan.0"),
 	REGULATOR_SUPPLY("vcc_i2c",		"3-005b"),
 	REGULATOR_SUPPLY("vcc_i2c",		"3-0024"),
@@ -222,6 +232,7 @@ VREG_CONSUMERS(LVS7) = {
 	REGULATOR_SUPPLY("pll_vdd",		"pil_riva"),
 	REGULATOR_SUPPLY("lvds_vdda",		"lvds.0"),
 	REGULATOR_SUPPLY("dsi1_vddio",		"mipi_dsi.1"),
+	REGULATOR_SUPPLY("dsi_pll_vddio",	"mdp.0"),
 	REGULATOR_SUPPLY("hdmi_vdda",		"hdmi_msm.0"),
 };
 VREG_CONSUMERS(USB_OTG) = {
@@ -580,6 +591,7 @@ apq8064_rpm_regulator_init_data[] __devinitdata = {
 	RPM_LDO(L10, 0, 1, 0, 2900000, 2900000, NULL,          0,     0),
 	RPM_LDO(L11, 0, 1, 0, 3000000, 3000000, NULL,          0,     0),
 	RPM_LDO(L12, 0, 1, 0, 1200000, 1200000, "8921_s4",     0,     0),
+	RPM_LDO(L13, 0, 0, 0, 2220000, 2220000, NULL,          0,     0),
 	RPM_LDO(L14, 0, 1, 0, 1800000, 1800000, NULL,          0,     0),
 	RPM_LDO(L15, 0, 1, 0, 1800000, 2950000, NULL,          0,     0),
 	RPM_LDO(L16, 0, 1, 0, 2800000, 2800000, NULL,          0,     0),
@@ -611,9 +623,10 @@ int msm8064_pm8921_regulator_pdata_len __devinitdata =
 	ARRAY_SIZE(msm8064_pm8921_regulator_pdata);
 
 struct rpm_regulator_platform_data apq8064_rpm_regulator_pdata __devinitdata = {
-	.init_data		= apq8064_rpm_regulator_init_data,
-	.num_regulators		= ARRAY_SIZE(apq8064_rpm_regulator_init_data),
-	.version		= RPM_VREG_VERSION_8960,
-	.vreg_id_vdd_mem	= RPM_VREG_ID_PM8921_L24,
-	.vreg_id_vdd_dig	= RPM_VREG_ID_PM8921_S3,
+	.init_data		  = apq8064_rpm_regulator_init_data,
+	.num_regulators		  = ARRAY_SIZE(apq8064_rpm_regulator_init_data),
+	.version		  = RPM_VREG_VERSION_8960,
+	.vreg_id_vdd_mem	  = RPM_VREG_ID_PM8921_L24,
+	.vreg_id_vdd_dig	  = RPM_VREG_ID_PM8921_S3,
+	.requires_tcxo_workaround = true,
 };

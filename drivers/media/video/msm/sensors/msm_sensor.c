@@ -20,7 +20,7 @@ extern int camera_power_onoff(int on);
 static int32_t vfe_clk_rate = 192000000;
 //zxj --
 /*=============================================================*/
-int32_t msm_sensor_adjust_frame_lines(struct msm_sensor_ctrl_t *s_ctrl,
+int32_t msm_sensor_adjust_frame_lines1(struct msm_sensor_ctrl_t *s_ctrl,
 	uint16_t res)
 {
 	uint16_t cur_line = 0;
@@ -54,17 +54,44 @@ int32_t msm_sensor_adjust_frame_lines(struct msm_sensor_ctrl_t *s_ctrl,
 	return 0;
 }
 
-//For test
-#ifdef CDBG
-#undef CDBG
-#endif
-#ifdef CDBG_HIGH
-#undef CDBG_HIGH
-#endif
+int32_t msm_sensor_adjust_frame_lines2(struct msm_sensor_ctrl_t *s_ctrl,
+	uint16_t res)
+{
+	uint16_t cur_line = 0;
+	uint16_t exp_fl_lines = 0;
+	uint8_t int_time[3];
+	if (s_ctrl->sensor_exp_gain_info) {
+		if (s_ctrl->prev_gain && s_ctrl->prev_line &&
+			s_ctrl->func_tbl->sensor_write_exp_gain)
+			s_ctrl->func_tbl->sensor_write_exp_gain(
+				s_ctrl,
+				s_ctrl->prev_gain,
+				s_ctrl->prev_line);
 
-#define CDBG(fmt, args...) printk(fmt, ##args)
-#define CDBG_HIGH(fmt, args...) printk(fmt, ##args)
-
+		msm_camera_i2c_read_seq(s_ctrl->sensor_i2c_client,
+			s_ctrl->sensor_exp_gain_info->coarse_int_time_addr-1,
+			&int_time[0], 3);
+		cur_line |= int_time[0] << 12;
+		cur_line |= int_time[1] << 4;
+		cur_line |= int_time[2] >> 4;
+		exp_fl_lines = cur_line +
+			s_ctrl->sensor_exp_gain_info->vert_offset;
+		if (exp_fl_lines > s_ctrl->msm_sensor_reg->
+			output_settings[res].frame_length_lines)
+			msm_camera_i2c_write(s_ctrl->sensor_i2c_client,
+				s_ctrl->sensor_output_reg_addr->
+				frame_length_lines,
+				exp_fl_lines,
+				MSM_CAMERA_I2C_WORD_DATA);
+		CDBG("%s cur_line %x cur_fl_lines %x, exp_fl_lines %x\n",
+			__func__,
+			cur_line,
+			s_ctrl->msm_sensor_reg->
+			output_settings[res].frame_length_lines,
+			exp_fl_lines);
+	}
+	return 0;
+}
 
 int32_t msm_sensor_write_init_settings(struct msm_sensor_ctrl_t *s_ctrl)
 {
@@ -223,26 +250,20 @@ int32_t msm_sensor_setting1(struct msm_sensor_ctrl_t *s_ctrl,
 	int32_t rc = 0;
 	static int csi_config;
 
+	s_ctrl->func_tbl->sensor_stop_stream(s_ctrl);
+	msleep(30);
 	if (update_type == MSM_SENSOR_REG_INIT) {
 		CDBG("Register INIT\n");
-		printk("##### %s line%d: Register INIT\n",__func__,__LINE__);//zxj
-		s_ctrl->func_tbl->sensor_stop_stream(s_ctrl);
-		msleep(66);
 		s_ctrl->curr_csi_params = NULL;
 		msm_sensor_enable_debugfs(s_ctrl);
-		printk("##### %s line%d: begin to write init setting !\n",__func__,__LINE__);//zxj
 		msm_sensor_write_init_settings(s_ctrl);
-		printk("##### %s line%d: init setting end !\n",__func__,__LINE__);//zxj
 		csi_config = 0;
 	} else if (update_type == MSM_SENSOR_UPDATE_PERIODIC) {
 		CDBG("PERIODIC : %d\n", res);
-		s_ctrl->func_tbl->sensor_stop_stream(s_ctrl);
-		msleep(66);
-		msm_sensor_write_init_settings(s_ctrl);
 		msm_sensor_write_conf_array(
 			s_ctrl->sensor_i2c_client,
 			s_ctrl->msm_sensor_reg->mode_settings, res);
-		msleep(100);
+		msleep(30);
 		if (!csi_config) {
 			s_ctrl->curr_csic_params = s_ctrl->csic_params[res];
 			CDBG("CSI config in progress\n");
@@ -268,7 +289,7 @@ int32_t msm_sensor_setting1(struct msm_sensor_ctrl_t *s_ctrl,
 		//zxj --
 		
 		s_ctrl->func_tbl->sensor_start_stream(s_ctrl);
-		msleep(100);
+		msleep(50);
 	}
 	return rc;
 }
@@ -277,9 +298,6 @@ int32_t msm_sensor_setting(struct msm_sensor_ctrl_t *s_ctrl,
 {
 	int32_t rc = 0;
 
-	v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-		NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
-		PIX_0, ISPIF_OFF_IMMEDIATELY));
 	s_ctrl->func_tbl->sensor_stop_stream(s_ctrl);
 	msleep(30);
 	if (update_type == MSM_SENSOR_REG_INIT) {
@@ -299,8 +317,6 @@ int32_t msm_sensor_setting(struct msm_sensor_ctrl_t *s_ctrl,
 			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
 				NOTIFY_CSID_CFG,
 				&s_ctrl->curr_csi_params->csid_params);
-			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-						NOTIFY_CID_CHANGE, NULL);
 			mb();
 			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
 				NOTIFY_CSIPHY_CFG,
@@ -312,9 +328,6 @@ int32_t msm_sensor_setting(struct msm_sensor_ctrl_t *s_ctrl,
 		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
 			NOTIFY_PCLK_CHANGE, &s_ctrl->msm_sensor_reg->
 			output_settings[res].op_pixel_clk);
-		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-			NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
-			PIX_0, ISPIF_ON_FRAME_BOUNDARY));
 		s_ctrl->func_tbl->sensor_start_stream(s_ctrl);
 		msleep(30);
 	}
@@ -325,7 +338,6 @@ int32_t msm_sensor_set_sensor_mode(struct msm_sensor_ctrl_t *s_ctrl,
 	int mode, int res)
 {
 	int32_t rc = 0;
-	printk("##### %s line%d: E\n",__func__,__LINE__);//zxj
 	if (s_ctrl->curr_res != res) {
 		s_ctrl->curr_frame_length_lines =
 			s_ctrl->msm_sensor_reg->
@@ -334,32 +346,19 @@ int32_t msm_sensor_set_sensor_mode(struct msm_sensor_ctrl_t *s_ctrl,
 		s_ctrl->curr_line_length_pclk =
 			s_ctrl->msm_sensor_reg->
 			output_settings[res].line_length_pclk;
-#if 0
-		if (s_ctrl->sensordata->pdata->is_csic ||
+
+		if (s_ctrl->is_csic ||
 			!s_ctrl->sensordata->csi_if)
 			rc = s_ctrl->func_tbl->sensor_csi_setting(s_ctrl,
 				MSM_SENSOR_UPDATE_PERIODIC, res);
 		else
 			rc = s_ctrl->func_tbl->sensor_setting(s_ctrl,
 				MSM_SENSOR_UPDATE_PERIODIC, res);
-#else
-		if (s_ctrl->sensordata->pdata->is_csic ||
-			!s_ctrl->sensordata->csi_if) {
-			printk("##### %s line%d: sensor_csi_setting called !\n",__func__,__LINE__);
-			rc = s_ctrl->func_tbl->sensor_csi_setting(s_ctrl,
-				MSM_SENSOR_UPDATE_PERIODIC, res);
-		}
-		else {
-			rc = s_ctrl->func_tbl->sensor_setting(s_ctrl,
-				MSM_SENSOR_UPDATE_PERIODIC, res);
-			printk("##### %s line%d: sensor_setting called !\n",__func__,__LINE__);
-		}
-#endif
 		if (rc < 0)
 			return rc;
 		s_ctrl->curr_res = res;
 	}
-	printk("##### %s line%d: X\n",__func__,__LINE__);//zxj
+
 	return rc;
 }
 
@@ -374,29 +373,15 @@ int32_t msm_sensor_mode_init(struct msm_sensor_ctrl_t *s_ctrl,
 	if (mode != s_ctrl->cam_mode) {
 		s_ctrl->curr_res = MSM_SENSOR_INVALID_RES;
 		s_ctrl->cam_mode = mode;
-#if 0
-		if (s_ctrl->sensordata->pdata->is_csic ||
+
+		if (s_ctrl->is_csic ||
 			!s_ctrl->sensordata->csi_if)
 			rc = s_ctrl->func_tbl->sensor_csi_setting(s_ctrl,
 				MSM_SENSOR_REG_INIT, 0);
 		else
 			rc = s_ctrl->func_tbl->sensor_setting(s_ctrl,
 				MSM_SENSOR_REG_INIT, 0);
-#else
-		if (s_ctrl->sensordata->pdata->is_csic ||
-			!s_ctrl->sensordata->csi_if) {
-			printk("##### %s line%d: called sensor_csi_setting !\n",__func__,__LINE__);
-			rc = s_ctrl->func_tbl->sensor_csi_setting(s_ctrl,
-				MSM_SENSOR_REG_INIT, 0);
-		}
-		else{
-			rc = s_ctrl->func_tbl->sensor_setting(s_ctrl,
-				MSM_SENSOR_REG_INIT, 0);
-			printk("##### %s line%d: called sensor_setting !\n",__func__,__LINE__);
-		}
-#endif
 	}
-	printk("##### %s line%d: X\n",__func__,__LINE__);//zxj
 	return rc;
 }
 
@@ -511,11 +496,20 @@ long msm_sensor_subdev_ioctl(struct v4l2_subdev *sd,
 {
 	struct msm_sensor_ctrl_t *s_ctrl = get_sctrl(sd);
 	void __user *argp = (void __user *)arg;
+	if (s_ctrl->sensor_state == MSM_SENSOR_POWER_DOWN)
+		return -EINVAL;
 	switch (cmd) {
 	case VIDIOC_MSM_SENSOR_CFG:
 		return s_ctrl->func_tbl->sensor_config(s_ctrl, argp);
 	case VIDIOC_MSM_SENSOR_RELEASE:
 		return msm_sensor_release(s_ctrl);
+	case VIDIOC_MSM_SENSOR_CSID_INFO: {
+		struct msm_sensor_csi_info *csi_info =
+			(struct msm_sensor_csi_info *)arg;
+		s_ctrl->csid_version = csi_info->csid_version;
+		s_ctrl->is_csic = csi_info->is_csic;
+		return 0;
+	}
 	//zxj ++
 	#ifdef ORIGINAL_VERSION
 	#else
@@ -533,6 +527,20 @@ long msm_sensor_subdev_ioctl(struct v4l2_subdev *sd,
 	}
 }
 
+int32_t msm_sensor_get_csi_params(struct msm_sensor_ctrl_t *s_ctrl,
+		struct csi_lane_params_t *sensor_output_info)
+{
+	sensor_output_info->csi_lane_assign = s_ctrl->sensordata->
+		sensor_platform_info->csi_lane_params->csi_lane_assign;
+	sensor_output_info->csi_lane_mask = s_ctrl->sensordata->
+		sensor_platform_info->csi_lane_params->csi_lane_mask;
+	sensor_output_info->csi_if = s_ctrl->sensordata->csi_if;
+	sensor_output_info->csid_core = s_ctrl->sensordata->
+			pdata[0].csid_core;
+	sensor_output_info->csid_version = s_ctrl->csid_version;
+	return 0;
+}
+
 int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 {
 	struct sensor_cfg_data cdata;
@@ -542,7 +550,7 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 		sizeof(struct sensor_cfg_data)))
 		return -EFAULT;
 	mutex_lock(s_ctrl->msm_sensor_mutex);
-	printk("msm_sensor_config: cfgtype = %d\n",
+	CDBG("msm_sensor_config: cfgtype = %d\n",
 	cdata.cfgtype);
 		switch (cdata.cfgtype) {
 		case CFG_SET_FPS:
@@ -557,6 +565,7 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 				s_ctrl,
 				&(cdata.cfg.fps));
 			break;
+
 		case CFG_SET_EXP_GAIN:
 			if (s_ctrl->func_tbl->
 			sensor_write_exp_gain == NULL) {
@@ -599,7 +608,6 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 					cdata.mode,
 					cdata.rs);
 			break;
-
 #ifdef CONFIG_S5K3H2Y
 		case CFG_GET_CAL_DATA:
 			if (s_ctrl->func_tbl->
@@ -618,7 +626,6 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 				rc = -EFAULT;
 			break;
 #endif
-
 		case CFG_SET_EFFECT:
 			break;
 
@@ -645,6 +652,37 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 				sensor_get_output_info(
 				s_ctrl,
 				&cdata.cfg.output_info);
+
+			if (copy_to_user((void *)argp,
+				&cdata,
+				sizeof(struct sensor_cfg_data)))
+				rc = -EFAULT;
+			break;
+
+		case CFG_START_STREAM:
+			if (s_ctrl->func_tbl->sensor_start_stream == NULL) {
+				rc = -EFAULT;
+				break;
+			}
+			s_ctrl->func_tbl->sensor_start_stream(s_ctrl);
+			break;
+
+		case CFG_STOP_STREAM:
+			if (s_ctrl->func_tbl->sensor_stop_stream == NULL) {
+				rc = -EFAULT;
+				break;
+			}
+			s_ctrl->func_tbl->sensor_stop_stream(s_ctrl);
+			break;
+
+		case CFG_GET_CSI_PARAMS:
+			if (s_ctrl->func_tbl->sensor_get_csi_params == NULL) {
+				rc = -EFAULT;
+				break;
+			}
+			rc = s_ctrl->func_tbl->sensor_get_csi_params(
+				s_ctrl,
+				&cdata.cfg.csi_lane_params);
 
 			if (copy_to_user((void *)argp,
 				&cdata,
@@ -722,8 +760,7 @@ int32_t msm_sensor_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 		pr_err("%s: enable regulator failed\n", __func__);
 		goto enable_vreg_failed;
 	}
-	//zxj++
-	camera_power_onoff(1);
+
 	rc = msm_camera_config_gpio_table(data, 1);
 	if (rc < 0) {
 		pr_err("%s: config gpio failed\n", __func__);
@@ -767,7 +804,6 @@ config_vreg_failed:
 	msm_camera_request_gpio_table(data, 0);
 request_gpio_failed:
 	kfree(s_ctrl->reg_ptr);
-	s_ctrl->reg_ptr = NULL;
 	return rc;
 }
 
@@ -775,8 +811,6 @@ int32_t msm_sensor_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 {
 	struct msm_camera_sensor_info *data = s_ctrl->sensordata;
 	CDBG("%s\n", __func__);
-	if (NULL == s_ctrl->reg_ptr)
-		return 0;
 	if (data->sensor_platform_info->i2c_conf &&
 		data->sensor_platform_info->i2c_conf->use_i2c_mux)
 		msm_sensor_disable_i2c_mux(
@@ -799,7 +833,6 @@ int32_t msm_sensor_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 	//zxj ++
 	camera_power_onoff(0);
 	kfree(s_ctrl->reg_ptr);
-	s_ctrl->reg_ptr = NULL;
 	return 0;
 }
 
@@ -897,6 +930,7 @@ power_down:
 	if (rc > 0)
 		rc = 0;
 	s_ctrl->func_tbl->sensor_power_down(s_ctrl);
+	s_ctrl->sensor_state = MSM_SENSOR_POWER_DOWN;
 	return rc;
 }
 
@@ -906,10 +940,16 @@ int32_t msm_sensor_power(struct v4l2_subdev *sd, int on)
 	struct msm_sensor_ctrl_t *s_ctrl = get_sctrl(sd);
 	mutex_lock(s_ctrl->msm_sensor_mutex);
 	if (on) {
+		if(s_ctrl->sensor_state == MSM_SENSOR_POWER_UP) {
+			pr_err("%s: sensor already in power up state\n", __func__);
+			mutex_unlock(s_ctrl->msm_sensor_mutex);
+			return -EINVAL;
+		}
 		rc = s_ctrl->func_tbl->sensor_power_up(s_ctrl);
 		if (rc < 0) {
 			pr_err("%s: %s power_up failed rc = %d\n", __func__,
 				s_ctrl->sensordata->sensor_name, rc);
+			s_ctrl->sensor_state = MSM_SENSOR_POWER_DOWN;
 		} else {
 			if (s_ctrl->func_tbl->sensor_match_id)
 				rc = s_ctrl->func_tbl->sensor_match_id(s_ctrl);
@@ -924,11 +964,18 @@ int32_t msm_sensor_power(struct v4l2_subdev *sd, int on)
 					pr_err("%s: %s power_down failed\n",
 					__func__,
 					s_ctrl->sensordata->sensor_name);
+				s_ctrl->sensor_state = MSM_SENSOR_POWER_DOWN;
 			}
+			s_ctrl->sensor_state = MSM_SENSOR_POWER_UP;
 		}
 	} else {
-		if (s_ctrl->reg_ptr)
-			rc = s_ctrl->func_tbl->sensor_power_down(s_ctrl);
+		if(s_ctrl->sensor_state == MSM_SENSOR_POWER_DOWN) {
+			pr_err("%s: sensor already in power down state\n",__func__);
+			mutex_unlock(s_ctrl->msm_sensor_mutex);
+			return -EINVAL;
+		}
+		rc = s_ctrl->func_tbl->sensor_power_down(s_ctrl);
+		s_ctrl->sensor_state = MSM_SENSOR_POWER_DOWN;
 	}
 	mutex_unlock(s_ctrl->msm_sensor_mutex);
 	return rc;

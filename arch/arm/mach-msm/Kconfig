@@ -34,6 +34,8 @@ config ARCH_MSM7X27
 	select QCACHE
 	select MSM_PM2 if PM
 	select MSM_RUN_QUEUE_STATS if MSM_SOC_REV_A
+	select DONT_MAP_HOLE_AFTER_MEMBANK0
+	select MSM_MODEM_RESTART
 
 config ARCH_MSM7X30
 	bool "MSM7x30"
@@ -58,6 +60,7 @@ config ARCH_MSM7X30
 	select MSM_PROC_COMM_REGULATOR
 	select MULTI_IRQ_HANDLER
 	select MSM_PM2 if PM
+	select MSM_MODEM_RESTART
 
 config ARCH_QSD8X50
 	bool "QSD8X50"
@@ -70,6 +73,7 @@ config ARCH_QSD8X50
 	select MSM_GPIOMUX
 	select MSM_DALRPC
 	select MSM_PM2 if PM
+	select MSM_MODEM_RESTART
 
 config ARCH_MSM8X60
 	bool "MSM8X60"
@@ -171,6 +175,7 @@ config ARCH_MSM8960
 	select MSM_PM8X60 if PM
 	select HOLES_IN_ZONE if SPARSEMEM
 	select MSM_RUN_QUEUE_STATS
+	select MSM_KRAIT_WFE_FIXUP
 
 config ARCH_MSM8930
 	bool "MSM8930"
@@ -210,6 +215,7 @@ config ARCH_MSM8930
 	select MULTI_IRQ_HANDLER
 	select MSM_PM8X60 if PM
 	select HOLES_IN_ZONE if SPARSEMEM
+	select MSM_KRAIT_WFE_FIXUP
 
 config ARCH_APQ8064
 	bool "APQ8064"
@@ -243,6 +249,7 @@ config ARCH_APQ8064
 	select QCACHE
 	select MIGHT_HAVE_PCI
 	select ARCH_SUPPORTS_MSI
+	select MSM_KRAIT_WFE_FIXUP
 
 config ARCH_MSMCOPPER
 	bool "MSM Copper"
@@ -369,6 +376,9 @@ config  ARCH_MSM_KRAITMP
 
 config  ARCH_MSM_CORTEXMP
 	select MSM_SMP
+	bool
+
+config  MSM_KRAIT_WFE_FIXUP
 	bool
 
 config  ARCH_MSM_CORTEX_A5
@@ -1040,6 +1050,7 @@ choice
 	config DEBUG_MSM8960_UART
 		bool "Kernel low-level debugging messages via MSM 8960 UART"
 		depends on ARCH_MSM8960 && DEBUG_LL
+		select DEBUG_MSM8930_UART
 		select MSM_HAS_DEBUG_UART_HS
 		help
 		  Say Y here if you want the debug print routines to direct
@@ -2098,6 +2109,27 @@ config IOMMU_PGTABLES_L2
 	 section mappings and TLB misses should be quite infrequent.
 	 Most people can probably say Y here.
 
+config MSM_IOMMU_CONFIG_GLOBAL_REG_SPACE
+	bool "Configure the IOMMU global space from Linux"
+	depends on MSM_IOMMU=y
+	help
+	 Allow the IOMMU driver to configure the IOMMU global register space.
+	 This is normally handled by the secure environment and should not be
+	 necessary in a production system.
+	 Select 'Y' here if the system is operating without a secure environment.
+
+	 For production builds, say 'N' here.
+
+config MSM_RPM_RBCPR_STATS_LOG
+        tristate "MSM Resource Power Manager RPBCPR Stat Driver"
+        depends on DEBUG_FS
+        depends on MSM_RPM
+          help
+          This option enables a driver which reads RPM messages from a shared
+          memory location. These messages provide statistical information about
+          RBCPR (Rapid Bridge Core Power Reduction) information . The drivers
+          outputs the message via a debugfs node.
+
 config MSM_DIRECT_SCLK_ACCESS
 	bool "Direct access to the SCLK timer"
 	default n
@@ -2118,6 +2150,9 @@ config MSM_SECURE_IO
 	bool
 
 config MSM_NATIVE_RESTART
+	bool
+
+config MSM_MODEM_RESTART
 	bool
 
 config MSM_PM2
@@ -2454,6 +2489,19 @@ config MSM_DCVS
 	  The DCVS manager allows idle driver to feed the idle information to the
 	  algorithm and the algorithm returns a frequency for the core which is
 	  passed to the frequency change driver.
+
+config MSM_CPR
+	tristate "Use MSM CPR in S/W mode"
+	help
+	  Enable CPR (core power reduction) in S/W mode, where the processor
+	  get's the notification from CPR block and programs the PMIC.
+
+config MSM_VP_REGULATOR
+	tristate "Use MSM PMIC8029 C2 regulator"
+	depends on ARCH_MSM8625
+	help
+	  Enable MSM PMIC8029 C2 regulator support using APC_PLEVEL access
+	  for MSMs like 8625.
 
 config HAVE_ARCH_HAS_CURRENT_TIMER
 	bool

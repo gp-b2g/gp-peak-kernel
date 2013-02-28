@@ -70,7 +70,7 @@ static struct msm_camera_i2c_reg_conf mt9e013_snap_settings[] = {
 	{0x3014, 0x03F6},/*FINE_INTEGRATION_TIME_ */
 	{0x3010, 0x0078},/*FINE_CORRECTION*/
 };
-#if 0
+
 static struct msm_camera_i2c_reg_conf mt9e013_hfr60_settings[] = {
 	{0x0300, 0x0005},/*VT_PIX_CLK_DIV*/
 	{0x0302, 0x0001},/*VT_SYS_CLK_DIV*/
@@ -151,7 +151,7 @@ static struct msm_camera_i2c_reg_conf mt9e013_hfr120_settings[] = {
 	{0x3014, 0x03F6},/*FINE_INTEGRATION_TIME_*/
 	{0x3010, 0x0078},/*FINE_CORRECTION*/
 };
-#endif
+
 static struct msm_camera_i2c_reg_conf mt9e013_recommend_settings[] = {
 	/*Disable embedded data*/
 	{0x3064, 0x7800},/*SMIA_TEST*/
@@ -269,12 +269,12 @@ static struct msm_camera_i2c_conf_array mt9e013_confs[] = {
 	ARRAY_SIZE(mt9e013_snap_settings), 0, MSM_CAMERA_I2C_WORD_DATA},
 	{&mt9e013_prev_settings[0],
 	ARRAY_SIZE(mt9e013_prev_settings), 0, MSM_CAMERA_I2C_WORD_DATA},
-//	{&mt9e013_hfr60_settings[0],
-//	ARRAY_SIZE(mt9e013_hfr60_settings), 0, MSM_CAMERA_I2C_WORD_DATA},
-//	{&mt9e013_hfr90_settings[0],
-//	ARRAY_SIZE(mt9e013_hfr90_settings), 0, MSM_CAMERA_I2C_WORD_DATA},
-//	{&mt9e013_hfr120_settings[0],
-//	ARRAY_SIZE(mt9e013_hfr120_settings), 0, MSM_CAMERA_I2C_WORD_DATA},
+	{&mt9e013_hfr60_settings[0],
+	ARRAY_SIZE(mt9e013_hfr60_settings), 0, MSM_CAMERA_I2C_WORD_DATA},
+	{&mt9e013_hfr90_settings[0],
+	ARRAY_SIZE(mt9e013_hfr90_settings), 0, MSM_CAMERA_I2C_WORD_DATA},
+	{&mt9e013_hfr120_settings[0],
+	ARRAY_SIZE(mt9e013_hfr120_settings), 0, MSM_CAMERA_I2C_WORD_DATA},
 };
 
 static struct msm_sensor_output_info_t mt9e013_dimensions[] = {
@@ -296,7 +296,7 @@ static struct msm_sensor_output_info_t mt9e013_dimensions[] = {
 		.op_pixel_clk = 174000000,
 		.binning_factor = 1,
 	},
-/*	{
+	{
 		.x_output = 0x340,
 		.y_output = 0x212,
 		.line_length_pclk = 0x970,
@@ -322,7 +322,7 @@ static struct msm_sensor_output_info_t mt9e013_dimensions[] = {
 		.vt_pixel_clk = 196800000,
 		.op_pixel_clk = 196800000,
 		.binning_factor = 1,
-	},*/
+	},
 };
 
 static struct msm_camera_csi_params mt9e013_csi_params = {
@@ -397,7 +397,6 @@ static int32_t mt9e013_write_exp_snapshot_gain(struct msm_sensor_ctrl_t *s_ctrl,
 
 	return 0;
 }
-#if 0
 static void mt9e013_start_stream(struct msm_sensor_ctrl_t *s_ctrl)
 {
 	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,
@@ -551,6 +550,7 @@ static struct msm_sensor_fn_t mt9e013_func_tbl = {
 	.sensor_config = msm_sensor_config,
 	.sensor_power_up = msm_sensor_power_up,
 	.sensor_power_down = msm_sensor_power_down,
+	.sensor_get_csi_params = msm_sensor_get_csi_params,
 };
 
 static struct msm_sensor_reg_t mt9e013_regs = {

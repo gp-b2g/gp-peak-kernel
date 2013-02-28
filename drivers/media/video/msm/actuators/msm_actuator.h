@@ -27,8 +27,6 @@
 #undef LINFO
 #endif
 
-extern unsigned camera_id;
-
 #define LERROR(fmt, args...) pr_err(fmt, ##args)
 
 #define CONFIG_MSM_CAMERA_ACT_DBG 0
@@ -92,18 +90,11 @@ struct msm_actuator_ctrl_t {
 };
 
 struct msm_actuator_ctrl_t *get_actrl(struct v4l2_subdev *sd);
-
-//int32_t msm_actuator_i2c_write_control(struct msm_actuator_ctrl_t *a_ctrl,
-//		int16_t next_lens_position, uint32_t hw_params);
 int32_t msm_actuator_i2c_write(struct msm_actuator_ctrl_t *a_ctrl,
 		int16_t next_lens_position, uint32_t hw_params);
 int32_t msm_actuator_init_focus(struct msm_actuator_ctrl_t *a_ctrl,
 		uint16_t size, enum msm_actuator_data_type type,
 		struct reg_settings_t *settings);
-//zxj ++
-int32_t msm_actuator_init(struct msm_actuator_ctrl_t *a_ctrl,
-	struct msm_actuator_set_info_t *set_info);
-//zxj --
 int32_t msm_actuator_i2c_write_b_af(struct msm_actuator_ctrl_t *a_ctrl,
 		uint8_t msb,
 		uint8_t lsb);

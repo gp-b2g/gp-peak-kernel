@@ -1,4 +1,4 @@
-/* Copyright (c) 2002,2007-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2002,2007-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -44,6 +44,8 @@
 #define CTXT_FLAGS_TRASHSTATE		0x00020000
 /* per context timestamps enabled */
 #define CTXT_FLAGS_PER_CONTEXT_TS	0x00040000
+/* Context has caused a GPU hang and recovered properly */
+#define CTXT_FLAGS_GPU_HANG_RECOVERED	0x00008000
 
 struct kgsl_device;
 struct adreno_device;

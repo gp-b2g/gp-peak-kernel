@@ -95,6 +95,20 @@ int l2cap_sock_le_params_valid(struct bt_le_params *le_params)
 	return 1;
 }
 
+int l2cap_sock_le_conn_update_params_valid(struct bt_le_params *le_params)
+{
+	if (!le_params || le_params->latency > BT_LE_LATENCY_MAX ||
+			le_params->interval_min < BT_LE_CONN_INTERVAL_MIN ||
+			le_params->interval_max > BT_LE_CONN_INTERVAL_MAX ||
+			le_params->interval_min > le_params->interval_max ||
+			le_params->supervision_timeout < BT_LE_SUP_TO_MIN ||
+			le_params->supervision_timeout > BT_LE_SUP_TO_MAX) {
+		return 0;
+	}
+
+	return 1;
+}
+
 static struct sock *__l2cap_get_sock_by_addr(__le16 psm, bdaddr_t *src)
 {
 	struct sock *sk;
@@ -836,7 +850,8 @@ static int l2cap_sock_setsockopt(struct socket *sock, int level, int optname, ch
 		}
 
 		if (!conn->hcon->out ||
-				!l2cap_sock_le_params_valid(&le_params)) {
+				!l2cap_sock_le_conn_update_params_valid(
+					&le_params)) {
 			err = -EINVAL;
 			break;
 		}
@@ -1171,7 +1186,7 @@ static int l2cap_sock_shutdown(struct socket *sock, int how)
 static int l2cap_sock_release(struct socket *sock)
 {
 	struct sock *sk = sock->sk;
-	struct sock *srv_sk = NULL;
+	struct sock *sk2 = NULL;
 	int err;
 
 	BT_DBG("sock %p, sk %p", sock, sk);
@@ -1179,15 +1194,16 @@ static int l2cap_sock_release(struct socket *sock)
 	if (!sk)
 		return 0;
 
-	/* If this is an ATT Client socket, find the matching Server */
-	if (l2cap_pi(sk)->scid == L2CAP_CID_LE_DATA && !l2cap_pi(sk)->incoming)
-		srv_sk = l2cap_find_sock_by_fixed_cid_and_dir(L2CAP_CID_LE_DATA,
-					&bt_sk(sk)->src, &bt_sk(sk)->dst, 1);
+	/* If this is an ATT socket, find it's matching server/client */
+	if (l2cap_pi(sk)->scid == L2CAP_CID_LE_DATA)
+		sk2 = l2cap_find_sock_by_fixed_cid_and_dir(L2CAP_CID_LE_DATA,
+					&bt_sk(sk)->src, &bt_sk(sk)->dst,
+					l2cap_pi(sk)->incoming ? 0 : 1);
 
-	/* If server socket found, request tear down */
-	BT_DBG("client:%p server:%p", sk, srv_sk);
-	if (srv_sk)
-		l2cap_sock_set_timer(srv_sk, 1);
+	/* If matching socket found, request tear down */
+	BT_DBG("sock:%p companion:%p", sk, sk2);
+	if (sk2)
+		l2cap_sock_set_timer(sk2, 1);
 
 	err = l2cap_sock_shutdown(sock, 2);
 
@@ -1267,6 +1283,7 @@ void l2cap_sock_init(struct sock *sk, struct sock *parent)
 	pi->scid = 0;
 	pi->dcid = 0;
 	pi->tx_win_max = L2CAP_TX_WIN_MAX_ENHANCED;
+	pi->ack_win = pi->tx_win;
 	pi->extended_control = 0;
 
 	pi->local_conf.fcs = pi->fcs;

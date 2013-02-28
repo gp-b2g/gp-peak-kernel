@@ -11,54 +11,16 @@
  *
  */
 
-//zxj ++
-#include "../actuators/msm_actuator.h"
-//zxj --
 #include "msm_sensor.h"
 #include "msm.h"
 #define SENSOR_NAME "ov8825"
 #define PLATFORM_DRIVER_NAME "msm_camera_ov8825"
 #define ov8825_obj ov8825_##obj
 
-#ifdef CDBG
-#undef CDBG
-#endif
-#ifdef CDBG_HIGH
-#undef CDBG_HIGH
-#endif
-
-#define OV8825_DGB
-
-#ifdef OV8825_DGB
-#define CDBG(fmt, args...) printk(fmt, ##args)
-#define CDBG_HIGH(fmt, args...) printk(fmt, ##args)
-#else
-#define CDBG(fmt, args...) do { } while (0)
-#define CDBG_HIGH(fmt, args...) printk(fmt, ##args)
-#endif
-
 /* TO DO - Currently ov5647 typical values are used
  * Need to get the exact values */
 #define OV8825_RG_RATIO_TYPICAL_VALUE 64 /* R/G of typical camera module */
 #define OV8825_BG_RATIO_TYPICAL_VALUE 105 /* B/G of typical camera module */
-
-#define return_if_val_fail(p, c) if(!(p)){printk("##### %s line%d: PROGRAM_INVALID\n",__func__,__LINE__); return c;}
-//zxj ++
-#if 0
-#define OV8825_AF_MSB 0x3619
-#define OV8825_AF_LSB 0x3618
-
-uint16_t ov8825_damping_threshold = 10;
-int8_t S3_to_0 = 0x01;
-#endif
-//zxj --
-
-//extern int lcd_camera_power_onoff(int on);
-extern int camera_power_onoff(int on);
-
-//add by lzj
-static int32_t vfe_clk = 266667000;
-// add end
 
 DEFINE_MUTEX(ov8825_mut);
 static struct msm_sensor_ctrl_t ov8825_s_ctrl;
@@ -274,7 +236,6 @@ static struct msm_camera_i2c_reg_conf ov8825_recommend_settings[] = {
 	{0x3619, 0x00},
 	{0x361a, 0xB0},
 	{0x361b, 0x04},
-	{0x361c, 0x07},
 	{0x3701, 0x44},
 	{0x370b, 0x01},
 	{0x370c, 0x50},
@@ -847,51 +808,15 @@ static const struct i2c_device_id ov8825_i2c_id[] = {
 	{ }
 };
 
-int32_t ov8825_sensor_i2c_probe(struct i2c_client *client,
-		const struct i2c_device_id *id)
-{
-	int32_t rc = 0;
-	//struct msm_sensor_ctrl_t *s_ctrl;
-	if (camera_id !=1) return -EFAULT;
-	
-	CDBG("\n in ov8825_sensor_i2c_probe\n");
-	rc = msm_sensor_i2c_probe(client, id);
-	if (client->dev.platform_data == NULL) {
-		pr_err("%s: NULL sensor data\n", __func__);
-		return -EFAULT;
-	}
-	//s_ctrl = client->dev.platform_data;
-	//if (s_ctrl->sensordata->pmic_gpio_enable)
-	//	lcd_camera_power_onoff(0);
-	//	camera_power_onoff(0);
-	return rc;
-}
-
 int32_t ov8825_sensor_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 {
 	int32_t rc = 0;
-	struct msm_camera_sensor_info *info = s_ctrl->sensordata;
-	CDBG("%s IN\r\n", __func__);
+	struct msm_camera_sensor_info *info = NULL;
 
-	CDBG("%s, sensor_pwd:%d, sensor_reset:%d\r\n",__func__, info->sensor_pwd, info->sensor_reset);
-
+	info = s_ctrl->sensordata;
 	gpio_direction_output(info->sensor_pwd, 0);
 	gpio_direction_output(info->sensor_reset, 0);
-	usleep_range(5000, 6000);
-
-	if (info->pmic_gpio_enable) {
-	//	info->pmic_gpio_enable = 0;
-		//zxj ++
-		#ifdef ORIGINAL_VERSION
-		lcd_camera_power_onoff(1);
-		#else
-		camera_power_onoff(1);
-		#endif
-		//zxj --
-	}
-	//gpio_direction_output(info->sensor_pwd, 0);
-	//gpio_direction_output(info->sensor_reset, 0);
-	//usleep_range(10000, 11000);
+	usleep_range(10000, 11000);
 	rc = msm_sensor_power_up(s_ctrl);
 	if (rc < 0) {
 		CDBG("%s: msm_sensor_power_up failed\n", __func__);
@@ -905,29 +830,9 @@ int32_t ov8825_sensor_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 	return rc;
 }
 
-int32_t ov8825_sensor_power_down(struct msm_sensor_ctrl_t *s_ctrl)
-{
-	struct msm_camera_sensor_info *info = s_ctrl->sensordata;
-	int rc = 0;
-	CDBG("%s IN\r\n", __func__);
-
-	//Stop stream first
-	s_ctrl->func_tbl->sensor_stop_stream(s_ctrl);
-	msleep(40);
-
-	gpio_direction_output(info->sensor_pwd, 0);
-	usleep_range(5000, 5100);
-	msm_sensor_power_down(s_ctrl);
-	msleep(40);
-	if (info->pmic_gpio_enable){
-		camera_power_onoff(0);
-	}
-	return rc;
-}
-
 static struct i2c_driver ov8825_i2c_driver = {
 	.id_table = ov8825_i2c_id,
-	.probe  = ov8825_sensor_i2c_probe,
+	.probe  = msm_sensor_i2c_probe,
 	.driver = {
 		.name = SENSOR_NAME,
 	},
@@ -958,36 +863,12 @@ static struct v4l2_subdev_ops ov8825_subdev_ops = {
 	.video  = &ov8825_subdev_video_ops,
 };
 
-static int is_first_preview = 1;
-
 int32_t ov8825_sensor_setting(struct msm_sensor_ctrl_t *s_ctrl,
 			int update_type, int res)
 {
 	int32_t rc = 0;
 	static int csi_config;
-	//zxj, 2012-08-15
-	static unsigned short af_reg_l;
-	static unsigned short af_reg_h;
-	int af_step_pos;
-	CDBG("8825 sensor setting in, update_type:0x%x, res:0x%x\r\n",update_type, res);
 
-	if(update_type == MSM_SENSOR_UPDATE_PERIODIC) {
-		msm_camera_i2c_read(s_ctrl->sensor_i2c_client, 0x3618, &af_reg_l,
-			MSM_CAMERA_I2C_BYTE_DATA);
-		msm_camera_i2c_read(s_ctrl->sensor_i2c_client, 0x3619, &af_reg_h,
-			MSM_CAMERA_I2C_BYTE_DATA);
-		CDBG("AF_tuning data 3618 is 0x%x, 3619 is 0x%x\r\n", af_reg_l, af_reg_h);
-
-		//set to zero to avoid lens crash sound
-		for(af_step_pos = af_reg_h&0x3f; af_step_pos > 0; af_step_pos-=8) {
-			msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x3618, 0x9,
-				MSM_CAMERA_I2C_BYTE_DATA);
-			msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x3619, af_step_pos&0xff,
-				MSM_CAMERA_I2C_BYTE_DATA);
-			msleep(2);
-		}
-	}
-	//zxj,2012-08-15
 	s_ctrl->func_tbl->sensor_stop_stream(s_ctrl);
 	msleep(30);
 	if (update_type == MSM_SENSOR_REG_INIT) {
@@ -1004,7 +885,6 @@ int32_t ov8825_sensor_setting(struct msm_sensor_ctrl_t *s_ctrl,
 		msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x100, 0x0,
 		  MSM_CAMERA_I2C_BYTE_DATA);
 		csi_config = 0;
-		is_first_preview = 1;
 	} else if (update_type == MSM_SENSOR_UPDATE_PERIODIC) {
 		CDBG("PERIODIC : %d\n", res);
 		msm_sensor_write_conf_array(
@@ -1022,512 +902,15 @@ int32_t ov8825_sensor_setting(struct msm_sensor_ctrl_t *s_ctrl,
 			msleep(30);
 			csi_config = 1;
 		}
-		//add by lzj
-		//v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-		//	NOTIFY_PCLK_CHANGE,
-		//	&s_ctrl->sensordata->pdata->ioclk.vfe_clk_rate);
-
-		if (res == MSM_SENSOR_RES_4)
-			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
-					NOTIFY_PCLK_CHANGE,
-					&vfe_clk);
-		// add end 
+		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+			NOTIFY_PCLK_CHANGE,
+			&s_ctrl->sensordata->pdata->ioclk.vfe_clk_rate);
 
 		s_ctrl->func_tbl->sensor_start_stream(s_ctrl);
-		//zxj,2012-08-15
-		af_reg_l = af_reg_l & 0xf0;
-		af_reg_l = af_reg_l | 0x0e;
-		msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x3618, af_reg_l,
-			MSM_CAMERA_I2C_BYTE_DATA);
-		msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x3619, af_reg_h,
-			MSM_CAMERA_I2C_BYTE_DATA);
-		CDBG("AF_tuning write data 3618 is 0x%x, 3619 is 0x%x\r\n", af_reg_l, af_reg_h);
-
-		if (!is_first_preview) {
-			if (res == 1) {
-				msleep(200);
-			}
-		} else {
-			is_first_preview = 0;	
-		}
-		//zxj,2012-08-15
 		msleep(50);
 	}
 	return rc;
 }
-
-/*zhuangxiaojian, 2012-08-15, c8680, optimize af search mode for ov8825 camera module {*/
-#if 0
-#ifdef ORIGINAL_VERSION
-#else
-#if 1
-static int32_t ov8825_i2c_write_b(struct msm_camera_i2c_client *client, unsigned short waddr, uint8_t bdata)
-{
-	int32_t rc = 0;
-	if(client == NULL) {
-		printk("##### %s: func error !\n",__func__);
-		return -1;
-	}
-	
-	rc = msm_camera_i2c_write(client, waddr, bdata, MSM_CAMERA_I2C_BYTE_DATA);
-
-	return rc;
-}
-
-static int32_t ov8825_af_i2c_write(uint16_t data)
-{
-	uint8_t code_val_msb, code_val_lsb;
-	uint32_t rc = 0;
-	printk("----------- %s: data = %d\n",__func__,data);//zxj
-	code_val_msb = data >> 4; 
-	code_val_lsb = ((data & 0x000F) << 4) | S3_to_0;
-	
-	CDBG("code value = %d ,D[9:4] = %d ,D[3:0] = %d\n", data, code_val_msb, code_val_lsb);
-	rc = ov8825_i2c_write_b(ov8825_s_ctrl.sensor_i2c_client , OV8825_AF_MSB, code_val_msb);
-	if (rc < 0) {
-		CDBG("Unable to write code_val_msb = %d\n", code_val_msb);
-		return rc;
-	}
-	rc = ov8825_i2c_write_b(ov8825_s_ctrl.sensor_i2c_client, OV8825_AF_LSB, code_val_lsb);
-	if (rc < 0) {
-		CDBG("Unable to write code_val_lsb = %d\n", code_val_lsb);
-		return rc;
-	}
-
-	return rc;
-} /* ov8825_af_i2c_write */
-#endif
-
-#if 0
-int32_t ov8825_af_init(struct msm_sensor_ctrl_t *s_ctrl, struct region_params_t *region_params)
-{
-	int32_t rc = 0;
-	int16_t cur_code = 0;
-	int16_t step_index = 0;
-	int16_t region_index = 0;
-	uint32_t max_code_size = 1;
-	uint16_t step_boundary = 0;
-	uint16_t code_per_step = 0;	
-	uint16_t code_size = s_ctrl->data_size;
-
-	if (copy_from_user(&s_ctrl->region_params,
-		(void *)region_params,
-		s_ctrl->region_size * sizeof(struct region_params_t)))
-		return -EFAULT;
-	
-	s_ctrl->step_position_table = NULL;
-	code_per_step = s_ctrl->region_params[region_index].code_per_step;
-	printk("##### %s called\n",__func__);
-	
-	for (; code_size > 0; code_size--)
-		max_code_size *= 2;
-	
-	s_ctrl->step_position_table = kmalloc(sizeof(uint16_t) * (s_ctrl->total_steps + 1), GFP_KERNEL);
-	if (s_ctrl->step_position_table == NULL)
-		return -EFAULT;
-
-	cur_code = s_ctrl->initial_code;
-	s_ctrl->step_position_table[step_index++] = cur_code;
-
-	for (region_index = 0; region_index < s_ctrl->region_size; region_index++) {
-//		code_per_step = s_ctrl->region_params[region_index].code_per_step;
-		code_per_step = 18;
-		step_boundary = s_ctrl->region_params[region_index].step_bound[MOVE_NEAR];
-		
-		for (; step_index <= step_boundary; step_index++) {
-			cur_code += code_per_step;
-			
-			if (cur_code < max_code_size)
-				s_ctrl->step_position_table[step_index] = cur_code;
-			else {
-				for (; step_index < s_ctrl->total_steps; step_index++)
-					s_ctrl->step_position_table[step_index] = max_code_size;
-//				return rc;
-			}
-		}
-	}
-	s_ctrl->curr_step_pos = 0;
-	s_ctrl->curr_region_index = 0;
-
-	return rc;
-}
-#else
-int32_t ov8825_af_init(struct msm_sensor_ctrl_t *s_ctrl, struct region_params_t *region_params)
-{
-	int32_t rc = 0;
-	int16_t cur_code = 0;
-	int16_t step_index = 0;
-	int16_t region_index = 0;
-	uint32_t max_code_size = 1;
-	uint16_t step_boundary = 0;
-	uint16_t ov8825_nl_region_code_per_step = 85;	
-	uint16_t ov8825_l_region_code_per_step = 18;
-	uint16_t ov8825_nl_region_boundary = 3;
-	uint16_t code_size = s_ctrl->data_size;
-
-	if (copy_from_user(&s_ctrl->region_params,
-		(void *)region_params,
-		s_ctrl->region_size * sizeof(struct region_params_t)))
-		return -EFAULT;
-	
-	s_ctrl->step_position_table = NULL;
-	
-	printk("##### %s called\n",__func__);
-	
-	for (; code_size > 0; code_size --)
-		max_code_size *= 2;
-	
-	s_ctrl->step_position_table = kmalloc(sizeof(uint16_t) * (s_ctrl->total_steps + 1), GFP_KERNEL);
-	if (s_ctrl->step_position_table == NULL)
-		return -EFAULT;
-
-	cur_code = s_ctrl->initial_code;
-	s_ctrl->step_position_table[step_index++] = cur_code;
-
-	for (region_index = 0; region_index < s_ctrl->region_size; region_index++) {
-
-		step_boundary = s_ctrl->region_params[region_index].step_bound[MOVE_NEAR];
-		
-		for (step_index = 1; step_index <= step_boundary; step_index++) {
-			if (step_index <= ov8825_nl_region_boundary){
-				s_ctrl->step_position_table[step_index] = s_ctrl->step_position_table[step_index - 1] 
-							+ ov8825_nl_region_code_per_step;
-			}else{
-				s_ctrl->step_position_table[step_index] = s_ctrl->step_position_table[step_index - 1] 
-							+ ov8825_l_region_code_per_step;
-			}
-			
-			if (s_ctrl->step_position_table[step_index] > max_code_size)
-				s_ctrl->step_position_table[step_index] = max_code_size;
-		}
-	}
-	
-	s_ctrl->curr_step_pos = 0;
-	s_ctrl->curr_region_index = 0;
-
-	return rc;
-}
-#endif
-
-
-int32_t ov8825_set_default_focus(struct msm_sensor_ctrl_t *s_ctrl,
-						struct msm_sensor_af_move_params_t *af_move_params)
-{
-	int32_t rc = 0;
-#if 1
-	printk("------------ %s called -------------\n", __func__);
-
-	if (s_ctrl->curr_step_pos != 0)
-		rc = s_ctrl->func_tbl->sensor_move_focus(s_ctrl, af_move_params);
-#endif
-	s_ctrl->curr_step_pos = 0;
-	s_ctrl->dest_step_pos = 0;
-	printk("------------ %s end -------------\n", __func__);
-	return rc;
-
-}
-
-static int32_t DIV_CEIL(int x, int y)
-{
-    if(x%y >0)
-        return x/y + 1;
-    else
-        return x/y;
-}
-
-int32_t ov8825_move_focus(struct msm_sensor_ctrl_t *s_ctrl, 
-				struct msm_sensor_af_move_params_t *af_move_params)
-{
-	int32_t rc = 0;
-#if 1
-	int16_t next_lens_pos = 0;
-
-	int8_t step_dir = af_move_params->sign_dir;
-	int16_t dest_step_pos = af_move_params->dest_step_pos;
-	uint16_t dest_lens_pos = 0;
-	uint16_t curr_lens_pos = 0;
-	uint16_t step_boundary = 0;
-	uint16_t damping_code_step = 0;
-	uint32_t sw_damping_time_wait = 0;
-
-	uint16_t small_step = 0;
-	uint32_t target_dist = 0;
-//	uint32_t code_dis = 0;
-	uint16_t curr_step_pos = s_ctrl->curr_step_pos;
-	printk("##### >>>>>>>>>> %s called <<<<<<<<<<<\n",__func__);
-
-//	damping_code_step = af_move_params->ringing_params->damping_step;
-//	sw_damping_time_wait= af_move_params->ringing_params->damping_delay;
-	
-printk("##### %s line%d: damping_code_step == %d\n",__func__,__LINE__,damping_code_step);
-printk("##### %s line%d: sw_damping_time_wait == %d\n",__func__,__LINE__,sw_damping_time_wait);
-	if (dest_step_pos == curr_step_pos)
-		return 0;
-
-	
-//	next_lens_pos = curr_lens_pos + (step_dir * damping_code_step);
-	step_boundary = s_ctrl->region_params[s_ctrl->curr_region_index].step_bound[0];
-#if 0
-	target_dis = s_ctrl->region_params[s_ctrl->curr_region_index].code_per_step * num_steps;
-	code_dis = s_ctrl->region_params[s_ctrl->curr_region_index].code_per_step;
-#endif
-
-	if (dest_step_pos < 0)
-		dest_step_pos = 0;
-#if 1
-	else if (dest_step_pos > step_boundary)
-		dest_step_pos = step_boundary;
-#else
-	else if (dest_step_pos > s_ctrl->total_steps)
-		dest_step_pos = s_ctrl->total_steps;
-#endif
-
-	
-	curr_lens_pos = s_ctrl->step_position_table[curr_step_pos];
-	dest_lens_pos = s_ctrl->step_position_table[dest_step_pos];
-
-	printk("##### %s line%d: curr_lens_pos == %d\n",__func__,__LINE__,curr_lens_pos);
-	printk("##### %s line%d: dest_lens_pos == %d\n",__func__,__LINE__,dest_lens_pos);
-#if 0
-	for (next_lens_pos =
-		curr_lens_pos + (step_dir * damping_code_step);
-		(step_dir * next_lens_pos) <=
-			(step_dir * dest_lens_pos);
-		next_lens_pos += (step_dir * damping_code_step)) {
-#endif
-	target_dist = step_dir * (dest_lens_pos - curr_lens_pos);
-
-	if (step_dir < 0 && (target_dist >=
-		s_ctrl->step_position_table[ov8825_damping_threshold])) {
-		small_step = DIV_CEIL(target_dist, 10);
-		sw_damping_time_wait = 10;
-	} else {
-		small_step = DIV_CEIL(target_dist, 4);
-		sw_damping_time_wait = 4;
-	}
-
-	for (next_lens_pos =
-		curr_lens_pos + (step_dir * small_step);
-		(step_dir * next_lens_pos) <=
-			(step_dir * dest_lens_pos);
-		next_lens_pos += (step_dir * small_step)) {
-		printk("##### %s line%d: next_lens_pos == %d\n",__func__,__LINE__,next_lens_pos);
-
-		if (next_lens_pos < s_ctrl->step_position_table[0])
-			next_lens_pos = s_ctrl->step_position_table[0];
-		else if (next_lens_pos > s_ctrl->step_position_table[step_boundary])
-			next_lens_pos = s_ctrl->step_position_table[step_boundary];
-			
-		if(ov8825_af_i2c_write(next_lens_pos) < 0) {
-			printk("############ %s line%d: write af failed !\n",__func__,__LINE__);
-			return -EBUSY;
-			}
-		s_ctrl->curr_lens_pos = next_lens_pos;
-		printk("+++++ %s line%d: damping time wait!\n",__func__,__LINE__);
-		usleep(sw_damping_time_wait);
-	}
-	
-	if (s_ctrl->curr_lens_pos != dest_lens_pos) {
-	printk("##### %s line%d: curr_lens_pos == %d\n",__func__,__LINE__,curr_lens_pos);
-	printk("##### %s line%d: dest_lens_pos == %d\n",__func__,__LINE__,dest_lens_pos);
-		if(ov8825_af_i2c_write(dest_lens_pos) < 0) {
-			printk("############ %s line%d: write af failed !\n",__func__,__LINE__);
-			return -EBUSY;
-		}
-		usleep(sw_damping_time_wait * 50);
-	}
-//	curr_lens_pos = dest_lens_pos;
-//	curr_step_pos = dest_step_pos;
-	
-	s_ctrl->curr_lens_pos = dest_lens_pos;
-	s_ctrl->curr_step_pos = dest_step_pos;
-#else
-//	int32_t num_steps = af_move_params->num_steps;
-	int8_t step_dir = af_move_params->sign_dir;
-	int16_t dest_step_pos = af_move_params->dest_step_pos;
-	uint16_t dest_lens_pos = 0;
-	uint16_t curr_lens_pos = 0;
-	uint16_t step_boundary = 0;
-
-	uint16_t curr_step_pos = s_ctrl->curr_step_pos;
-
-	if (dest_step_pos == s_ctrl->curr_step_pos)
-		return rc;
-printk("##### %s line%d: dest_step_pos == %d\n",__func__,__LINE__,dest_step_pos);
-printk("##### %s line%d: curr_step_pos == %d\n",__func__,__LINE__,curr_step_pos);
-printk("##### %s line%d: step_dir == %d\n",__func__,__LINE__,step_dir);//zxj
-	curr_lens_pos = s_ctrl->step_position_table[s_ctrl->curr_step_pos];
-//	step_boundary = s_ctrl->region_params[s_ctrl->curr_region_index].step_bound[step_dir];
-	step_boundary = s_ctrl->total_steps;
-
-	dest_lens_pos = s_ctrl->step_position_table[dest_step_pos - 1];
-printk("##### %s line%d: step_boundary == %d\n",__func__,__LINE__,step_boundary);
-	printk("##### %s line%d: curr_lens_pos == %d\n",__func__,__LINE__,curr_lens_pos);
-	printk("##### %s line%d: dest_lens_pos == %d\n",__func__,__LINE__,dest_lens_pos);
-	
-	printk("##########################################\n");
-	while (curr_step_pos != dest_step_pos) {
-		printk("+++++++++++++++++++++++++++++++++++++++\n");
-		
-		if ((dest_step_pos * step_dir) <= (step_boundary * step_dir)) {
-			printk("##### %s line%d\n",__func__,__LINE__);//zxj
-			if (dest_lens_pos == curr_lens_pos) {
-				printk("##### %s line%d: dest_lens_pos == curr_lens_pos\n",__func__,__LINE__);//zxj
-				return rc;
-			}
-			if (ov8825_af_i2c_write(dest_lens_pos) < 0) {
-				printk("##### %s line%d: failed to write af\n",__func__,__LINE__);//zxj
-				return -EBUSY;
-			}
-			curr_lens_pos = dest_lens_pos;
-		}else{
-			dest_step_pos = step_boundary;
-			dest_lens_pos = s_ctrl->step_position_table[dest_step_pos];
-			printk("##### %s line%d: dest_step_pos == step_boundary == %d\n",__func__,__LINE__,step_boundary);
-			printk("##### %s line%d: dest_lens_pos == %d\n",__func__,__LINE__,dest_lens_pos);
-			printk("##### %s line%d: curr_lens_pos == %d\n",__func__,__LINE__,curr_lens_pos);//zxj
-			if (curr_lens_pos == dest_lens_pos) {
-				printk("##### %s line%d: dest_lens_pos == curr_lens_pos\n",__func__,__LINE__);//zxj
-				return rc;
-			}
-			if (ov8825_af_i2c_write(dest_lens_pos) < 0) {
-				printk("##### %s line%d: failed to write af\n",__func__,__LINE__);//zxj
-				return -EBUSY;
-				}
-			curr_lens_pos = dest_lens_pos;
-
-			s_ctrl->curr_region_index += step_dir;
-		}
-		//usleep(af_move_params->sw_damping_time_wait);
-		//usleep(5000);
-		s_ctrl->curr_step_pos = dest_step_pos;
-
-	}
-
-//	s_ctrl->curr_lens_pos = dest_lens_pos;
-//	s_ctrl->curr_step_pos = dest_step_pos;
-#endif
-	return rc;
-}
-#endif
-
-#else
-
-DEFINE_MUTEX(ov8825_actuator_mutex);
-
-int32_t ov8825_af_init(struct msm_sensor_ctrl_t *s_ctrl, struct msm_actuator_set_info_t *set_info)
-{
-	int32_t rc = 0;
-
-	return_if_val_fail(s_ctrl != NULL && set_info != NULL, -1);
-	printk("##### %s line%d: E\n",__func__,__LINE__);
-	rc = msm_actuator_init(s_ctrl->a_ctrl, set_info);
-
-	if (rc < 0){
-		printk("##### %s: init failed !\n",__func__);
-		return rc;
-	}
-
-	return rc;
-}
-
-int32_t ov8825_set_default_focus(struct msm_sensor_ctrl_t *s_ctrl,
-						struct msm_actuator_move_params_t* move)
-{
-	int32_t rc = 0;
-
-	return_if_val_fail(s_ctrl != NULL, -1);
-	printk("##### %s: E\n",__func__);
-	rc = msm_actuator_set_default_focus(s_ctrl->a_ctrl, move);
-
-	if (rc < 0){
-		printk("##### %s: default setting failed !\n",__func__);
-		return rc;
-	}
-
-	return rc;
-}
-
-int32_t ov8825_move_focus(struct msm_sensor_ctrl_t *s_ctrl,
-						struct msm_actuator_move_params_t* move)
-{
-	int32_t rc = 0;
-
-	return_if_val_fail(s_ctrl != NULL, -1);
-
-	rc = msm_actuator_move_focus(s_ctrl->a_ctrl, move);
-
-	if (rc < 0) {
-		printk("##### %s: default setting failed !\n",__func__);
-		return rc;		
-	}
-
-	return rc;
-}
-
-/*zhuangxiaojian, 2012-08-18, C8680, add ov8825 i2c write af method {*/
-int32_t ov8825_af_i2c_write(struct msm_actuator_ctrl_t *a_ctrl,
-	int16_t next_lens_position, uint32_t hw_params)
-{
-	struct msm_actuator_reg_params_t *write_arr = a_ctrl->reg_tbl;
-	uint32_t hw_dword = hw_params;
-	uint16_t i2c_byte1 = 0, i2c_byte2 = 0;
-	uint16_t value = 0;
-	uint32_t size = a_ctrl->reg_tbl_size, i = 0;
-	int32_t rc = 0;
-	printk("##### %s: IN\n", __func__);
-	for (i = 0; i < size; i++) {
-		if (write_arr[i].reg_write_type == MSM_ACTUATOR_WRITE_DAC) {
-			value = (next_lens_position <<
-				write_arr[i].data_shift) |
-				((hw_dword & write_arr[i].hw_mask) >>
-				write_arr[i].hw_shift);
-
-			if (write_arr[i].reg_addr != 0xFFFF) {
-				i2c_byte1 = write_arr[i].reg_addr;
-				i2c_byte2 = value;
-				if (size != (i+1)) {
-					//i2c_byte2 = (i2c_byte2 & 0xFF00) >> 8;
-					i2c_byte2 = value & 0xFF;
-					CDBG("%s: byte1:0x%x, byte2:0x%x\n",
-					__func__, i2c_byte1, i2c_byte2);
-					rc = msm_camera_i2c_write(
-						ov8825_s_ctrl.sensor_i2c_client,
-						i2c_byte1, i2c_byte2,
-						a_ctrl->i2c_data_type);
-					if (rc < 0) {
-						pr_err("%s: i2c write error:%d\n",
-							__func__, rc);
-						return rc;
-					}
-
-					i++;
-					i2c_byte1 = write_arr[i].reg_addr;
-					//i2c_byte2 = value & 0xFF;
-					i2c_byte2 = (value & 0xFF00) >> 8;
-				}
-			} else {
-				i2c_byte1 = (value & 0xFF00) >> 8;
-				i2c_byte2 = value & 0xFF;
-			}
-		} else {
-			i2c_byte1 = write_arr[i].reg_addr;
-			i2c_byte2 = (hw_dword & write_arr[i].hw_mask) >>
-				write_arr[i].hw_shift;
-		}
-		CDBG("%s: i2c_byte1:0x%x, i2c_byte2:0x%x\n", __func__,
-			i2c_byte1, i2c_byte2);
-		rc = msm_camera_i2c_write(ov8825_s_ctrl.sensor_i2c_client,
-			i2c_byte1, i2c_byte2, a_ctrl->i2c_data_type);
-	}
-		printk("##### %s: OUT\n", __func__);
-	return rc;	
-}
-/*} zhuangxiaojian, 2012-08-18, C8680, add ov8825 i2c write af method*/
-EXPORT_SYMBOL(ov8825_af_i2c_write);
-
-#endif
-/*} zhuangxiaojian, 2012-08-15, c8680, optimize af search mode for ov8825 camera module*/
 
 static struct msm_sensor_fn_t ov8825_func_tbl = {
 	.sensor_start_stream = msm_sensor_start_stream,
@@ -1543,34 +926,8 @@ static struct msm_sensor_fn_t ov8825_func_tbl = {
 	.sensor_get_output_info = msm_sensor_get_output_info,
 	.sensor_config = msm_sensor_config,
 	.sensor_power_up = ov8825_sensor_power_up,
-	//.sensor_power_down = msm_sensor_power_down,
-	.sensor_power_down = ov8825_sensor_power_down,
-	//zxj ++
-	#ifdef ORIGINAL_VERSION
-	#else
-	.sensor_focus_config = msm_sensor_focus_config,
-	.sensor_af_init = ov8825_af_init,
-	.sensor_set_default_focus = ov8825_set_default_focus,
-	.sensor_move_focus = ov8825_move_focus,
-	#endif
-	//zxj --
+	.sensor_power_down = msm_sensor_power_down,
 };
-
-/*zhuangxiaojian, 2012-08-18, C8680, add for ov8825 camera actuator {*/
-#ifdef ORIGINAL_VERSION
-#else
-//struct msm_actuator_func_tbl func_tbl = {
-//	.actuator_i2c_write = ov8825_af_i2c_write,
-//};
-
-static struct msm_actuator_ctrl_t ov8825_actuator_t = {
-	.curr_step_pos = 0,
-	.curr_region_index = 0,
-	.actuator_mutex = &ov8825_actuator_mutex,
-//	.func_tbl = &func_tbl,
-};
-#endif
-/*} zhuangxiaojian, 2012-08-18, C8680, add for ov8825 camera actuator*/
 
 static struct msm_sensor_reg_t ov8825_regs = {
 	.default_data_type = MSM_CAMERA_I2C_BYTE_DATA,
@@ -1604,9 +961,6 @@ static struct msm_sensor_ctrl_t ov8825_s_ctrl = {
 	.sensor_v4l2_subdev_info_size = ARRAY_SIZE(ov8825_subdev_info),
 	.sensor_v4l2_subdev_ops = &ov8825_subdev_ops,
 	.func_tbl = &ov8825_func_tbl,
-	//zxj ++
-	.a_ctrl = &ov8825_actuator_t,
-	//zxj --
 };
 
 module_init(msm_sensor_init_module);

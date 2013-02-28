@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2011, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -199,7 +199,7 @@ static struct proccomm_regulator_info msm7627_pcom_vreg_info[] = {
 	PCOM_VREG_LDO(ldo02,  1, NULL,  2600000,  2600000, 0, -1, 0, 0, 0, 0),
 	PCOM_VREG_LDO(ldo03, 19, NULL,  2850000,  2850000, 0, -1, 0, 0, 0, 0),
 	PCOM_VREG_LDO(ldo04,  9, NULL,  2850000,  2850000, 0, -1, 0, 0, 0, 0),
-	PCOM_VREG_LDO(ldo05, 18, NULL,  1200000,  1200000, 0, -1, 0, 0, 0, 0),
+	PCOM_VREG_LDO(ldo05, 18, NULL,  2850000,  2850000, 0, -1, 0, 0, 0, 0),
 	PCOM_VREG_LDO(ldo06, 16, NULL,  3300000,  3300000, 0, -1, 0, 0, 0, 0),
 	PCOM_VREG_LDO(ldo07, 12, NULL,  2700000,  2700000, 0, -1, 0, 0, 0, 0),
 	PCOM_VREG_LDO(ldo08, 14, NULL,  2700000,  2700000, 0, -1, 0, 0, 0, 0),

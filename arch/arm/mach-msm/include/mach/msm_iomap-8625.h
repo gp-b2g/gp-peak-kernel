@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2012, The Linux Foundation. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -56,5 +56,8 @@
 
 #define MSM8625_CFG_CTL_PHYS		0xA9800000
 #define MSM8625_CFG_CTL_SIZE		SZ_4K
+
+#define MSM8625_CPR_PHYS		0xC0900000
+#define MSM8625_CPR_SIZE		SZ_4K
 
 #endif

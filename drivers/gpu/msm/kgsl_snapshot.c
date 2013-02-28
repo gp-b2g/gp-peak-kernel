@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -507,7 +507,7 @@ int kgsl_device_snapshot(struct kgsl_device *device, int hang)
 
 	header->magic = SNAPSHOT_MAGIC;
 
-	header->gpuid = kgsl_gpuid(device, NULL);
+	header->gpuid = kgsl_gpuid(device, &header->chipid);
 
 	/* Get a pointer to the first section (right after the header) */
 	snapshot = ((void *) device->snapshot) + sizeof(*header);

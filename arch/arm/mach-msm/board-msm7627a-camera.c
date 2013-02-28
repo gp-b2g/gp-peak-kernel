@@ -651,9 +651,9 @@ static struct i2c_board_info i2c_camera_devices[] = {
 
 static void evb_camera_gpio_cfg(void)
 {
-	int rc = 0;
+        int rc = 0;
 #ifdef CONFIG_MT9E013
-	printk("##### %s line%d: CONFIG_MT9E013\n",__func__,__LINE__);
+        printk("##### %s line%d: CONFIG_MT9E013\n",__func__,__LINE__);
 	rc = gpio_request(GPIO_SKU3_CAM_5MP_SHDN_N, "mt9e013");
 	if (rc < 0)
 		pr_err("##### %s: gpio_request GPIO_SKU3_CAM_5MP_SHDN_N failed!",

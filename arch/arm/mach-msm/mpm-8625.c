@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -98,6 +98,22 @@ static uint8_t msm_gic_irq_to_smsm[NR_IRQS] = {
 	[MSM8625_INT_ADSP_A11]		= SMSM_FAKE_IRQ,
 };
 
+static uint16_t msm_bypassed_apps_irqs[] = {
+	MSM8625_INT_CPR_IRQ0,
+};
+
+/* Check IRQ falls into bypassed list are not */
+static bool msm_mpm_bypass_apps_irq(unsigned int irq)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(msm_bypassed_apps_irqs); i++)
+		if (irq == msm_bypassed_apps_irqs[i])
+			return true;
+
+	return false;
+}
+
 static void msm_gic_mask_irq(struct irq_data *d)
 {
 	unsigned int index = GIC_IRQ_INDEX(d->irq);
@@ -105,6 +121,10 @@ static void msm_gic_mask_irq(struct irq_data *d)
 	int smsm_irq = msm_gic_irq_to_smsm[d->irq];
 
 	mask = GIC_IRQ_MASK(d->irq);
+
+	/* check whether irq to be bypassed are not */
+	if (msm_mpm_bypass_apps_irq(d->irq))
+		return;
 
 	if (smsm_irq == 0) {
 		msm_gic_irq_idle_disable[index] &= ~mask;
@@ -121,6 +141,10 @@ static void msm_gic_unmask_irq(struct irq_data *d)
 	int smsm_irq = msm_gic_irq_to_smsm[d->irq];
 
 	mask = GIC_IRQ_MASK(d->irq);
+
+	/* check whether irq to be bypassed are not */
+	if (msm_mpm_bypass_apps_irq(d->irq))
+		return;
 
 	if (smsm_irq == 0) {
 		msm_gic_irq_idle_disable[index] |= mask;
@@ -140,6 +164,10 @@ static int msm_gic_set_irq_wake(struct irq_data *d, unsigned int on)
 		return  -EINVAL;
 	}
 
+	/* check whether irq to be bypassed are not */
+	if (msm_mpm_bypass_apps_irq(d->irq))
+		return 0;
+
 	if (smsm_irq == SMSM_FAKE_IRQ)
 		return 0;
 
@@ -152,7 +180,7 @@ static int msm_gic_set_irq_wake(struct irq_data *d, unsigned int on)
 	return 0;
 }
 
-void __init msm_gic_irq_extn_init(void __iomem *db, void __iomem *cb)
+void __init msm_gic_irq_extn_init(void)
 {
 	gic_arch_extn.irq_mask	= msm_gic_mask_irq;
 	gic_arch_extn.irq_unmask = msm_gic_unmask_irq;
@@ -221,7 +249,7 @@ int msm_gic_irq_enter_sleep2(bool modem_wake, int from_idle)
 		/* save the contents of GIC CPU interface and Distributor
 		 * Disable all the Interrupts, if we enter from idle pc
 		 */
-		msm_gic_save(modem_wake, from_idle);
+		msm_gic_save();
 		irq_set_irq_type(MSM8625_INT_A9_M2A_6, IRQF_TRIGGER_RISING);
 		enable_irq(MSM8625_INT_A9_M2A_6);
 		pr_debug("%s going for sleep now\n", __func__);

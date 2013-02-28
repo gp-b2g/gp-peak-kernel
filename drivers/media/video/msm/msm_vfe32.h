@@ -87,6 +87,9 @@
  * the luma samples.  JPEG 4:2:2 */
 #define VFE_CHROMA_UPSAMPLE_INTERPOLATED 0
 
+/* wm bit offset for IRQ MASK and IRQ STATUS register */
+#define VFE_WM_OFFSET 6
+
 /* constants for irq registers */
 #define VFE_DISABLE_ALL_IRQS 0
 /* bit =1 is to clear the corresponding bit in VFE_IRQ_STATUS.  */
@@ -114,6 +117,17 @@
 #define VFE_IRQ_STATUS0_ASYNC_TIMER1  0x20000000  /* bit 29 */
 #define VFE_IRQ_STATUS0_ASYNC_TIMER2  0x40000000  /* bit 30 */
 #define VFE_IRQ_STATUS0_ASYNC_TIMER3  0x80000000  /* bit 32 */
+
+#define VFE_IRQ_STATUS1_RDI0_REG_UPDATE_MASK  0x4000000 /*bit 26*/
+#define VFE_IRQ_STATUS1_RDI1_REG_UPDATE_MASK  0x8000000 /*bit 27*/
+
+/*TODOs the irq status passed from axi to vfe irq handler does not account
+* for 2 irq status registers. So below macro is added to differentiate between
+* same bit set on both irq status registers. This wil be fixed later by passing
+*entire payload to vfe irq handler and parsing there instead of passing just the
+*status bit*/
+#define VFE_IRQ_STATUS1_RDI0_REG_UPDATE  0x84000000 /*bit 26*/
+#define VFE_IRQ_STATUS1_RDI1_REG_UPDATE  0x88000000 /*bit 27*/
 
 /* imask for while waiting for stop ack,  driver has already
  * requested stop, waiting for reset irq, and async timer irq.
@@ -226,8 +240,8 @@ enum vfe_output_state {
 #define V32_OPERATION_CFG_LEN     44
 
 #define V32_AXI_OUT_OFF           0x00000038
-#define V32_AXI_OUT_LEN           216
-#define V32_AXI_CH_INF_LEN        24
+#define V32_AXI_OUT_LEN           224
+#define V32_AXI_CH_INF_LEN        32
 #define V32_AXI_CFG_LEN           47
 #define V32_AXI_BUS_FMT_OFF    1
 #define V32_AXI_BUS_FMT_LEN    4
@@ -788,7 +802,8 @@ struct vfe32_output_path {
 
 	struct vfe32_output_ch out0; /* preview and thumbnail */
 	struct vfe32_output_ch out1; /* snapshot */
-	struct vfe32_output_ch out2; /* video    */
+	struct vfe32_output_ch out2; /* rdi0    */
+	struct vfe32_output_ch out3; /* rdi01   */
 };
 
 struct vfe32_frame_extra {
@@ -893,6 +908,8 @@ struct vfe32_frame_extra {
 #define VFE32_OUTPUT_MODE_PRIMARY_ALL_CHNLS	BIT(7)
 #define VFE32_OUTPUT_MODE_SECONDARY		BIT(8)
 #define VFE32_OUTPUT_MODE_SECONDARY_ALL_CHNLS	BIT(9)
+#define VFE32_OUTPUT_MODE_TERTIARY1		BIT(10)
+#define VFE32_OUTPUT_MODE_TERTIARY2		BIT(11)
 
 struct vfe_stats_control {
 	uint8_t  ackPending;
@@ -926,6 +943,7 @@ struct vfe32_ctrl_type {
 
 	spinlock_t  stop_flag_lock;
 	spinlock_t  update_ack_lock;
+	spinlock_t  start_ack_lock;
 	spinlock_t  state_lock;
 	spinlock_t  io_lock;
 
@@ -983,6 +1001,8 @@ struct vfe32_ctrl_type {
 	uint32_t frame_skip_cnt;
 	uint32_t frame_skip_pattern;
 	uint32_t snapshot_frame_cnt;
+
+	uint32_t simultaneous_sof_stat;
 };
 
 #define statsAeNum      0

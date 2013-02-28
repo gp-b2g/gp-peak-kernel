@@ -17,23 +17,6 @@
 #define PLATFORM_DRIVER_NAME "msm_camera_ov5647"
 #define ov5647_obj ov5647_##obj
 
-#ifdef CDBG
-#undef CDBG
-#endif
-#ifdef CDBG_HIGH
-#undef CDBG_HIGH
-#endif
-
-#define OV5647_VERBOSE_DGB
-
-#ifdef OV5647_VERBOSE_DGB
-#define CDBG(fmt, args...) printk(fmt, ##args)
-#define CDBG_HIGH(fmt, args...) printk(fmt, ##args)
-#else
-#define CDBG(fmt, args...) do { } while (0)
-#define CDBG_HIGH(fmt, args...) printk(fmt, ##args)
-#endif
-
 static struct msm_sensor_ctrl_t ov5647_s_ctrl;
 
 DEFINE_MUTEX(ov5647_mut);
@@ -646,30 +629,20 @@ static const struct i2c_device_id ov5647_i2c_id[] = {
 	{SENSOR_NAME, (kernel_ulong_t)&ov5647_s_ctrl},
 	{ }
 };
-extern void camera_af_software_powerdown(struct i2c_client *client);
 int32_t ov5647_sensor_i2c_probe(struct i2c_client *client,
 		const struct i2c_device_id *id)
 {
 	int32_t rc = 0;
 	struct msm_sensor_ctrl_t *s_ctrl;
 
-	CDBG("%s IN\r\n", __func__);
-	s_ctrl = (struct msm_sensor_ctrl_t *)(id->driver_data);
-	s_ctrl->sensor_i2c_addr = s_ctrl->sensor_i2c_addr;
-
 	rc = msm_sensor_i2c_probe(client, id);
 
 	if (client->dev.platform_data == NULL) {
-		CDBG_HIGH("%s: NULL sensor data\n", __func__);
+		pr_err("%s: NULL sensor data\n", __func__);
 		return -EFAULT;
 	}
 
-	/* send software powerdown cmd to AF motor, avoid current leak */
-	if(0 == rc)
-	{
-		camera_af_software_powerdown(client);
-	}
-	usleep_range(5000, 5100);
+	s_ctrl = client->dev.platform_data;
 
 	return rc;
 }
@@ -681,6 +654,8 @@ static struct i2c_driver ov5647_i2c_driver = {
 		.name = SENSOR_NAME,
 	},
 };
+
+
 
 static struct msm_camera_i2c_client ov5647_sensor_i2c_client = {
 	.addr_type = MSM_CAMERA_I2C_WORD_ADDR,
@@ -710,46 +685,34 @@ int32_t ov5647_sensor_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 	struct msm_camera_sensor_info *info = NULL;
 	unsigned short rdata;
 	int rc;
-	CDBG("%s IN\r\n", __func__);
 
 	info = s_ctrl->sensordata;
 	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,
 		0x4202, 0xf,
 		MSM_CAMERA_I2C_BYTE_DATA);
-	msleep(40);
+	msleep(20);
 	rc = msm_camera_i2c_read(s_ctrl->sensor_i2c_client, 0x3018,
-			&rdata, MSM_CAMERA_I2C_BYTE_DATA);
+			&rdata, MSM_CAMERA_I2C_WORD_DATA);
 	CDBG("ov5647_sensor_power_down: %d\n", rc);
 	rdata |= 0x18;
 	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,
 		0x3018, rdata,
-		MSM_CAMERA_I2C_BYTE_DATA);
-	msleep(40);
+		MSM_CAMERA_I2C_WORD_DATA);
+	msleep(20);
 	gpio_direction_output(info->sensor_pwd, 1);
 	usleep_range(5000, 5100);
 	msm_sensor_power_down(s_ctrl);
-	msleep(40);
-	if (s_ctrl->sensordata->pmic_gpio_enable){
-		lcd_camera_power_onoff(0);
-	}
 	return 0;
 }
 
 int32_t ov5647_sensor_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 {
 	int32_t rc = 0;
-	struct msm_camera_sensor_info *info = s_ctrl->sensordata;
-	CDBG("%s IN\r\n", __func__);
-	
-	CDBG("%s, sensor_pwd:%d, sensor_reset:%d\r\n",__func__, info->sensor_pwd, info->sensor_reset);
+	struct msm_camera_sensor_info *info = NULL;
 
+	info = s_ctrl->sensordata;
 	gpio_direction_output(info->sensor_pwd, 1);
 	gpio_direction_output(info->sensor_reset, 0);
-	usleep_range(10000, 11000);
-
-	if (info->pmic_gpio_enable) {
-		lcd_camera_power_onoff(1);
-	}
 	usleep_range(10000, 11000);
 	rc = msm_sensor_power_up(s_ctrl);
 	if (rc < 0) {
@@ -758,7 +721,7 @@ int32_t ov5647_sensor_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 	}
 
 	/* turn on ldo and vreg */
-	usleep_range(1000, 1100);
+
 	gpio_direction_output(info->sensor_pwd, 0);
 	msleep(20);
 	gpio_direction_output(info->sensor_reset, 1);
@@ -830,7 +793,6 @@ int32_t ov5647_sensor_setting(struct msm_sensor_ctrl_t *s_ctrl,
 	}
 	return rc;
 }
-
 static struct msm_sensor_fn_t ov5647_func_tbl = {
 	.sensor_start_stream = msm_sensor_start_stream,
 	.sensor_stop_stream = msm_sensor_stop_stream,
@@ -846,6 +808,7 @@ static struct msm_sensor_fn_t ov5647_func_tbl = {
 	.sensor_config = msm_sensor_config,
 	.sensor_power_up = ov5647_sensor_power_up,
 	.sensor_power_down = ov5647_sensor_power_down,
+	.sensor_get_csi_params = msm_sensor_get_csi_params,
 };
 
 static struct msm_sensor_reg_t ov5647_regs = {

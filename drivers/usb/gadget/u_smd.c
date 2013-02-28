@@ -1,7 +1,7 @@
 /*
  * u_smd.c - utilities for USB gadget serial over smd
  *
- * Copyright (c) 2011, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2011, The Linux Foundation. All rights reserved.
  *
  * This code also borrows from drivers/usb/gadget/u_serial.c, which is
  * Copyright (C) 2000 - 2003 Al Borchers (alborchers@steinerpoint.com)
@@ -38,7 +38,7 @@
 
 static struct workqueue_struct *gsmd_wq;
 
-#define SMD_N_PORTS	3
+#define SMD_N_PORTS	2
 #define CH_OPENED	0
 #define CH_READY	1
 struct smd_port_info {
@@ -50,9 +50,6 @@ struct smd_port_info {
 struct smd_port_info smd_pi[SMD_N_PORTS] = {
 	{
 		.name = "DS",
-	},
-	{
-		.name = "DATA2",
 	},
 	{
 		.name = "UNUSED",

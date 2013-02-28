@@ -168,12 +168,6 @@ int msm_camera_config_vreg(struct device *dev, struct camera_vreg_t *cam_vreg,
 	int i = 0;
 	int rc = 0;
 	struct camera_vreg_t *curr_vreg;
-
-	if (NULL == reg_ptr) {
-		pr_err("%s: %s null regulator\n",
-			__func__, cam_vreg[i].reg_name);
-		return rc;
-	}
 	if (config) {
 		for (i = 0; i < num_vreg; i++) {
 			curr_vreg = &cam_vreg[i];
@@ -256,12 +250,6 @@ int msm_camera_enable_vreg(struct device *dev, struct camera_vreg_t *cam_vreg,
 		int num_vreg, struct regulator **reg_ptr, int enable)
 {
 	int i = 0, rc = 0;
-
-	if (NULL == reg_ptr) {
-		pr_err("%s: %s null regulator\n",
-			__func__, cam_vreg[i].reg_name);
-		return rc;
-	}
 	if (enable) {
 		for (i = 0; i < num_vreg; i++) {
 			if (IS_ERR(reg_ptr[i])) {
@@ -277,20 +265,18 @@ int msm_camera_enable_vreg(struct device *dev, struct camera_vreg_t *cam_vreg,
 			}
 		}
 	} else {
-		for (i = num_vreg-1; i >= 0; i--) {
-			if (NULL == reg_ptr[i]) {
-				pr_err("%s: NULL regulator %s\n",
-					__func__, cam_vreg[i].reg_name);
-				continue;
-			}
-			rc = regulator_disable(reg_ptr[i]);
-          }
-	}
+		for (i = num_vreg-1; i >= 0; i--)
+			regulator_disable(reg_ptr[i]);
+		}
 	return rc;
 disable_vreg:
 	for (i--; i >= 0; i--) {
+		if(IS_ERR(reg_ptr[i])) {
+			pr_err("%s: %s null regulator\n",
+					__func__, cam_vreg[i].reg_name);
+			return -EINVAL;
+		}
 		regulator_disable(reg_ptr[i]);
-		goto disable_vreg;
 	}
 	return rc;
 }
@@ -390,10 +376,9 @@ int msm_camera_config_gpio_table(struct msm_camera_sensor_info *sinfo,
 		}
 	} else {
 		for (i = gpio_conf->cam_gpio_set_tbl_size - 1; i >= 0; i--) {
-			if (gpio_conf->cam_gpio_set_tbl[i].flags)
-				gpio_set_value_cansleep(
-					gpio_conf->cam_gpio_set_tbl[i].gpio,
-					GPIOF_OUT_INIT_LOW);
+			gpio_set_value_cansleep(
+				gpio_conf->cam_gpio_set_tbl[i].gpio,
+				gpio_conf->cam_gpio_set_tbl[i].flags);
 		}
 	}
 	return rc;

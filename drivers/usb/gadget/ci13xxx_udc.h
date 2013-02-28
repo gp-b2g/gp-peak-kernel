@@ -126,6 +126,8 @@ struct ci13xxx_udc_driver {
 #define CI13XXX_CONTROLLER_REMOTE_WAKEUP_EVENT	3
 #define CI13XXX_CONTROLLER_RESUME_EVENT	        4
 #define CI13XXX_CONTROLLER_DISCONNECT_EVENT	    5
+#define CI13XXX_CONTROLLER_UDC_STARTED_EVENT	    6
+
 	void	(*notify_event) (struct ci13xxx *udc, unsigned event);
 };
 
@@ -156,6 +158,11 @@ struct ci13xxx {
 	int                        softconnect; /* is pull-up enable allowed */
 	struct otg_transceiver    *transceiver; /* Transceiver struct */
 	unsigned long dTD_update_fail_count;
+};
+
+struct ci13xxx_platform_data {
+	u8 usb_core_id;
+	void *prv_data;
 };
 
 /******************************************************************************

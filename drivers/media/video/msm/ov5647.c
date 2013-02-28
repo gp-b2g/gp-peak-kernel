@@ -9,7 +9,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-#define DEBUG
+
 #include <linux/delay.h>
 #include <linux/debugfs.h>
 #include <linux/types.h>
@@ -19,15 +19,14 @@
 #include <linux/slab.h>
 #include <linux/gpio.h>
 #include <linux/bitops.h>
+#include <linux/leds.h>
 #include <mach/camera.h>
 #include <media/msm_camera.h>
-#include <linux/leds.h>
 #include "ov5647.h"
 
 /* 16bit address - 8 bit context register structure */
 #define Q8	0x00000100
 #define Q10	0x00000400
-#define OV5647_AUTO_FOCUS
 
 #define REG_OV5647_GAIN_MSB           0x350A
 #define REG_OV5647_GAIN_LSB           0x350B
@@ -61,7 +60,7 @@
 #undef CDBG_HIGH
 #endif
 
-//#define OV5647_VERBOSE_DGB
+/*#define OV5647_VERBOSE_DGB*/
 
 #ifdef OV5647_VERBOSE_DGB
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)
@@ -71,19 +70,20 @@
 #define CDBG_HIGH(fmt, args...) pr_debug(fmt, ##args)
 #endif
 
-
-#ifdef OV5647_AUTO_FOCUS
-static uint8_t  mode_mask = 0x09;
+/*for debug*/
+#ifdef CDBG
+#undef CDBG
 #endif
+#define CDBG(fmt, args...) printk(fmt, ##args)
+
+static uint8_t  mode_mask = 0x09;
 struct ov5647_work_t {
 	struct work_struct work;
 };
 
 static struct ov5647_work_t *ov5647_sensorw;
-#ifdef OV5647_AUTO_FOCUS
 static struct ov5647_work_t *ov5647_af_sensorw;
 static struct i2c_client *ov5647_af_client;
-#endif
 static struct i2c_client *ov5647_client;
 
 struct ov5647_ctrl_t {
@@ -108,10 +108,6 @@ struct ov5647_ctrl_t {
 
 static bool CSI_CONFIG;
 static struct ov5647_ctrl_t *ov5647_ctrl;
-
-extern struct rw_semaphore leds_list_lock;
-extern struct list_head leds_list;
-
 
 static DECLARE_WAIT_QUEUE_HEAD(ov5647_wait_queue);
 static DECLARE_WAIT_QUEUE_HEAD(ov5647_af_wait_queue);
@@ -173,7 +169,8 @@ static int32_t ov5647_i2c_read(unsigned short raddr,
 
 	if (!rdata)
 		return -EIO;
-	CDBG("%s:saddr:0x%x raddr:0x%x data:0x%x",__func__, ov5647_client->addr, raddr, *rdata);
+	CDBG("%s:saddr:0x%x raddr:0x%x data:0x%x",
+		__func__, ov5647_client->addr, raddr, *rdata);
 	memset(buf, 0, sizeof(buf));
 	buf[0] = (raddr & 0xFF00) >> 8;
 	buf[1] = (raddr & 0x00FF);
@@ -192,15 +189,15 @@ static int32_t ov5647_i2c_write_b_sensor(unsigned short waddr, uint8_t bdata)
 {
 	int32_t rc = -EFAULT;
 	unsigned char buf[3];
-	//CDBG("%s addr = 0x%x, val = 0x%x\n", __func__, waddr, bdata);
+
 	memset(buf, 0, sizeof(buf));
 	buf[0] = (waddr & 0xFF00) >> 8;
 	buf[1] = (waddr & 0x00FF);
 	buf[2] = bdata;
-	CDBG("i2c_write_b saddr:0x%x, waddr = 0x%x, val = 0x%x\n", ov5647_client->addr >> 1, waddr, bdata);
+	CDBG("i2c_write_b addr = 0x%x, val = 0x%x\n", waddr, bdata);
 	rc = ov5647_i2c_txdata(ov5647_client->addr >> 1, buf, 3);
 	if (rc < 0) {
-		CDBG("i2c_write_b failed, addr = 0x%x, val = 0x%x!\n",
+		pr_err("i2c_write_b failed, addr = 0x%x, val = 0x%x!\n",
 				waddr, bdata);
 	}
 	return rc;
@@ -221,7 +218,7 @@ static int32_t ov5647_i2c_write_b_table(struct ov5647_i2c_reg_conf const
 	}
 	return rc;
 }
-#ifdef OV5647_AUTO_FOCUS
+
 static int32_t ov5647_af_i2c_txdata(unsigned short saddr,
 		unsigned char *txdata, int length)
 {
@@ -249,7 +246,7 @@ static int32_t ov5647_af_i2c_write_b_sensor(uint8_t waddr, uint8_t bdata)
 	memset(buf, 0, sizeof(buf));
 	buf[0] = waddr;
 	buf[1] = bdata;
-	CDBG("i2c_write_b saddr:0x%x, waddr = 0x%x, val = 0x%x\n",ov5647_af_client->addr, waddr, bdata);
+	CDBG("i2c_write_b addr = 0x%x, val = 0x%x\n", waddr, bdata);
 	rc = ov5647_af_i2c_txdata(ov5647_af_client->addr, buf, 2);
 	if (rc < 0) {
 		pr_err("i2c_write_b failed, addr = 0x%x, val = 0x%x!\n",
@@ -257,24 +254,17 @@ static int32_t ov5647_af_i2c_write_b_sensor(uint8_t waddr, uint8_t bdata)
 	}
 	return rc;
 }
-#endif
+
 static void ov5647_start_stream(void)
 {
-	//ov5647_i2c_write_b_sensor(0x0100, 0x01);/* streaming on */
-    CDBG("CAMERA_DBG: 0x4202 0x0, stream on...\r\n");
-    ov5647_i2c_write_b_sensor(0x4202, 0x00);/* streaming on */
-    //ov5647_i2c_write_b_sensor(0x4201, 0x00);/* streaming on */
-
+	CDBG("CAMERA_DBG: 0x4202 0x0, stream on...\r\n");
+	ov5647_i2c_write_b_sensor(0x4202, 0x00);/* streaming on */
 }
 
 static void ov5647_stop_stream(void)
 {
-	//ov5647_i2c_write_b_sensor(0x0100, 0x00);/* streaming off */
-
-    CDBG("CAMERA_DBG: 0x4202 0xf, stream off...\r\n");
-    ov5647_i2c_write_b_sensor(0x4202, 0x0f);/* streaming off */
-    //ov5647_i2c_write_b_sensor(0x4201, 0x01);/* streaming off */
-
+	CDBG("CAMERA_DBG: 0x4202 0xf, stream off...\r\n");
+	ov5647_i2c_write_b_sensor(0x4202, 0x0f);/* streaming off */
 }
 
 static void ov5647_group_hold_on(void)
@@ -291,12 +281,12 @@ static void ov5647_get_pict_fps(uint16_t fps, uint16_t *pfps)
 {
 	/* input fps is preview fps in Q8 format */
 	uint32_t divider, d1, d2;
-	uint32_t preview_pclk=0x37, snapshot_pclk=0x4f;
+	uint32_t preview_pclk = 0x37, snapshot_pclk = 0x4f;
 
 	d1 = (prev_frame_length_lines * 0x00000400) / snap_frame_length_lines;
 	d2 = (prev_line_length_pck * 0x00000400) / snap_line_length_pck;
 	divider = (d1 * d2*preview_pclk/snapshot_pclk) / 0x400;
-	CDBG(KERN_ERR "ov5647_get_pict_fps divider = %d", divider );
+	CDBG(KERN_ERR "ov5647_get_pict_fps divider = %d", divider);
 	/*Verify PCLK settings and frame sizes.*/
 	*pfps = (uint16_t) (fps * divider / 0x400);
 }
@@ -373,45 +363,45 @@ static int32_t ov5647_write_exp_gain(uint16_t gain, uint32_t line)
 {
 	int rc = 0;
 	uint16_t max_line;
-	u8 intg_time_hsb,intg_time_msb, intg_time_lsb;
+	u8 intg_time_hsb, intg_time_msb, intg_time_lsb;
 	uint8_t gain_lsb, gain_hsb;
 	ov5647_ctrl->my_reg_gain = gain;
 	ov5647_ctrl->my_reg_line_count = (uint16_t)line;
 
-	CDBG(KERN_ERR "exposure set during preview for register is 0x%x, 0x%x, %d",\
-		gain, line, line);
+	CDBG(KERN_ERR "preview exposure setting 0x%x, 0x%x, %d",
+		 gain, line, line);
 
 	gain_lsb = (uint8_t) (ov5647_ctrl->my_reg_gain);
-	gain_hsb = (uint8_t)((ov5647_ctrl->my_reg_gain& 0x300)>>8);
-	//adjust frame rate
+	gain_hsb = (uint8_t)((ov5647_ctrl->my_reg_gain & 0x300)>>8);
+	/* adjust frame rate */
 	if (line > 980) {
-		rc = ov5647_i2c_write_b_sensor( 0x380E, (uint8_t)((line+4) >> 8) ) ;
-		rc = ov5647_i2c_write_b_sensor( 0x380F, (uint8_t)((line+4) & 0x00FF) ) ;
+		rc = ov5647_i2c_write_b_sensor(0x380E,
+			 (uint8_t)((line+4) >> 8)) ;
+		rc = ov5647_i2c_write_b_sensor(0x380F,
+			 (uint8_t)((line+4) & 0x00FF)) ;
 		max_line = line + 4;
 	} else if (max_line > 984) {
-		rc = ov5647_i2c_write_b_sensor( 0x380E, (uint8_t)(984 >> 8) ) ;
-		rc = ov5647_i2c_write_b_sensor( 0x380F, (uint8_t)(984 & 0x00FF) ) ;
+		rc = ov5647_i2c_write_b_sensor(0x380E,
+			 (uint8_t)(984 >> 8)) ;
+		rc = ov5647_i2c_write_b_sensor(0x380F,
+			 (uint8_t)(984 & 0x00FF)) ;
 		max_line = 984;
 	}
 
 	line = line<<4;
-	// ov5647 need this operation
+	/* ov5647 need this operation */
 	intg_time_hsb = (u8)(line>>16);
 	intg_time_msb = (u8) ((line & 0xFF00) >> 8);
-	intg_time_lsb = (u8) (line& 0x00FF);
+	intg_time_lsb = (u8) (line & 0x00FF);
 
-	rc = ov5647_i2c_write_b_sensor( REG_OV5647_LINE_HSB, intg_time_hsb) ;
-	udelay(500);
-	rc = ov5647_i2c_write_b_sensor( REG_OV5647_LINE_MSB, intg_time_msb) ;
-	udelay(500);
-	rc = ov5647_i2c_write_b_sensor( REG_OV5647_LINE_LSB, intg_time_lsb) ;
-	udelay(500);
+	ov5647_group_hold_on();
+	rc = ov5647_i2c_write_b_sensor(REG_OV5647_LINE_HSB, intg_time_hsb) ;
+	rc = ov5647_i2c_write_b_sensor(REG_OV5647_LINE_MSB, intg_time_msb) ;
+	rc = ov5647_i2c_write_b_sensor(REG_OV5647_LINE_LSB, intg_time_lsb) ;
 
-
-	rc = ov5647_i2c_write_b_sensor( REG_OV5647_GAIN_MSB, gain_hsb) ;
-	udelay(500);
+	rc = ov5647_i2c_write_b_sensor(REG_OV5647_GAIN_MSB, gain_hsb) ;
 	rc = ov5647_i2c_write_b_sensor(REG_OV5647_GAIN_LSB, gain_lsb) ;
-	udelay(500);
+	ov5647_group_hold_off();
 
 	return rc;
 }
@@ -422,92 +412,85 @@ static int32_t ov5647_set_pict_exp_gain(uint16_t gain, uint32_t line)
 	uint16_t max_line;
 	int rc = 0;
 	uint8_t gain_lsb, gain_hsb;
-	u8 intg_time_hsb,intg_time_msb, intg_time_lsb;
+	u8 intg_time_hsb, intg_time_msb, intg_time_lsb;
 
 	ov5647_ctrl->my_reg_gain = gain;
 	ov5647_ctrl->my_reg_line_count = (uint16_t)line;
 
 	gain_lsb = (uint8_t) (ov5647_ctrl->my_reg_gain);
-	gain_hsb = (uint8_t)((ov5647_ctrl->my_reg_gain& 0x300)>>8);
+	gain_hsb = (uint8_t)((ov5647_ctrl->my_reg_gain & 0x300)>>8);
 
-	CDBG(KERN_ERR "exposure set during snapshot for register is 0x%x, 0x%x, %d",\
-	gain, line, line);
+	CDBG(KERN_ERR "snapshot exposure seting 0x%x, 0x%x, %d"
+		, gain, line, line);
 
 	if (line > 1964) {
-		rc = ov5647_i2c_write_b_sensor(0x380E, (uint8_t)((line+4) >> 8) ) ;
-		rc = ov5647_i2c_write_b_sensor( 0x380F, (uint8_t)((line+4) & 0x00FF) ) ;
+		rc = ov5647_i2c_write_b_sensor(0x380E,
+			 (uint8_t)((line+4) >> 8)) ;
+		rc = ov5647_i2c_write_b_sensor(0x380F,
+			 (uint8_t)((line+4) & 0x00FF)) ;
 		max_line = line + 4;
 	} else if (max_line > 1968) {
-		rc = ov5647_i2c_write_b_sensor( 0x380E, (uint8_t)(1968 >> 8) ) ;
-		rc = ov5647_i2c_write_b_sensor( 0x380F, (uint8_t)(1968 & 0x00FF) ) ;
+		rc = ov5647_i2c_write_b_sensor(0x380E,
+			 (uint8_t)(1968 >> 8)) ;
+		rc = ov5647_i2c_write_b_sensor(0x380F,
+			 (uint8_t)(1968 & 0x00FF)) ;
 		max_line = 1968;
 	}
 	line = line<<4;
-	// ov5647 need this operation
+	/* ov5647 need this operation */
 	intg_time_hsb = (u8)(line>>16);
 	intg_time_msb = (u8) ((line & 0xFF00) >> 8);
-	intg_time_lsb = (u8) (line& 0x00FF);
+	intg_time_lsb = (u8) (line & 0x00FF);
 
-	//FIXME for BLC trigger
-	rc = ov5647_i2c_write_b_sensor( REG_OV5647_LINE_HSB, intg_time_hsb) ;
-	udelay(500);
+	/* FIXME for BLC trigger */
+	ov5647_group_hold_on();
+	rc = ov5647_i2c_write_b_sensor(REG_OV5647_LINE_HSB, intg_time_hsb) ;
 	rc = ov5647_i2c_write_b_sensor(REG_OV5647_LINE_MSB, intg_time_msb) ;
-	udelay(500);
-	rc = ov5647_i2c_write_b_sensor( REG_OV5647_LINE_LSB, intg_time_lsb) ;
-	udelay(500);
+	rc = ov5647_i2c_write_b_sensor(REG_OV5647_LINE_LSB, intg_time_lsb) ;
 
 	rc = ov5647_i2c_write_b_sensor(REG_OV5647_GAIN_MSB, gain_hsb) ;
-	udelay(500);
-	rc = ov5647_i2c_write_b_sensor( REG_OV5647_GAIN_LSB, gain_lsb^0x1) ;
-
-	mdelay(170);
+	rc = ov5647_i2c_write_b_sensor(REG_OV5647_GAIN_LSB, gain_lsb - 1) ;
 
 	rc = ov5647_i2c_write_b_sensor(REG_OV5647_LINE_HSB, intg_time_hsb) ;
-	udelay(500);
 	rc = ov5647_i2c_write_b_sensor(REG_OV5647_LINE_MSB, intg_time_msb) ;
-	udelay(500);
 	rc = ov5647_i2c_write_b_sensor(REG_OV5647_LINE_LSB, intg_time_lsb) ;
-	udelay(500);
 
 	rc = ov5647_i2c_write_b_sensor(REG_OV5647_GAIN_MSB, gain_hsb) ;
-	udelay(500);
 	rc = ov5647_i2c_write_b_sensor(REG_OV5647_GAIN_LSB, gain_lsb) ;
+	ov5647_group_hold_off();
 
-
+	msleep(500);
 	return rc;
 
 }
-#ifdef OV5647_AUTO_FOCUS
+
 static int32_t ov5647_move_focus(int direction, int32_t num_steps)
 {
 	uint8_t   code_val_msb = 0;
 	uint8_t   code_val_lsb = 0;
-	//uint8_t	af_addr = 0;
-	int16_t   step_direction,actual_step,next_position;
-	//uint16_t	af_stepsetting =0x050a;
-	//uint32_t	af_delay;
+	int16_t   step_direction, actual_step, next_position;
 	int rc;
 
-	if (num_steps == 0) {
+	if (num_steps == 0)
 		return 0;
-	}
 
-	if ( direction == MOVE_NEAR ) {
+	if (direction == MOVE_NEAR)
 		step_direction = 20;
-	} else if ( direction == MOVE_FAR) {
+	else if (direction == MOVE_FAR)
 		step_direction = -20;
-	} else {
+	else
 		return -EINVAL;
-	}
 
 	actual_step = (int16_t)(step_direction * num_steps);
 	next_position = (int16_t)ov5647_ctrl->curr_lens_pos + actual_step;
-	if(next_position < 0) {
-		CDBG(KERN_ERR "ov5647_move_focus:OV5647 position(=%d) out of range",next_position);
+	if (next_position < 0) {
+		CDBG(KERN_ERR "%s: OV5647 position(=%d) out of range",
+			__func__, next_position);
 		next_position = 0;
 	}
-	if(next_position > 0x3FF) {
-		CDBG(KERN_ERR "ov5647_move_focus:OV5647 position(=%d) out of range",next_position);
+	if (next_position > 0x3FF) {
+		CDBG(KERN_ERR "%s: OV5647 position(=%d) out of range",
+			__func__, next_position);
 		next_position = 0x3FF;
 	}
 	ov5647_ctrl->curr_lens_pos = next_position;
@@ -517,11 +500,16 @@ static int32_t ov5647_move_focus(int direction, int32_t num_steps)
 	code_val_lsb |= mode_mask;
 
 	rc = ov5647_af_i2c_write_b_sensor(code_val_msb, code_val_lsb);
-	if ( rc != 0) {// DAC setting
-		//CDBG(KERN_ERR "ov5647_move_focus:WRITE ERROR lsb = 0x%x, msb = 0x%x",code_val_lsb, code_val_msb );
+	/* DAC Setting */
+	if (rc != 0) {
+		CDBG(KERN_ERR "%s: WRITE ERROR lsb = 0x%x, msb = 0x%x",
+			__func__, code_val_lsb, code_val_msb);
 	} else {
-		//CDBG(KERN_ERR "ov5647_move_focus:Successful lsb = 0x%x, msb = 0x%x",code_val_lsb, code_val_msb );
-		mdelay(10); //delay may set based on the steps moved when I2C write successful.
+		CDBG(KERN_ERR "%s: Successful lsb = 0x%x, msb = 0x%x",
+			__func__, code_val_lsb, code_val_msb);
+		/* delay may set based on the steps moved
+		when I2C write successful */
+		msleep(100);
 	}
 	return 0;
 }
@@ -530,7 +518,7 @@ static int32_t ov5647_set_default_focus(uint8_t af_step)
 {
 	uint8_t  code_val_msb = 0;
 	uint8_t  code_val_lsb = 0;
-	int 	rc = 0;
+	int rc = 0;
 
 	ov5647_ctrl->curr_lens_pos = 200;
 
@@ -539,16 +527,20 @@ static int32_t ov5647_set_default_focus(uint8_t af_step)
 	code_val_lsb = (ov5647_ctrl->curr_lens_pos & 0x000F) << 4;
 	code_val_lsb |= mode_mask;
 
-	CDBG(KERN_ERR "ov5647_set_default_focus:lens pos = %d", ov5647_ctrl->curr_lens_pos);
+	CDBG(KERN_ERR "ov5647_set_default_focus:lens pos = %d",
+		 ov5647_ctrl->curr_lens_pos);
 	rc = ov5647_af_i2c_write_b_sensor(code_val_msb, code_val_lsb);
-	if ( rc != 0) // DAC setting
-		CDBG(KERN_ERR "ov5647_set_default_focus:WRITE ERROR lsb = 0x%x, msb = 0x%x", code_val_lsb, code_val_msb );
+	/* DAC Setting */
+	if (rc != 0)
+		CDBG(KERN_ERR "%s: WRITE ERROR lsb = 0x%x, msb = 0x%x",
+			__func__, code_val_lsb, code_val_msb);
 	else
-		//CDBG(KERN_ERR "ov5647_set_default_focus:WRITE successful lsb = 0x%x, msb = 0x%x",code_val_lsb, code_val_msb );
-	mdelay(10);
+		CDBG(KERN_ERR "%s: WRITE successful lsb = 0x%x, msb = 0x%x",
+			__func__, code_val_lsb, code_val_msb);
+
+	usleep_range(10000, 11000);
 	return 0;
 }
-#endif
 
 static int32_t ov5647_test(enum ov5647_test_mode_t mo)
 {
@@ -565,108 +557,64 @@ static void ov5647_reset_sensor(void)
 	ov5647_i2c_write_b_sensor(0x103, 0x1);
 }
 
-static int ov5647_set_flash_light(enum led_brightness brightness)
-{
-#if 0
-    struct led_classdev *led_cdev;
 
-    CDBG("--CAMERA-- ov5647_set_flash_light brightness = %d\n", brightness);
-
-    down_read(&leds_list_lock);
-    list_for_each_entry(led_cdev, &leds_list, node) {
-        if (!strncmp(led_cdev->name, "flashlight", 10)) {
-            break;
-        }
-    }
-    up_read(&leds_list_lock);
-
-    if (led_cdev) {
-        led_brightness_set(led_cdev, brightness);
-    } else {
-        CDBG("--CAMERA-- get flashlight device failed\n");
-        return -1;
-    }
-#endif
-    return 0;
-}
-
-static int is_first_preview = 0;
 static int32_t ov5647_sensor_setting(int update_type, int rt)
 {
 
 	int32_t rc = 0;
 	struct msm_camera_csi_params ov5647_csi_params;
-    if(update_type != REG_INIT){
-	    ov5647_stop_stream();
-        //wait for clk/data really stop
-        if ((rt == RES_CAPTURE) ||
-            (CSI_CONFIG == 0) )
-        {
-            msleep(66);
-        }
-        else{
-            msleep(150);//266
-        }
+
+	ov5647_stop_stream();
+
+	/* wait for clk/data really stop */
+	if ((rt == RES_CAPTURE) || (CSI_CONFIG == 0))
+		msleep(66);
+	else
+		msleep(266);
 
 	CDBG("CAMERA_DBG1: 0x4800 regVal:0x25\r\n");
 	ov5647_i2c_write_b_sensor(0x4800, 0x25);/* streaming off */
 
-	msleep(10);
-    }
+	usleep_range(10000, 11000);
 
 	if (update_type == REG_INIT) {
 		ov5647_reset_sensor();
-		ov5647_i2c_write_b_table(ov5647_regs.rec_settings, ov5647_regs.rec_size);
+		ov5647_i2c_write_b_table(ov5647_regs.rec_settings,
+			ov5647_regs.rec_size);
 		CSI_CONFIG = 0;
-		is_first_preview = 0;
 	} else if (update_type == UPDATE_PERIODIC) {
-		CDBG("UPDATE_PERIODIC E update_type:%d\n", update_type);
-	    if(rt != RES_CAPTURE){
-	        //turn off flash when preview
-	        ov5647_set_flash_light(LED_OFF);
-	    }
+			/* turn off flash when preview */
 
-		if (rt == RES_PREVIEW)
-	    {
-	        ov5647_i2c_write_b_table(ov5647_regs.reg_prev, ov5647_regs.reg_prev_size);
-            ov5647_i2c_write_b_sensor(REG_OV5647_GAIN_LSB, 0x0);
-			CDBG("CAMERA_DBG:preview settings...\r\n");
-	    }
-	    else
-	    {
-			ov5647_i2c_write_b_table(ov5647_regs.reg_snap, ov5647_regs.reg_snap_size);
-	        CDBG("CAMERA_DBG:snapshot settings...\r\n");
-	    }
-		CDBG("write reg finished\n");
-		msleep(20);
-		if (!CSI_CONFIG) {
-			msm_camio_vfe_clk_rate_set(192000000);
-			ov5647_csi_params.data_format = CSI_8BIT;
-			ov5647_csi_params.lane_cnt = 2;
-			ov5647_csi_params.lane_assign = 0xe4;
-			ov5647_csi_params.dpcm_scheme = 0;
-			ov5647_csi_params.settle_cnt = 10;
-			rc = msm_camio_csi_config(&ov5647_csi_params);
+			if (rt == RES_PREVIEW) {
+				ov5647_i2c_write_b_table(ov5647_regs.reg_prev,
+					 ov5647_regs.reg_prev_size);
+				CDBG("CAMERA_DBG:preview settings...\r\n");
+			} else {
+				ov5647_i2c_write_b_table(ov5647_regs.reg_snap,
+					 ov5647_regs.reg_snap_size);
+				CDBG("CAMERA_DBG:snapshot settings...\r\n");
+			}
+
 			msleep(20);
-			CSI_CONFIG = 1;
-	        ov5647_i2c_write_b_sensor(0x0100, 0x01);/* exit powerdown state */
-		}
-	    CDBG("CAMERA_DBG: 0x4800 regVal:0x04\r\n");
-	    ov5647_i2c_write_b_sensor(0x4800, 0x04);/* streaming on */
-        if(is_first_preview)
-		{
-		    //snapshot-preview
-            msleep(133);
-		}
-		else
-		{
-		    //first run in to preview
-		    msleep(10);
-			is_first_preview = 1;
-		}
-
-		ov5647_start_stream();
-		msleep(30);
+			if (!CSI_CONFIG) {
+				msm_camio_vfe_clk_rate_set(192000000);
+				ov5647_csi_params.data_format = CSI_8BIT;
+				ov5647_csi_params.lane_cnt = 2;
+				ov5647_csi_params.lane_assign = 0xe4;
+				ov5647_csi_params.dpcm_scheme = 0;
+				ov5647_csi_params.settle_cnt = 10;
+				rc = msm_camio_csi_config(&ov5647_csi_params);
+				msleep(20);
+				CSI_CONFIG = 1;
+			/* exit powerdown state */
+				ov5647_i2c_write_b_sensor(0x0100, 0x01);
+			}
+			CDBG("CAMERA_DBG: 0x4800 regVal:0x04\r\n");
+			/* streaming on */
+			ov5647_i2c_write_b_sensor(0x4800, 0x04);
+			msleep(266);
+			ov5647_start_stream();
+			msleep(30);
 	}
 	return rc;
 }
@@ -776,56 +724,52 @@ static int ov5647_probe_init_sensor(const struct msm_camera_sensor_info *data)
 	uint16_t chipid1 = 0;
 	uint16_t chipid2 = 0;
 
-	CDBG_HIGH("%s: %d\n", __func__, __LINE__);
+	CDBG("%s: %d\n", __func__, __LINE__);
 
-//    CDBG("%s: set pwd to 0(GPIO:0x%x)\n", __func__, data->sensor_pwd);
-//	gpio_direction_output(data->sensor_pwd, 0);
-//	msleep(3);
-
-//    CDBG("%s: set rst to 1(GPIO:0x%x)\n", __func__, data->sensor_reset);
-//	gpio_direction_output(data->sensor_reset, 1);
-//	msleep(2);
+	gpio_direction_output(data->sensor_pwd, 0);
+	usleep_range(4000, 4100);
+	gpio_direction_output(data->sensor_reset, 1);
+	usleep_range(2000, 2100);
 
 	ov5647_i2c_read(regaddress1, &chipid1);
 	if (chipid1 != 0x56) {
 		rc = -ENODEV;
-		CDBG_HIGH("ov5647_probe_init_sensor fail chip id doesnot match\n");
+		pr_err("ov5647_probe_init_sensor fail chip id doesnot match\n");
 		goto init_probe_fail;
 	}
 
 	ov5647_i2c_read(regaddress2, &chipid2);
 	if (chipid2 != 0x47) {
 		rc = -ENODEV;
-		CDBG_HIGH("ov5647_probe_init_sensor fail chip id doesnot match\n");
+		pr_err("ov5647_probe_init_sensor fail chip id doesnot match\n");
 		goto init_probe_fail;
 	}
 
-	CDBG_HIGH("ID1: 0x%x\n", chipid1);
-	CDBG_HIGH("ID2: 0x%x\n", chipid2);
+	pr_err("ID1: 0x%x\n", chipid1);
+	pr_err("ID2: 0x%x\n", chipid2);
 	goto init_probe_done;
 
-	init_probe_fail:
-	CDBG_HIGH(" ov5647_probe_init_sensor fails\n");
+init_probe_fail:
+	pr_err(" ov5647_probe_init_sensor fails\n");
 	ov5647_probe_init_done(data);
 	return rc;
-	init_probe_done:
-	CDBG_HIGH(" ov5647_probe_init_sensor finishes\n");
-//	gpio_direction_output(data->sensor_pwd, 1);
+init_probe_done:
+	pr_debug(" ov5647_probe_init_sensor finishes\n");
+	gpio_direction_output(data->sensor_pwd, 1);
 	return rc;
 }
 
-extern int lcd_camera_power_onoff(int on);
 
-int ov5647_sensor_open_init(const struct msm_camera_sensor_info *data)
+static int ov5647_sensor_open_init(const struct msm_camera_sensor_info *data)
 {
 	int32_t rc = 0;
 
-	CDBG_HIGH("%s: %d\n", __func__, __LINE__);
+	CDBG("%s: %d\n", __func__, __LINE__);
 	CDBG("Calling ov5647_sensor_open_init\n");
 
 	ov5647_ctrl = kzalloc(sizeof(struct ov5647_ctrl_t), GFP_KERNEL);
 	if (!ov5647_ctrl) {
-		CDBG_HIGH("ov5647_init failed!\n");
+		CDBG("ov5647_init failed!\n");
 		rc = -ENOMEM;
 		goto init_done;
 	}
@@ -838,34 +782,30 @@ int ov5647_sensor_open_init(const struct msm_camera_sensor_info *data)
 	if (data)
 		ov5647_ctrl->sensordata = data;
 
-	prev_frame_length_lines =0x3d8;
+	prev_frame_length_lines = 0x3d8;
 
-	prev_line_length_pck =0x768*2;
+	prev_line_length_pck = 0x768*2;
 
-	snap_frame_length_lines =0x7b0;
+	snap_frame_length_lines = 0x7b0;
 
-	snap_line_length_pck =0xa8c;
-
-    CSI_CONFIG = 0;
+	snap_line_length_pck = 0xa8c;
 
 	/* enable mclk first */
 	msm_camio_clk_rate_set(OV5647_MASTER_CLK_RATE);
 
-	lcd_camera_power_onoff(1); //turn on ldo and vreg
+	gpio_direction_output(data->sensor_pwd, 1);
+	gpio_direction_output(data->sensor_reset, 0);
+	usleep_range(10000, 11000);
+	/* power on camera ldo and vreg */
+	if (ov5647_ctrl->sensordata->pmic_gpio_enable)
+		lcd_camera_power_onoff(1);
+	usleep_range(10000, 11000); /*waiting for ldo stable*/
+	gpio_direction_output(data->sensor_pwd, 0);
+	msleep(20);
+	gpio_direction_output(data->sensor_reset, 1);
+	msleep(25);
 
-    CDBG("set pwd to 0(GPIO:%d)\r\n", data->sensor_pwd);
-	gpio_set_value(data->sensor_pwd, 0);
-	msleep(10);
-
-    CDBG("set rst to 0(GPIO:%d)\r\n", data->sensor_reset);
-	gpio_set_value(data->sensor_reset, 0);
-	msleep(10);
-
-    CDBG("set rst to 1(GPIO:%d)\r\n", data->sensor_reset);
-	gpio_set_value(data->sensor_reset, 1);
-	msleep(10);
-
-	CDBG_HIGH("init settings\n");
+	CDBG("init settings\n");
 	if (ov5647_ctrl->prev_res == QTR_SIZE)
 		rc = ov5647_sensor_setting(REG_INIT, RES_PREVIEW);
 	else
@@ -874,7 +814,7 @@ int ov5647_sensor_open_init(const struct msm_camera_sensor_info *data)
 
 	/* enable AF actuator */
 	if (ov5647_ctrl->sensordata->vcm_enable) {
-		CDBG_HIGH("enable AF actuator, gpio = %d\n",
+		CDBG("enable AF actuator, gpio = %d\n",
 			 ov5647_ctrl->sensordata->vcm_pwd);
 		rc = gpio_request(ov5647_ctrl->sensordata->vcm_pwd,
 						"ov5647_af");
@@ -887,9 +827,7 @@ int ov5647_sensor_open_init(const struct msm_camera_sensor_info *data)
 			goto init_fail;
 		}
 		msleep(20);
-#ifdef OV5647_AUTO_FOCUS
 		rc = ov5647_set_default_focus(0);
-#endif
 		if (rc < 0) {
 			gpio_direction_output(ov5647_ctrl->sensordata->vcm_pwd,
 								0);
@@ -901,11 +839,12 @@ int ov5647_sensor_open_init(const struct msm_camera_sensor_info *data)
 	else
 		goto init_done;
 init_fail:
-	CDBG_HIGH("init_fail\n");
+	CDBG("init_fail\n");
 	ov5647_probe_init_done(data);
-	lcd_camera_power_onoff(0);
+	/* No need to power OFF camera ldo and vreg
+	affects Display while resume */
 init_done:
-	CDBG_HIGH("init_done\n");
+	CDBG("init_done\n");
 	return rc;
 }
 
@@ -920,19 +859,19 @@ static int ov5647_init_client(struct i2c_client *client)
 	init_waitqueue_head(&ov5647_wait_queue);
 	return 0;
 }
-#ifdef OV5647_AUTO_FOCUS
+
 static int ov5647_af_init_client(struct i2c_client *client)
 {
 	/* Initialize the MSM_CAMI2C Chip */
 	init_waitqueue_head(&ov5647_af_wait_queue);
 	return 0;
 }
-#endif
+
 static const struct i2c_device_id ov5647_af_i2c_id[] = {
 	{"ov5647_af", 0},
 	{ }
 };
-#ifdef OV5647_AUTO_FOCUS
+
 static int ov5647_af_i2c_probe(struct i2c_client *client,
 		const struct i2c_device_id *id)
 {
@@ -940,13 +879,13 @@ static int ov5647_af_i2c_probe(struct i2c_client *client,
 	CDBG("ov5647_af_probe called!\n");
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
-		CDBG_HIGH("i2c_check_functionality failed\n");
+		CDBG("i2c_check_functionality failed\n");
 		goto probe_failure;
 	}
 
 	ov5647_af_sensorw = kzalloc(sizeof(struct ov5647_work_t), GFP_KERNEL);
 	if (!ov5647_af_sensorw) {
-		CDBG_HIGH("kzalloc failed.\n");
+		CDBG("kzalloc failed.\n");
 		rc = -ENOMEM;
 		goto probe_failure;
 	}
@@ -961,28 +900,28 @@ static int ov5647_af_i2c_probe(struct i2c_client *client,
 	return 0;
 
 probe_failure:
-	CDBG_HIGH("ov5647_af_probe failed! rc = %d\n", rc);
+	CDBG("ov5647_af_probe failed! rc = %d\n", rc);
 	return rc;
 }
-#endif
+
 static const struct i2c_device_id ov5647_i2c_id[] = {
-	{"ov5647", 0},{}
+	{"ov5647", 0}, {}
 };
 
 static int ov5647_i2c_probe(struct i2c_client *client,
 		const struct i2c_device_id *id)
 {
 	int rc = 0;
-	CDBG_HIGH("ov5647_probe called!\n");
+	CDBG("ov5647_probe called!\n");
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
-		CDBG_HIGH("i2c_check_functionality failed\n");
+		CDBG("i2c_check_functionality failed\n");
 		goto probe_failure;
 	}
 
 	ov5647_sensorw = kzalloc(sizeof(struct ov5647_work_t), GFP_KERNEL);
 	if (!ov5647_sensorw) {
-		CDBG_HIGH("kzalloc failed.\n");
+		CDBG("kzalloc failed.\n");
 		rc = -ENOMEM;
 		goto probe_failure;
 	}
@@ -993,11 +932,11 @@ static int ov5647_i2c_probe(struct i2c_client *client,
 
 	msleep(50);
 
-	CDBG_HIGH("ov5647_probe successed! rc = %d\n", rc);
+	CDBG("ov5647_probe successed! rc = %d\n", rc);
 	return 0;
 
 probe_failure:
-	CDBG_HIGH("ov5647_probe failed! rc = %d\n", rc);
+	CDBG("ov5647_probe failed! rc = %d\n", rc);
 	return rc;
 }
 
@@ -1009,7 +948,7 @@ static int __devexit ov5647_remove(struct i2c_client *client)
 	kfree(sensorw);
 	return 0;
 }
-#ifdef OV5647_AUTO_FOCUS
+
 static int __devexit ov5647_af_remove(struct i2c_client *client)
 {
 	struct ov5647_work_t *ov5647_af = i2c_get_clientdata(client);
@@ -1018,7 +957,7 @@ static int __devexit ov5647_af_remove(struct i2c_client *client)
 	kfree(ov5647_af);
 	return 0;
 }
-#endif
+
 static struct i2c_driver ov5647_i2c_driver = {
 	.id_table = ov5647_i2c_id,
 	.probe  = ov5647_i2c_probe,
@@ -1027,7 +966,7 @@ static struct i2c_driver ov5647_i2c_driver = {
 		.name = "ov5647",
 	},
 };
-#ifdef OV5647_AUTO_FOCUS
+
 static struct i2c_driver ov5647_af_i2c_driver = {
 	.id_table = ov5647_af_i2c_id,
 	.probe  = ov5647_af_i2c_probe,
@@ -1036,7 +975,7 @@ static struct i2c_driver ov5647_af_i2c_driver = {
 		.name = "ov5647_af",
 	},
 };
-#endif
+
 int ov5647_sensor_config(void __user *argp)
 {
 	struct sensor_cfg_data cdata;
@@ -1121,7 +1060,6 @@ int ov5647_sensor_config(void __user *argp)
 	case CFG_PWR_DOWN:
 		rc = ov5647_power_down();
 		break;
-#ifdef OV5647_AUTO_FOCUS
 	case CFG_MOVE_FOCUS:
 		rc = ov5647_move_focus(cdata.cfg.focus.dir,
 				cdata.cfg.focus.steps);
@@ -1140,7 +1078,6 @@ int ov5647_sensor_config(void __user *argp)
 	case CFG_SET_EFFECT:
 		rc = ov5647_set_default_focus(cdata.cfg.effect);
 		break;
-#endif
 	default:
 		rc = -EFAULT;
 		break;
@@ -1153,18 +1090,16 @@ int ov5647_sensor_config(void __user *argp)
 static int ov5647_sensor_release(void)
 {
 	int rc = -EBADF;
-    unsigned short rdata;
+	unsigned short rdata;
+
 	mutex_lock(&ov5647_mut);
 	ov5647_power_down();
 	msleep(20);
+	ov5647_i2c_read(0x3018, &rdata);
+	rdata |= 0x18; /*set bit 3 bit 4 to 1*/
+	ov5647_i2c_write_b_sensor(0x3018, rdata);/*write back*/
+	msleep(20);
 
-
-    ov5647_i2c_read(0x3018, &rdata);
-    rdata |= 0x18; //set bit 3 bit 4 to 1
-    ov5647_i2c_write_b_sensor(0x3018, rdata);//write back
-    msleep(20);
-
-    CDBG_HIGH("set pwd to 1(GPIO:%d)\r\n", ov5647_ctrl->sensordata->sensor_pwd);
 	gpio_set_value(ov5647_ctrl->sensordata->sensor_pwd, 1);
 	usleep_range(5000, 5100);
 	if (ov5647_ctrl->sensordata->vcm_enable) {
@@ -1172,11 +1107,11 @@ static int ov5647_sensor_release(void)
 		gpio_free(ov5647_ctrl->sensordata->vcm_pwd);
 	}
 
-	lcd_camera_power_onoff(0); //turn off ldo and vreg
+	/* No need to power OFF camera ldo and vreg
+	affects Display while resume */
 
 	kfree(ov5647_ctrl);
 	ov5647_ctrl = NULL;
-    CSI_CONFIG = 0;
 	CDBG("ov5647_release completed\n");
 	mutex_unlock(&ov5647_mut);
 
@@ -1187,48 +1122,30 @@ static int ov5647_sensor_probe(const struct msm_camera_sensor_info *info,
 		struct msm_sensor_ctrl *s)
 {
 	int rc = 0;
-	CDBG_HIGH("%s E", __func__);
+
+	CDBG("%s E\n", __func__);
 
 	gpio_direction_output(info->sensor_pwd, 1);
 	gpio_direction_output(info->sensor_reset, 0);
-	msleep(10);
-
-    CDBG_HIGH("set pwd to 1(GPIO:%d)\r\n", info->sensor_pwd);
-	gpio_set_value(info->sensor_pwd, 1);
-	msleep(10);
-
-    CDBG_HIGH("set rst to 1(GPIO:%d)\r\n", info->sensor_reset);
-	gpio_set_value(info->sensor_reset, 1);
-	msleep(10);
-
-	lcd_camera_power_onoff(1); //turn on ldo and vreg
-
-    CDBG_HIGH("set pwd to 0(GPIO:%d)\r\n", info->sensor_pwd);
-	gpio_set_value(info->sensor_pwd, 0);
-	msleep(10);
-
-    CDBG_HIGH("set rst to 0(GPIO:%d)\r\n", info->sensor_reset);
-	gpio_set_value(info->sensor_reset, 0);
-	msleep(10);
-
-    CDBG_HIGH("set rst to 1(GPIO:%d)\r\n", info->sensor_reset);
-	gpio_set_value(info->sensor_reset, 1);
-	msleep(10);
+	usleep_range(1000, 1100);
+	/* turn on ldo and vreg */
+	if (info->pmic_gpio_enable)
+		lcd_camera_power_onoff(1);
 
 	rc = i2c_add_driver(&ov5647_i2c_driver);
 	if (rc < 0 || ov5647_client == NULL) {
 		rc = -ENOTSUPP;
-		CDBG_HIGH("I2C add driver ov5647 failed");
+		CDBG("I2C add driver ov5647 failed");
 		goto probe_fail_2;
 	}
-#ifdef OV5647_AUTO_FOCUS
-	rc = i2c_add_driver(&ov5647_af_i2c_driver);
-	if (rc < 0 || ov5647_af_client == NULL) {
-		rc = -ENOTSUPP;
-		CDBG_HIGH("I2C add driver ov5647 af failed");
-		goto probe_fail_3;
+	if (info->vcm_enable) {
+		rc = i2c_add_driver(&ov5647_af_i2c_driver);
+		if (rc < 0 || ov5647_af_client == NULL) {
+			rc = -ENOTSUPP;
+			CDBG("I2C add driver ov5647 af failed");
+			goto probe_fail_3;
+		}
 	}
-#endif
 	msm_camio_clk_rate_set(OV5647_MASTER_CLK_RATE);
 
 	rc = ov5647_probe_init_sensor(info);
@@ -1239,27 +1156,25 @@ static int ov5647_sensor_probe(const struct msm_camera_sensor_info *info,
 	s->s_release = ov5647_sensor_release;
 	s->s_config  = ov5647_sensor_config;
 	s->s_mount_angle = info->sensor_platform_info->mount_angle;
-
-    CDBG_HIGH("set pwd to 1(GPIO:%d)\r\n", info->sensor_pwd);
 	gpio_set_value(info->sensor_pwd, 1);
-
 	ov5647_probe_init_done(info);
+	/* turn off ldo and vreg */
+	if (info->pmic_gpio_enable)
+		lcd_camera_power_onoff(0);
 
-	lcd_camera_power_onoff(0); //turn off ldo and vreg
-
-	CDBG_HIGH("%s X", __func__);
+	CDBG("%s X", __func__);
 	return rc;
 
-#ifdef OV5647_AUTO_FOCUS
 probe_fail_3:
 	i2c_del_driver(&ov5647_af_i2c_driver);
-#endif
 probe_fail_2:
 	i2c_del_driver(&ov5647_i2c_driver);
 probe_fail_1:
-	lcd_camera_power_onoff(0);
-	CDBG_HIGH("ov5647_sensor_probe: SENSOR PROBE FAILS!\n");
-	CDBG_HIGH("%s X", __func__);
+	/* turn off ldo and vreg */
+	if (info->pmic_gpio_enable)
+		lcd_camera_power_onoff(0);
+	CDBG("ov5647_sensor_probe: SENSOR PROBE FAILS!\n");
+	CDBG("%s X", __func__);
 	return rc;
 }
 
@@ -1282,5 +1197,5 @@ static int __init ov5647_init(void)
 }
 
 module_init(ov5647_init);
-MODULE_DESCRIPTION("Samsung 5 MP Bayer sensor driver");
+MODULE_DESCRIPTION("Omnivision 5 MP Bayer sensor driver");
 MODULE_LICENSE("GPL v2");

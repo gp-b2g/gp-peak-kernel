@@ -14,7 +14,11 @@
 #define OV5647_H
 #include <linux/types.h>
 #include <mach/board.h>
+
 extern struct ov5647_reg ov5647_regs;
+extern int lcd_camera_power_onoff(int on);
+extern struct rw_semaphore leds_list_lock;
+extern struct list_head leds_list;
 
 struct ov5647_i2c_reg_conf {
 	unsigned short waddr;

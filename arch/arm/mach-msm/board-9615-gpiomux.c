@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -37,7 +37,7 @@ static struct gpiomux_setting gsbi4 = {
 
 static struct gpiomux_setting gsbi5 = {
 	.func = GPIOMUX_FUNC_1,
-	.drv = GPIOMUX_DRV_8MA,
+	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
 
@@ -184,6 +184,23 @@ struct msm_gpiomux_config msm9615_ps_hold_config[] __initdata = {
 		.gpio = 83,
 		.settings = {
 			[GPIOMUX_SUSPENDED] = &ps_hold,
+		},
+	},
+};
+
+static struct gpiomux_setting sd_card_det = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_NONE,
+	.dir = GPIOMUX_IN,
+};
+
+struct msm_gpiomux_config sd_card_det_config[] __initdata = {
+	{
+		.gpio = 80,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &sd_card_det,
+			[GPIOMUX_SUSPENDED] = &sd_card_det,
 		},
 	},
 };
@@ -349,6 +366,8 @@ int __init msm9615_init_gpiomux(void)
 
 	msm_gpiomux_install(msm9615_ps_hold_config,
 			ARRAY_SIZE(msm9615_ps_hold_config));
+	msm_gpiomux_install(sd_card_det_config,
+			ARRAY_SIZE(sd_card_det_config));
 	msm_gpiomux_install(msm9615_sdcc2_configs,
 			ARRAY_SIZE(msm9615_sdcc2_configs));
 #ifdef CONFIG_LTC4088_CHARGER

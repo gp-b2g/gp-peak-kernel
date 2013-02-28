@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -88,6 +88,7 @@ VREG_CONSUMERS(L11) = {
 	REGULATOR_SUPPLY("CDC_VDDA_TX",		"sitar1p1-slim"),
 	REGULATOR_SUPPLY("CDC_VDDA_RX",		"sitar1p1-slim"),
 	REGULATOR_SUPPLY("vddp",		"0-0048"),
+	REGULATOR_SUPPLY("mhl_iovcc18",		"0-0039"),
 };
 VREG_CONSUMERS(L12) = {
 	REGULATOR_SUPPLY("8038_l12",		NULL),
@@ -95,6 +96,9 @@ VREG_CONSUMERS(L12) = {
 	REGULATOR_SUPPLY("cam_vdig",		"4-006c"),
 	REGULATOR_SUPPLY("cam_vdig",		"4-0048"),
 	REGULATOR_SUPPLY("cam_vdig",            "4-0020"),
+};
+VREG_CONSUMERS(L13) = {
+	REGULATOR_SUPPLY("8038_l13",		NULL),
 };
 VREG_CONSUMERS(L14) = {
 	REGULATOR_SUPPLY("8038_l14",		NULL),
@@ -123,6 +127,7 @@ VREG_CONSUMERS(L20) = {
 	REGULATOR_SUPPLY("CDC_VDDA_A_1P2V",	"sitar-slim"),
 	REGULATOR_SUPPLY("VDDD_CDC_D",		"sitar1p1-slim"),
 	REGULATOR_SUPPLY("CDC_VDDA_A_1P2V",	"sitar1p1-slim"),
+	REGULATOR_SUPPLY("mhl_avcc12",		"0-0039"),
 };
 VREG_CONSUMERS(L21) = {
 	REGULATOR_SUPPLY("8038_l21",		NULL),
@@ -143,6 +148,9 @@ VREG_CONSUMERS(L23) = {
 VREG_CONSUMERS(L24) = {
 	REGULATOR_SUPPLY("8038_l24",		NULL),
 	REGULATOR_SUPPLY("riva_vddmx",		"wcnss_wlan.0"),
+};
+VREG_CONSUMERS(L25) = {
+	REGULATOR_SUPPLY("8038_l25",		NULL),
 };
 VREG_CONSUMERS(L26) = {
 	REGULATOR_SUPPLY("8038_l26",		NULL),
@@ -190,6 +198,7 @@ VREG_CONSUMERS(LVS2) = {
 VREG_CONSUMERS(EXT_5V) = {
 	REGULATOR_SUPPLY("ext_5v",		NULL),
 	REGULATOR_SUPPLY("hdmi_mvs",		"hdmi_msm.0"),
+	REGULATOR_SUPPLY("mhl_usb_hs_switch",	"msm_otg"),
 };
 VREG_CONSUMERS(EXT_OTG_SW) = {
 	REGULATOR_SUPPLY("ext_otg_sw",		NULL),
@@ -465,7 +474,7 @@ msm8930_rpm_regulator_init_data[] __devinitdata = {
 	/*	ID a_on pd ss min_uV   max_uV  supply sys_uA  freq  fm  ss_fm */
 	RPM_SMPS(S1, 0, 1, 1,  500000, 1150000, NULL, 100000, 4p80, AUTO, LPM),
 	RPM_SMPS(S2, 1, 1, 1, 1400000, 1400000, NULL, 100000, 1p60, AUTO, LPM),
-	RPM_SMPS(S3, 0, 1, 1, 1150000, 1150000, NULL, 100000, 3p20, AUTO, LPM),
+	RPM_SMPS(S3, 0, 1, 1, 1150000, 1150000, NULL, 100000, 3p20, AUTO, AUTO),
 	RPM_SMPS(S4, 1, 1, 1, 1950000, 2200000, NULL, 100000, 1p60, AUTO, LPM),
 
 	/*	ID     a_on pd ss min_uV   max_uV  supply  sys_uA init_ip */
@@ -481,6 +490,7 @@ msm8930_rpm_regulator_init_data[] __devinitdata = {
 	RPM_LDO(L10,	 0, 1, 0, 2900000, 2900000, NULL,      0, 0),
 	RPM_LDO(L11,	 1, 1, 0, 1800000, 1800000, "8038_s4", 10000, 10000),
 	RPM_LDO(L12,	 0, 1, 0, 1200000, 1200000, "8038_s2", 0, 0),
+	RPM_LDO(L13,	 0, 0, 0, 2220000, 2220000, NULL,      0, 0),
 	RPM_LDO(L14,	 0, 1, 0, 1800000, 1800000, NULL,      0, 0),
 	RPM_LDO(L15,	 0, 1, 0, 1800000, 2950000, NULL,      0, 0),
 	RPM_LDO(L17,	 0, 1, 0, 1800000, 2950000, NULL,      0, 0),
@@ -490,6 +500,7 @@ msm8930_rpm_regulator_init_data[] __devinitdata = {
 	RPM_LDO(L22,	 1, 1, 0, 1850000, 2950000, NULL,      10000, 10000),
 	RPM_LDO(L23,	 1, 1, 1, 1800000, 1800000, "8038_s4", 0, 0),
 	RPM_LDO(L24,	 0, 1, 1,  500000, 1150000, "8038_s2", 10000, 10000),
+	RPM_LDO(L25,	 0, 0, 0, 1740000, 1740000, "8038_l13", 0, 0),
 	RPM_LDO(L26,     1, 1, 0, 1050000, 1050000, "8038_s2", 10000, 10000),
 
 	/*	ID     a_on pd ss		    supply */
