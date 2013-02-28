@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -326,8 +326,6 @@ static void grmnet_ctrl_smd_connect_w(struct work_struct *w)
 			container_of(w, struct rmnet_ctrl_port, connect_w.work);
 	struct smd_ch_info *c = &port->ctrl_ch;
 	unsigned long flags;
-	int	set_bits = 0;
-	int	clear_bits = 0;
 	int ret;
 
 	pr_debug("%s:\n", __func__);
@@ -350,11 +348,9 @@ static void grmnet_ctrl_smd_connect_w(struct work_struct *w)
 		return;
 	}
 
-	set_bits = c->cbits_tomodem;
-	clear_bits = ~(c->cbits_tomodem | TIOCM_RTS);
 	spin_lock_irqsave(&port->port_lock, flags);
 	if (port->port_usb)
-		smd_tiocmset(c->ch, set_bits, clear_bits);
+		smd_tiocmset(c->ch, c->cbits_tomodem, ~c->cbits_tomodem);
 	spin_unlock_irqrestore(&port->port_lock, flags);
 }
 

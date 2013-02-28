@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -143,13 +143,6 @@ static struct msm_gpiomux_config msm8930_cam_common_configs[] = {
 			[GPIOMUX_SUSPENDED] = &cam_settings[0],
 		},
 	},
-	{
-		.gpio = 54,
-		.settings = {
-			[GPIOMUX_ACTIVE]    = &cam_settings[2],
-			[GPIOMUX_SUSPENDED] = &cam_settings[0],
-		},
-	},
 };
 
 static struct msm_gpiomux_config msm8930_cam_2d_configs[] = {
@@ -198,9 +191,12 @@ static struct msm_camera_sensor_strobe_flash_data strobe_flash_xenon = {
 #ifdef CONFIG_MSM_CAMERA_FLASH
 static struct msm_camera_sensor_flash_src msm_flash_src = {
 	.flash_sr_type = MSM_CAMERA_FLASH_SRC_EXT,
-	._fsrc.ext_driver_src.led_en = VFE_CAMIF_TIMER1_GPIO,
-	._fsrc.ext_driver_src.led_flash_en = VFE_CAMIF_TIMER2_GPIO,
-	._fsrc.ext_driver_src.flash_id = MAM_CAMERA_EXT_LED_FLASH_TPS61310,
+	._fsrc.ext_driver_src.led_en = GPIO_CAM_GP_LED_EN1,
+	._fsrc.ext_driver_src.led_flash_en = GPIO_CAM_GP_LED_EN2,
+#if defined(CONFIG_I2C) && (defined(CONFIG_GPIO_SX150X) || \
+			defined(CONFIG_GPIO_SX150X_MODULE))
+	._fsrc.ext_driver_src.expander_info = cam_expander_info,
+#endif
 };
 #endif
 
@@ -341,11 +337,17 @@ static struct msm_bus_scale_pdata cam_bus_client_pdata = {
 static struct msm_camera_device_platform_data msm_camera_csi_device_data[] = {
 	{
 		.csid_core = 0,
+		.is_csiphy = 1,
+		.is_csid   = 1,
+		.is_ispif  = 1,
 		.is_vpe    = 1,
 		.cam_bus_scale_table = &cam_bus_client_pdata,
 	},
 	{
 		.csid_core = 1,
+		.is_csiphy = 1,
+		.is_csid   = 1,
+		.is_ispif  = 1,
 		.is_vpe    = 1,
 		.cam_bus_scale_table = &cam_bus_client_pdata,
 	},
@@ -377,7 +379,6 @@ static struct gpio msm8930_front_cam_gpio[] = {
 static struct gpio msm8930_back_cam_gpio[] = {
 	{5, GPIOF_DIR_IN, "CAMIF_MCLK"},
 	{107, GPIOF_DIR_OUT, "CAM_RESET"},
-	{54, GPIOF_DIR_OUT, "CAM_STBY_N"},
 };
 
 static struct msm_gpio_set_tbl msm8930_front_cam_gpio_set_tbl[] = {
@@ -386,8 +387,6 @@ static struct msm_gpio_set_tbl msm8930_front_cam_gpio_set_tbl[] = {
 };
 
 static struct msm_gpio_set_tbl msm8930_back_cam_gpio_set_tbl[] = {
-	{54, GPIOF_OUT_INIT_LOW, 1000},
-	{54, GPIOF_OUT_INIT_HIGH, 4000},
 	{107, GPIOF_OUT_INIT_LOW, 1000},
 	{107, GPIOF_OUT_INIT_HIGH, 4000},
 };
@@ -527,8 +526,7 @@ static struct camera_vreg_t msm_8930_s5k3l1yx_vreg[] = {
 };
 
 static struct msm_camera_sensor_flash_data flash_s5k3l1yx = {
-	.flash_type = MSM_CAMERA_FLASH_LED,
-	.flash_src = &msm_flash_src
+	.flash_type = MSM_CAMERA_FLASH_NONE,
 };
 
 static struct msm_camera_csi_lane_params s5k3l1yx_csi_lane_params = {
@@ -577,15 +575,6 @@ void __init msm8930_init_cam(void)
 		struct msm_camera_sensor_info *s_info;
 		s_info = &msm_camera_sensor_s5k3l1yx_data;
 		s_info->sensor_platform_info->mount_angle = 0;
-		msm_flash_src._fsrc.ext_driver_src.led_en =
-			GPIO_CAM_GP_LED_EN1;
-		msm_flash_src._fsrc.ext_driver_src.led_flash_en =
-			GPIO_CAM_GP_LED_EN2;
-#if defined(CONFIG_I2C) && (defined(CONFIG_GPIO_SX150X) || \
-	defined(CONFIG_GPIO_SX150X_MODULE))
-		msm_flash_src._fsrc.ext_driver_src.expander_info =
-			cam_expander_info;
-#endif
 	}
 
 	platform_device_register(&msm_camera_server);
@@ -616,9 +605,11 @@ struct i2c_board_info msm8930_camera_i2c_boardinfo[] = {
 	I2C_BOARD_INFO("s5k3l1yx", 0x20),
 	.platform_data = &msm_camera_sensor_s5k3l1yx_data,
 	},
+#ifdef CONFIG_MSM_CAMERA_FLASH_SC628A
 	{
-	I2C_BOARD_INFO("tps61310", 0x66),
+	I2C_BOARD_INFO("sc628a", 0x6E),
 	},
+#endif
 };
 
 struct msm_camera_board_info msm8930_camera_board_info = {

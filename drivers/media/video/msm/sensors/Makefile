@@ -24,5 +24,4 @@ obj-$(CONFIG_OV5640) += ov5640_v4l2.o
 obj-$(CONFIG_WEBCAM_OV7692_QRD) += ov7692_qrd_v4l2.o
 obj-$(CONFIG_GC0339) += gc0339_v4l2.o
 obj-$(CONFIG_MT9V113) += mt9v113_v4l2.o
-obj-$(CONFIG_OV7692) += ov7692_v4l2.o
 obj-$(CONFIG_VX6953) += vx6953.o

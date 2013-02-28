@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -52,13 +52,13 @@
 #include <mach/msm_battery.h>
 #include <mach/rpc_server_handset.h>
 #include <mach/socinfo.h>
+#include <mach/oem_rapi_client.h>
 #include "board-msm7x27a-regulator.h"
 #include "devices.h"
 #include "devices-msm7x2xa.h"
 #include "pm.h"
 #include "timer.h"
 #include "pm-boot.h"
-#include "board-msm7x27a-regulator.h"
 #include "board-msm7627a.h"
 #include "board-msm7627a-sensor.h"
 

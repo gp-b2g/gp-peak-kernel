@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -271,7 +271,7 @@ static struct msm_mmc_pin_data mmc_slot_pin_data[MAX_SDCC_CONTROLLER] = {
 #define MSM_MPM_PIN_SDC3_DAT1	21
 
 static unsigned int sdc1_sup_clk_rates[] = {
-	400000, 24000000, 48000000, 96000000
+	400000, 24000000, 48000000
 };
 
 #ifdef CONFIG_MMC_MSM_SDC3_SUPPORT
@@ -296,7 +296,6 @@ static struct mmc_platform_data msm8960_sdc1_data = {
 	.pin_data	= &mmc_slot_pin_data[SDCC1],
 	.mpm_sdiowakeup_int = MSM_MPM_PIN_SDC1_DAT1,
 	.msm_bus_voting_data = &sps_to_ddr_bus_voting_data,
-	.uhs_caps2	= MMC_CAP2_HS200_1_8V_SDR,
 };
 #endif
 
@@ -366,16 +365,6 @@ static struct mmc_platform_data msm8960_sdc4_data = {
 void __init msm8960_init_mmc(void)
 {
 #ifdef CONFIG_MMC_MSM_SDC1_SUPPORT
-	/*
-	 * When eMMC runs in DDR mode on CDP platform, we have
-	 * seen instability due to DATA CRC errors. These errors are
-	 * attributed to long physical path between MSM and eMMC on CDP.
-	 * So let's not enable the DDR mode on CDP platform but let other
-	 * platforms take advantage of eMMC DDR mode.
-	 */
-	if (!machine_is_msm8960_cdp())
-		msm8960_sdc1_data.uhs_caps |= (MMC_CAP_1_8V_DDR |
-					       MMC_CAP_UHS_DDR50);
 	/* SDC1 : eMMC card connected */
 	msm_add_sdcc(1, &msm8960_sdc1_data);
 #endif

@@ -157,55 +157,6 @@ struct afe_get_active_handles_command {
 	u16 reserved;
 } __attribute__ ((packed));
 
-/*
- * Opcode for AFE to start DTMF.
- */
-#define AFE_PORTS_CMD_DTMF_CTL	0x00010102
-
-/** DTMF payload.*/
-struct afe_dtmf_generation_command {
-	struct apr_hdr hdr;
-
-	/*
-	 * Duration of the DTMF tone in ms.
-	 * -1      -> continuous,
-	 *  0      -> disable
-	 */
-	int64_t                   duration_in_ms;
-
-	/*
-	 * The DTMF high tone frequency.
-	 */
-	uint16_t                  high_freq;
-
-	/*
-	 * The DTMF low tone frequency.
-	 */
-	uint16_t                  low_freq;
-
-	/*
-	 * The DTMF volume setting
-	 */
-	uint16_t                  gain;
-
-	/*
-	 * The number of ports to enable/disable on.
-	 */
-	uint16_t                  num_ports;
-
-	/*
-	 * The Destination ports - array  .
-	 * For DTMF on multiple ports, portIds needs to
-	 * be populated numPorts times.
-	 */
-	uint16_t                  port_ids;
-
-	/*
-	 * variable for 32 bit alignment of APR packet.
-	 */
-	uint16_t                  reserved;
-} __packed;
-
 #define AFE_PCM_CFG_MODE_PCM			0x0
 #define AFE_PCM_CFG_MODE_AUX			0x1
 #define AFE_PCM_CFG_SYNC_EXT			0x0
@@ -451,15 +402,11 @@ struct afe_param_loopback_cfg {
 #define AFE_MODULE_ID_PORT_INFO		0x00010200
 /* Module ID for the loopback-related parameters. */
 #define AFE_MODULE_LOOPBACK           0x00010205
-struct afe_param_payload_base {
+struct afe_param_payload {
 	u32 module_id;
 	u32 param_id;
 	u16 param_size;
 	u16 reserved;
-} __packed;
-
-struct afe_param_payload {
-	struct afe_param_payload_base base;
 	union {
 		struct afe_param_sidetone_gain sidetone_gain;
 		struct afe_param_sampling_rate sampling_rate;

@@ -1,4 +1,4 @@
-/* Copyright (c) 2009-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2009-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -154,7 +154,6 @@ struct msm_otg {
 	struct work_struct otg_resume_work;
 	struct notifier_block usbdev_nb;
 	struct msm_xo_voter *xo_handle; /*handle to vote for TCXO D1 buffer*/
-	unsigned curr_power;
 #ifdef CONFIG_USB_MSM_ACA
 	struct timer_list	id_timer;	/* drives id_status polling */
 	unsigned		b_max_power;	/* ACA: max power of accessory*/

@@ -1169,6 +1169,7 @@ static int do_read(struct fsg_dev *fsg)
 	u32			amount_left;
 	loff_t			file_offset, file_offset_tmp;
 	unsigned int		amount;
+	unsigned int		partial_page;
 	ssize_t			nread;
 
 	/* Get the starting Logical Block Address and check that it's
@@ -1203,10 +1204,17 @@ static int do_read(struct fsg_dev *fsg)
 		 * Try to read the remaining amount.
 		 * But don't read more than the buffer size.
 		 * And don't try to read past the end of the file.
-		 */
+		 * Finally, if we're not at a page boundary, don't read past
+		 *	the next page.
+		 * If this means reading 0 then we were asked to read past
+		 *	the end of file. */
 		amount = min((unsigned int) amount_left, mod_data.buflen);
 		amount = min((loff_t) amount,
 				curlun->file_length - file_offset);
+		partial_page = file_offset & (PAGE_CACHE_SIZE - 1);
+		if (partial_page > 0)
+			amount = min(amount, (unsigned int) PAGE_CACHE_SIZE -
+					partial_page);
 
 		/* Wait for the next buffer to become available */
 		bh = fsg->next_buffhd_to_fill;
@@ -1251,11 +1259,6 @@ static int do_read(struct fsg_dev *fsg)
 		file_offset  += nread;
 		amount_left  -= nread;
 		fsg->residue -= nread;
-
-		/* Except at the end of the transfer, nread will be
-		 * equal to the buffer size, which is divisible by the
-		 * bulk-in maxpacket size.
-		 */
 		bh->inreq->length = nread;
 		bh->state = BUF_STATE_FULL;
 
@@ -1292,6 +1295,7 @@ static int do_write(struct fsg_dev *fsg)
 	u32			amount_left_to_req, amount_left_to_write;
 	loff_t			usb_offset, file_offset, file_offset_tmp;
 	unsigned int		amount;
+	unsigned int		partial_page;
 	ssize_t			nwritten;
 	int			rc;
 
@@ -1342,18 +1346,36 @@ static int do_write(struct fsg_dev *fsg)
 		if (bh->state == BUF_STATE_EMPTY && get_some_more) {
 
 			/* Figure out how much we want to get:
-			 * Try to get the remaining amount,
-			 * but not more than the buffer size.
-			 */
+			 * Try to get the remaining amount.
+			 * But don't get more than the buffer size.
+			 * And don't try to go past the end of the file.
+			 * If we're not at a page boundary,
+			 *	don't go past the next page.
+			 * If this means getting 0, then we were asked
+			 *	to write past the end of file.
+			 * Finally, round down to a block boundary. */
 			amount = min(amount_left_to_req, mod_data.buflen);
+			amount = min((loff_t) amount, curlun->file_length -
+					usb_offset);
+			partial_page = usb_offset & (PAGE_CACHE_SIZE - 1);
+			if (partial_page > 0)
+				amount = min(amount,
+	(unsigned int) PAGE_CACHE_SIZE - partial_page);
 
-			/* Beyond the end of the backing file? */
-			if (usb_offset >= curlun->file_length) {
+			if (amount == 0) {
 				get_some_more = 0;
 				curlun->sense_data =
 					SS_LOGICAL_BLOCK_ADDRESS_OUT_OF_RANGE;
 				curlun->sense_data_info = usb_offset >> curlun->blkbits;
 				curlun->info_valid = 1;
+				continue;
+			}
+			amount = round_down(amount, curlun->blksize);
+			if (amount == 0) {
+
+				/* Why were we were asked to transfer a
+				 * partial block? */
+				get_some_more = 0;
 				continue;
 			}
 
@@ -1443,7 +1465,6 @@ static int do_write(struct fsg_dev *fsg)
 				break;
 			}
 
- empty_write:
 			/* Did the host decide to stop early? */
 			if (bh->outreq->actual < bh->bulk_out_intended_length) {
 				fsg->short_packet_received = 1;
@@ -1540,7 +1561,8 @@ static int do_verify(struct fsg_dev *fsg)
 		 * Try to read the remaining amount, but not more than
 		 * the buffer size.
 		 * And don't try to read past the end of the file.
-		 */
+		 * If this means reading 0 then we were asked to read
+		 * past the end of file. */
 		amount = min((unsigned int) amount_left, mod_data.buflen);
 		amount = min((loff_t) amount,
 				curlun->file_length - file_offset);
@@ -2307,19 +2329,17 @@ static int check_command(struct fsg_dev *fsg, int cmnd_size,
 			DBG(fsg, "using LUN %d from CBW, "
 					"not LUN %d from CDB\n",
 					fsg->lun, lun);
-	} else
-		fsg->lun = lun;		// Use LUN from the command
+	}
 
 	/* Check the LUN */
-	if (fsg->lun < fsg->nluns) {
-		fsg->curlun = curlun = &fsg->luns[fsg->lun];
+	curlun = fsg->curlun;
+	if (curlun) {
 		if (fsg->cmnd[0] != REQUEST_SENSE) {
 			curlun->sense_data = SS_NO_SENSE;
 			curlun->sense_data_info = 0;
 			curlun->info_valid = 0;
 		}
 	} else {
-		fsg->curlun = curlun = NULL;
 		fsg->bad_lun_okay = 0;
 
 		/* INQUIRY and REQUEST SENSE commands are explicitly allowed
@@ -2361,6 +2381,16 @@ static int check_command(struct fsg_dev *fsg, int cmnd_size,
 	return 0;
 }
 
+/* wrapper of check_command for data size in blocks handling */
+static int check_command_size_in_blocks(struct fsg_dev *fsg, int cmnd_size,
+		enum data_direction data_dir, unsigned int mask,
+		int needs_medium, const char *name)
+{
+	if (fsg->curlun)
+		fsg->data_size_from_cmnd <<= fsg->curlun->blkbits;
+	return check_command(fsg, cmnd_size, data_dir,
+			mask, needs_medium, name);
+}
 
 static int do_scsi_command(struct fsg_dev *fsg)
 {
@@ -2435,26 +2465,27 @@ static int do_scsi_command(struct fsg_dev *fsg)
 
 	case READ_6:
 		i = fsg->cmnd[4];
-		fsg->data_size_from_cmnd = (i == 0 ? 256 : i) << fsg->curlun->blkbits;
-		if ((reply = check_command(fsg, 6, DATA_DIR_TO_HOST,
+		fsg->data_size_from_cmnd = (i == 0) ? 256 : i;
+		if ((reply = check_command_size_in_blocks(fsg, 6,
+				DATA_DIR_TO_HOST,
 				(7<<1) | (1<<4), 1,
 				"READ(6)")) == 0)
 			reply = do_read(fsg);
 		break;
 
 	case READ_10:
-		fsg->data_size_from_cmnd =
-				get_unaligned_be16(&fsg->cmnd[7]) << fsg->curlun->blkbits;
-		if ((reply = check_command(fsg, 10, DATA_DIR_TO_HOST,
+		fsg->data_size_from_cmnd = get_unaligned_be16(&fsg->cmnd[7]);
+		if ((reply = check_command_size_in_blocks(fsg, 10,
+				DATA_DIR_TO_HOST,
 				(1<<1) | (0xf<<2) | (3<<7), 1,
 				"READ(10)")) == 0)
 			reply = do_read(fsg);
 		break;
 
 	case READ_12:
-		fsg->data_size_from_cmnd =
-				get_unaligned_be32(&fsg->cmnd[6]) << fsg->curlun->blkbits;
-		if ((reply = check_command(fsg, 12, DATA_DIR_TO_HOST,
+		fsg->data_size_from_cmnd = get_unaligned_be32(&fsg->cmnd[6]);
+		if ((reply = check_command_size_in_blocks(fsg, 12,
+				DATA_DIR_TO_HOST,
 				(1<<1) | (0xf<<2) | (0xf<<6), 1,
 				"READ(12)")) == 0)
 			reply = do_read(fsg);
@@ -2539,26 +2570,27 @@ static int do_scsi_command(struct fsg_dev *fsg)
 
 	case WRITE_6:
 		i = fsg->cmnd[4];
-		fsg->data_size_from_cmnd = (i == 0 ? 256 : i) << fsg->curlun->blkbits;
-		if ((reply = check_command(fsg, 6, DATA_DIR_FROM_HOST,
+		fsg->data_size_from_cmnd = (i == 0) ? 256 : i;
+		if ((reply = check_command_size_in_blocks(fsg, 6,
+				DATA_DIR_FROM_HOST,
 				(7<<1) | (1<<4), 1,
 				"WRITE(6)")) == 0)
 			reply = do_write(fsg);
 		break;
 
 	case WRITE_10:
-		fsg->data_size_from_cmnd =
-				get_unaligned_be16(&fsg->cmnd[7]) << fsg->curlun->blkbits;
-		if ((reply = check_command(fsg, 10, DATA_DIR_FROM_HOST,
+		fsg->data_size_from_cmnd = get_unaligned_be16(&fsg->cmnd[7]);
+		if ((reply = check_command_size_in_blocks(fsg, 10,
+				DATA_DIR_FROM_HOST,
 				(1<<1) | (0xf<<2) | (3<<7), 1,
 				"WRITE(10)")) == 0)
 			reply = do_write(fsg);
 		break;
 
 	case WRITE_12:
-		fsg->data_size_from_cmnd =
-				get_unaligned_be32(&fsg->cmnd[6]) << fsg->curlun->blkbits;
-		if ((reply = check_command(fsg, 12, DATA_DIR_FROM_HOST,
+		fsg->data_size_from_cmnd = get_unaligned_be32(&fsg->cmnd[6]);
+		if ((reply = check_command_size_in_blocks(fsg, 12,
+				DATA_DIR_FROM_HOST,
 				(1<<1) | (0xf<<2) | (0xf<<6), 1,
 				"WRITE(12)")) == 0)
 			reply = do_write(fsg);
@@ -2725,7 +2757,17 @@ static int get_next_command(struct fsg_dev *fsg)
 		memcpy(fsg->cmnd, fsg->cbbuf_cmnd, fsg->cmnd_size);
 		fsg->cbbuf_cmnd_size = 0;
 		spin_unlock_irq(&fsg->lock);
+
+		/* Use LUN from the command */
+		fsg->lun = fsg->cmnd[1] >> 5;
 	}
+
+	/* Update current lun */
+	if (fsg->lun >= 0 && fsg->lun < fsg->nluns)
+		fsg->curlun = &fsg->luns[fsg->lun];
+	else
+		fsg->curlun = NULL;
+
 	return rc;
 }
 

@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -67,7 +67,6 @@ struct msm_hsic_per {
 	struct work_struct	suspend_w;
 	struct msm_hsic_peripheral_platform_data *pdata;
 	enum usb_vdd_type	vdd_type;
-	bool connected;
 };
 
 static const int vdd_val[VDD_TYPE_MAX][VDD_VAL_MAX] = {
@@ -382,7 +381,7 @@ static int msm_hsic_suspend(struct msm_hsic_per *mhsic)
 	 */
 	mb();
 
-	if (!mhsic->pdata->core_clk_always_on_workaround || !mhsic->connected) {
+	if (!mhsic->pdata->core_clk_always_on_workaround) {
 		clk_disable(mhsic->iface_clk);
 		clk_disable(mhsic->core_clk);
 	}
@@ -439,7 +438,7 @@ static int msm_hsic_resume(struct msm_hsic_per *mhsic)
 		dev_err(mhsic->dev, "%s failed to vote for TCXO %d\n",
 				__func__, ret);
 
-	if (!mhsic->pdata->core_clk_always_on_workaround || !mhsic->connected) {
+	if (!mhsic->pdata->core_clk_always_on_workaround) {
 		clk_enable(mhsic->iface_clk);
 		clk_enable(mhsic->core_clk);
 	}
@@ -599,37 +598,21 @@ static void ci13xxx_msm_hsic_notify_event(struct ci13xxx *udc, unsigned event)
 
 	switch (event) {
 	case CI13XXX_CONTROLLER_RESET_EVENT:
-		dev_info(dev, "CI13XXX_CONTROLLER_RESET_EVENT received\n");
+		dev_dbg(dev, "CI13XXX_CONTROLLER_RESET_EVENT received\n");
 		writel_relaxed(0, USB_AHBBURST);
 		writel_relaxed(0x08, USB_AHBMODE);
 		break;
 	case CI13XXX_CONTROLLER_CONNECT_EVENT:
-		dev_info(dev, "CI13XXX_CONTROLLER_CONNECT_EVENT received\n");
-		msm_hsic_wakeup();
-		the_mhsic->connected = true;
+		dev_dbg(dev, "CI13XXX_CONTROLLER_CONNECT_EVENT received\n");
+		msm_hsic_start();
 		break;
 	case CI13XXX_CONTROLLER_SUSPEND_EVENT:
-		dev_info(dev, "CI13XXX_CONTROLLER_SUSPEND_EVENT received\n");
+		dev_dbg(dev, "CI13XXX_CONTROLLER_SUSPEND_EVENT received\n");
 		queue_work(mhsic->wq, &mhsic->suspend_w);
 		break;
 	case CI13XXX_CONTROLLER_REMOTE_WAKEUP_EVENT:
-		dev_info(dev, "CI13XXX_CONTROLLER_REMOTE_WAKEUP_EVENT received\n");
+		dev_dbg(dev, "CI13XXX_CONTROLLER_REMOTE_WAKEUP_EVENT received\n");
 		msm_hsic_wakeup();
-		break;
-	case CI13XXX_CONTROLLER_UDC_STARTED_EVENT:
-		dev_info(dev, "CI13XXX_CONTROLLER_UDC_STARTED_EVENT received\n");
-		/*
-		 * UDC started, suspend the hsic device until it will be
-		 * connected by a pullup (CI13XXX_CONTROLLER_CONNECT_EVENT)
-		 * Before suspend, finish required configurations.
-		 */
-		hw_device_state(_udc->ep0out.qh.dma);
-		msm_hsic_start();
-		usleep(10000);
-
-		mhsic->connected = false;
-		pm_runtime_put_noidle(the_mhsic->dev);
-		pm_runtime_suspend(the_mhsic->dev);
 		break;
 	default:
 		dev_dbg(dev, "unknown ci13xxx_udc event\n");
@@ -652,7 +635,7 @@ static int __devinit msm_hsic_probe(struct platform_device *pdev)
 	struct resource *res;
 	struct msm_hsic_per *mhsic;
 	int ret = 0;
-	struct ci13xxx_platform_data *pdata;
+	struct msm_hsic_peripheral_platform_data *pdata;
 
 	dev_dbg(&pdev->dev, "msm-hsic probe\n");
 
@@ -671,8 +654,7 @@ static int __devinit msm_hsic_probe(struct platform_device *pdev)
 	the_mhsic = mhsic;
 	platform_set_drvdata(pdev, mhsic);
 	mhsic->dev = &pdev->dev;
-	mhsic->pdata =
-		(struct msm_hsic_peripheral_platform_data *)pdata->prv_data;
+	mhsic->pdata = pdata;
 
 	mhsic->irq = platform_get_irq(pdev, 0);
 	if (mhsic->irq < 0) {

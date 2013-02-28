@@ -12,7 +12,7 @@ REFERENCES
   None
 
   
-Copyright (c) 1992-2009, The Linux Foundation. All rights reserved.
+Copyright (c) 1992-2009, Code Aurora Forum. All rights reserved.
 
 This software is licensed under the terms of the GNU General Public
 License version 2, as published by the Free Software Foundation, and
@@ -43,7 +43,7 @@ typedef struct{
   unsigned int dec_id;           
 
   /*The read pointer offset of external memory till which bitstream 
-    has been dmeï¿½d in*/
+    has been dme’d in*/
   unsigned int adecDataReadPtrOffset;  
 
   /*	The buffer size of external memory. */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -18,7 +18,6 @@
 #include <linux/spinlock.h>
 
 #include <mach/usb_gadget_xport.h>
-#include <mach/usb_bam.h>
 
 #include "u_rmnet.h"
 #include "gadget_chips.h"
@@ -365,7 +364,6 @@ static int gport_rmnet_connect(struct f_rmnet *dev)
 	switch (dxport) {
 	case USB_GADGET_XPORT_BAM:
 	case USB_GADGET_XPORT_BAM2BAM:
-	case USB_GADGET_XPORT_BAM2BAM_IPA:
 		ret = gbam_connect(&dev->port, port_num,
 						   dxport, port_num);
 		if (ret) {
@@ -437,7 +435,6 @@ static int gport_rmnet_disconnect(struct f_rmnet *dev)
 	switch (dxport) {
 	case USB_GADGET_XPORT_BAM:
 	case USB_GADGET_XPORT_BAM2BAM:
-	case USB_GADGET_XPORT_BAM2BAM_IPA:
 		gbam_disconnect(&dev->port, port_num, dxport);
 		break;
 	case USB_GADGET_XPORT_HSIC:
@@ -487,7 +484,6 @@ static void frmnet_suspend(struct usb_function *f)
 	case USB_GADGET_XPORT_BAM:
 		break;
 	case USB_GADGET_XPORT_BAM2BAM:
-	case USB_GADGET_XPORT_BAM2BAM_IPA:
 		gbam_suspend(&dev->port, port_num, dxport);
 		break;
 	case USB_GADGET_XPORT_HSIC:
@@ -515,7 +511,6 @@ static void frmnet_resume(struct usb_function *f)
 	case USB_GADGET_XPORT_BAM:
 		break;
 	case USB_GADGET_XPORT_BAM2BAM:
-	case USB_GADGET_XPORT_BAM2BAM_IPA:
 		gbam_resume(&dev->port, port_num, dxport);
 		break;
 	case USB_GADGET_XPORT_HSIC:
@@ -612,7 +607,6 @@ static void frmnet_ctrl_response_available(struct f_rmnet *dev)
 	struct usb_cdc_notification	*event;
 	unsigned long			flags;
 	int				ret;
-	struct rmnet_ctrl_pkt	*cpkt;
 
 	pr_debug("%s:dev:%p portno#%d\n", __func__, dev, dev->port_num);
 
@@ -639,14 +633,6 @@ static void frmnet_ctrl_response_available(struct f_rmnet *dev)
 	ret = usb_ep_queue(dev->notify, dev->notify_req, GFP_ATOMIC);
 	if (ret) {
 		atomic_dec(&dev->notify_count);
-		spin_lock_irqsave(&dev->lock, flags);
-		cpkt = list_first_entry(&dev->cpkt_resp_q,
-					struct rmnet_ctrl_pkt, list);
-		if (cpkt) {
-			list_del(&cpkt->list);
-			rmnet_free_ctrl_pkt(cpkt);
-		}
-		spin_unlock_irqrestore(&dev->lock, flags);
 		pr_debug("ep enqueue error %d\n", ret);
 	}
 }
@@ -782,8 +768,6 @@ static void frmnet_notify_complete(struct usb_ep *ep, struct usb_request *req)
 {
 	struct f_rmnet *dev = req->context;
 	int status = req->status;
-	unsigned long		flags;
-	struct rmnet_ctrl_pkt	*cpkt;
 
 	pr_debug("%s: dev:%p port#%d\n", __func__, dev, dev->port_num);
 
@@ -806,14 +790,6 @@ static void frmnet_notify_complete(struct usb_ep *ep, struct usb_request *req)
 		status = usb_ep_queue(dev->notify, req, GFP_ATOMIC);
 		if (status) {
 			atomic_dec(&dev->notify_count);
-			spin_lock_irqsave(&dev->lock, flags);
-			cpkt = list_first_entry(&dev->cpkt_resp_q,
-						struct rmnet_ctrl_pkt, list);
-			if (cpkt) {
-				list_del(&cpkt->list);
-				rmnet_free_ctrl_pkt(cpkt);
-			}
-			spin_unlock_irqrestore(&dev->lock, flags);
 			pr_debug("ep enqueue error %d\n", status);
 		}
 		break;
@@ -1147,7 +1123,6 @@ static int frmnet_init_port(const char *ctrl_name, const char *data_name)
 		no_data_bam_ports++;
 		break;
 	case USB_GADGET_XPORT_BAM2BAM:
-	case USB_GADGET_XPORT_BAM2BAM_IPA:
 		rmnet_port->data_xport_num = no_data_bam2bam_ports;
 		no_data_bam2bam_ports++;
 		break;

@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -103,7 +103,6 @@
 #define VIDC_1080P_ERROR_SPS_PARSE_ERROR         129
 #define VIDC_1080P_ERROR_PPS_PARSE_ERROR         130
 #define VIDC_1080P_ERROR_SLICE_PARSE_ERROR       131
-#define VIDC_1080P_ERROR_NON_IDR_FRAME_TYPE      132
 #define VIDC_1080P_ERROR_SYNC_POINT_NOT_RECEIVED  171
 
 #define VIDC_1080P_WARN_COMMAND_FLUSHED                  145
@@ -312,7 +311,6 @@ enum vidc_1080p_decode_idc_format {
 #define VIDC_1080P_PROFILE_H264_MAIN         0x00000000
 #define VIDC_1080P_PROFILE_H264_HIGH         0x00000001
 #define VIDC_1080P_PROFILE_H264_BASELINE     0x00000002
-#define VIDC_1080P_PROFILE_H264_CONSTRAINED_BASELINE     0x00000003
 
 
 enum vidc_1080p_decode{

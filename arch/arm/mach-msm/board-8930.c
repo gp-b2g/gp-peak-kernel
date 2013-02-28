@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -103,11 +103,6 @@ static struct platform_device msm_fm_platform_init = {
 #define KS8851_IRQ_GPIO		90
 #define HAP_SHIFT_LVL_OE_GPIO	47
 
-#define HDMI_MHL_MUX_GPIO       73
-#define MHL_GPIO_INT            72
-#define MHL_GPIO_RESET          71
-#define MHL_GPIO_PWR_EN         5
-
 #if defined(CONFIG_GPIO_SX150X) || defined(CONFIG_GPIO_SX150X_MODULE)
 
 struct sx150x_platform_data msm8930_sx150x_data[] = {
@@ -133,7 +128,6 @@ struct sx150x_platform_data msm8930_sx150x_data[] = {
 #define MSM_LIQUID_PMEM_SIZE 0x4000000 /* 64 Mbytes */
 
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
-#define HOLE_SIZE	0x20000
 #define MSM_PMEM_KERNEL_EBI1_SIZE  0x65000
 #ifdef CONFIG_MSM_IOMMU
 #define MSM_ION_MM_SIZE            0x3800000 /* Need to be multiple of 64K */
@@ -146,7 +140,7 @@ struct sx150x_platform_data msm8930_sx150x_data[] = {
 #define MSM_ION_QSECOM_SIZE	0x600000 /* (6MB) */
 #define MSM_ION_HEAP_NUM	8
 #endif
-#define MSM_ION_MM_FW_SIZE	(0x200000 - HOLE_SIZE) /* 2MB - 128Kb */
+#define MSM_ION_MM_FW_SIZE	0x200000 /* (2MB) */
 #define MSM_ION_MFC_SIZE	SZ_8K
 #define MSM_ION_AUDIO_SIZE	MSM_PMEM_AUDIO_SIZE
 
@@ -154,11 +148,10 @@ struct sx150x_platform_data msm8930_sx150x_data[] = {
 #define MSM_LIQUID_ION_SF_SIZE MSM_LIQUID_PMEM_SIZE
 #define MSM_HDMI_PRIM_ION_SF_SIZE MSM_HDMI_PRIM_PMEM_SIZE
 
-#define MSM_MM_FW_SIZE	(0x200000 - HOLE_SIZE) /*2MB -128Kb */
-#define MSM8930_FIXED_AREA_START (0xa0000000 - (MSM_ION_MM_FW_SIZE + \
-								HOLE_SIZE))
+#define MSM8930_FIXED_AREA_START 0xa0000000
 #define MAX_FIXED_AREA_SIZE	0x10000000
-#define MSM8930_FW_START	MSM8930_FIXED_AREA_START
+#define MSM_MM_FW_SIZE		0x200000
+#define MSM8930_FW_START	(MSM8930_FIXED_AREA_START - MSM_MM_FW_SIZE)
 
 #else
 #define MSM_PMEM_KERNEL_EBI1_SIZE  0x110C000
@@ -324,7 +317,7 @@ static int msm8930_paddr_to_memtype(unsigned int paddr)
 	return MEMTYPE_EBI1;
 }
 
-#define FMEM_ENABLED 0
+#define FMEM_ENABLED 1
 #ifdef CONFIG_ION_MSM
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
 static struct ion_cp_heap_pdata cp_mm_msm8930_ion_pdata = {
@@ -569,8 +562,7 @@ static void __init reserve_ion_memory(void)
 		return;
 
 	if (msm8930_fmem_pdata.size) {
-		msm8930_fmem_pdata.reserved_size_low = fixed_low_size +
-							HOLE_SIZE;
+		msm8930_fmem_pdata.reserved_size_low = fixed_low_size;
 		msm8930_fmem_pdata.reserved_size_high = fixed_high_size;
 	}
 
@@ -582,7 +574,7 @@ static void __init reserve_ion_memory(void)
 	msm8930_reserve_fixed_area(fixed_size);
 
 	fixed_low_start = MSM8930_FIXED_AREA_START;
-	fixed_middle_start = fixed_low_start + fixed_low_size + HOLE_SIZE;
+	fixed_middle_start = fixed_low_start + fixed_low_size;
 	fixed_high_start = fixed_middle_start + fixed_middle_size;
 
 	for (i = 0; i < msm8930_ion_pdata.nr; ++i) {
@@ -590,13 +582,11 @@ static void __init reserve_ion_memory(void)
 
 		if (heap->extra_data) {
 			int fixed_position = NOT_FIXED;
-			struct ion_cp_heap_pdata *pdata;
 
 			switch (heap->type) {
 			case ION_HEAP_TYPE_CP:
-				pdata =
-				(struct ion_cp_heap_pdata *)heap->extra_data;
-				fixed_position = pdata->fixed_position;
+				fixed_position = ((struct ion_cp_heap_pdata *)
+					heap->extra_data)->fixed_position;
 				break;
 			case ION_HEAP_TYPE_CARVEOUT:
 				fixed_position = ((struct ion_co_heap_pdata *)
@@ -612,9 +602,6 @@ static void __init reserve_ion_memory(void)
 				break;
 			case FIXED_MIDDLE:
 				heap->base = fixed_middle_start;
-				pdata->secure_base = fixed_middle_start
-							- HOLE_SIZE;
-				pdata->secure_size = HOLE_SIZE + heap->size;
 				break;
 			case FIXED_HIGH:
 				heap->base = fixed_high_start;
@@ -764,8 +751,6 @@ static struct wcd9xxx_pdata sitar_platform_data = {
 		.cfilt2_mv = 1800,
 		.bias1_cfilt_sel = SITAR_CFILT1_SEL,
 		.bias2_cfilt_sel = SITAR_CFILT2_SEL,
-		.bias1_cap_mode = MICBIAS_EXT_BYP_CAP,
-		.bias2_cap_mode = MICBIAS_NO_EXT_BYP_CAP,
 	},
 	.regulator = {
 	{
@@ -830,8 +815,6 @@ static struct wcd9xxx_pdata sitar1p1_platform_data = {
 		.cfilt2_mv = 1800,
 		.bias1_cfilt_sel = SITAR_CFILT1_SEL,
 		.bias2_cfilt_sel = SITAR_CFILT2_SEL,
-		.bias1_cap_mode = MICBIAS_EXT_BYP_CAP,
-		.bias2_cap_mode = MICBIAS_NO_EXT_BYP_CAP,
 	},
 	.regulator = {
 	{
@@ -949,12 +932,6 @@ static struct msm_bus_vectors qseecom_clks_init_vectors[] = {
 		.ab = 0,
 	},
 	{
-		.src = MSM_BUS_MASTER_SPS,
-		.dst = MSM_BUS_SLAVE_SPS,
-		.ib = 0,
-		.ab = 0,
-	},
-	{
 		.src = MSM_BUS_MASTER_SPDM,
 		.dst = MSM_BUS_SLAVE_SPDM,
 		.ib = 0,
@@ -970,12 +947,6 @@ static struct msm_bus_vectors qseecom_enable_dfab_vectors[] = {
 		.ab = (492 * 8) *  100000UL,
 	},
 	{
-		.src = MSM_BUS_MASTER_SPS,
-		.dst = MSM_BUS_SLAVE_SPS,
-		.ib = (492 * 8) * 1000000UL,
-		.ab = (492 * 8) *  100000UL,
-	},
-	{
 		.src = MSM_BUS_MASTER_SPDM,
 		.dst = MSM_BUS_SLAVE_SPDM,
 		.ib = 0,
@@ -987,12 +958,6 @@ static struct msm_bus_vectors qseecom_enable_sfpb_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_SPS,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ib = 0,
-		.ab = 0,
-	},
-	{
-		.src = MSM_BUS_MASTER_SPS,
-		.dst = MSM_BUS_SLAVE_SPS,
 		.ib = 0,
 		.ab = 0,
 	},
@@ -1231,7 +1196,6 @@ static uint16_t msm_mpm_irqs_m2a[MSM_MPM_NR_MPM_IRQS] __initdata = {
 	[23] = MSM_GPIO_TO_INT(85),
 	[24] = MSM_GPIO_TO_INT(83),
 	[25] = USB1_HS_IRQ,
-	[26] = MSM_GPIO_TO_INT(6),
 	[27] = HDMI_IRQ,
 	[29] = MSM_GPIO_TO_INT(10),
 	[30] = MSM_GPIO_TO_INT(102),
@@ -1245,15 +1209,15 @@ static uint16_t msm_mpm_irqs_m2a[MSM_MPM_NR_MPM_IRQS] __initdata = {
 	[38] = MSM_GPIO_TO_INT(50),
 	[39] = MSM_GPIO_TO_INT(42),
 	[41] = MSM_GPIO_TO_INT(62),
-	[42] = MSM_GPIO_TO_INT(8),
-	[43] = MSM_GPIO_TO_INT(33),
+	[42] = MSM_GPIO_TO_INT(76),
+	[43] = MSM_GPIO_TO_INT(75),
 	[44] = MSM_GPIO_TO_INT(70),
 	[45] = MSM_GPIO_TO_INT(69),
 	[46] = MSM_GPIO_TO_INT(67),
 	[47] = MSM_GPIO_TO_INT(65),
-	[48] = MSM_GPIO_TO_INT(55),
-	[49] = MSM_GPIO_TO_INT(74),
-	[50] = MSM_GPIO_TO_INT(98),
+	[48] = MSM_GPIO_TO_INT(58),
+	[49] = MSM_GPIO_TO_INT(54),
+	[50] = MSM_GPIO_TO_INT(52),
 	[51] = MSM_GPIO_TO_INT(49),
 	[52] = MSM_GPIO_TO_INT(40),
 	[53] = MSM_GPIO_TO_INT(37),
@@ -1393,16 +1357,6 @@ static struct msm_bus_scale_pdata usb_bus_scale_pdata = {
 };
 #endif
 
-static int hsusb_phy_init_seq[] = {
-	0x44, 0x80, /* set VBUS valid threshold
-			and disconnect valid threshold */
-	0x68, 0x81, /* update DC voltage level */
-	0x24, 0x82, /* set preemphasis and rise/fall time */
-	0x13, 0x83, /* set source impedance adjusment */
-	-1};
-
-#define MSM_MPM_PIN_USB1_OTGSESSVLD	40
-
 static struct msm_otg_platform_data msm_otg_pdata = {
 	.mode			= USB_OTG,
 	.otg_control		= OTG_PMIC_CONTROL,
@@ -1412,7 +1366,6 @@ static struct msm_otg_platform_data msm_otg_pdata = {
 #ifdef CONFIG_MSM_BUS_SCALING
 	.bus_scale_table	= &usb_bus_scale_pdata,
 #endif
-	.mpm_otgsessvld_int	= MSM_MPM_PIN_USB1_OTGSESSVLD,
 };
 #endif
 
@@ -1694,7 +1647,7 @@ static struct i2c_board_info msm_isa1200_board_info[] __initdata = {
 #define MXT_TS_GPIO_IRQ			11
 #define MXT_TS_RESET_GPIO		52
 
-static const u8 mxt_config_data_8930_v1[] = {
+static const u8 mxt_config_data_8930[] = {
 	/* T6 Object */
 	 0, 0, 0, 0, 0, 0,
 	/* T38 Object */
@@ -1737,43 +1690,6 @@ static const u8 mxt_config_data_8930_v1[] = {
 	 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	 0, 0, 0, 0,
-};
-
-static const u8 mxt_config_data_8930_v2[] = {
-	/* T6 Object */
-	 0, 0, 0, 0, 0, 0,
-	/* T38 Object */
-	 15, 4, 0, 9, 7, 12, 0, 0,
-	/* T7 Object */
-	32, 16, 50,
-	/* T8 Object */
-	 30, 0, 5, 10, 0, 0, 10, 10, 0, 0,
-	/* T9 Object */
-	 131, 0, 0, 19, 11, 0, 16, 50, 1, 3,
-	 12, 7, 2, 0, 4, 5, 2, 10, 43, 4,
-	 54, 2, -25, 29, 38, 18, 143, 40, 207, 80,
-	 17, 5, 50, 50, 0,
-	/* T18 Object */
-	 0, 0,
-	/* T19 Object */
-	 0, 0, 0, 0, 0, 0,
-	/* T25 Object */
-	 0, 0, 0, 0, 0, 0,
-	/* T42 Object */
-	 3, 60, 20, 20, 150, 0, 0, 0,
-	/* T46 Object */
-	 0, 3, 28, 28, 0, 0, 1, 0, 0,
-	/* T47 Object */
-	 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	/* T48 Object */
-	 1, 3, 82, 0, 0, 0, 0, 0, 0, 0,
-	 16, 30, 0, 6, 6, 0, 0, 124, 4, 100,
-	 0, 0, 0, 5, 0, 42, 0, 1, 0, 40,
-	 52, 20, 0, 0, 0, 50, 1, 5, 2, 1,
-	 4, 5, 3, -25, 29, 38, 18, 143, 40, 207,
-	 80, 10, 5, 2,
-	/* T55 Object */
-	0, 0, 0, 0,
 };
 
 static ssize_t mxt224e_vkeys_show(struct kobject *kobj,
@@ -1823,33 +1739,12 @@ static void mxt_init_vkeys_8930(void)
 
 static struct mxt_config_info mxt_config_array[] = {
 	{
-		.config			= mxt_config_data_8930_v1,
-		.config_length		= ARRAY_SIZE(mxt_config_data_8930_v1),
+		.config			= mxt_config_data_8930,
+		.config_length		= ARRAY_SIZE(mxt_config_data_8930),
 		.family_id		= 0x81,
 		.variant_id		= 0x01,
 		.version		= 0x10,
 		.build			= 0xAA,
-		.bootldr_id		= MXT_BOOTLOADER_ID_224E,
-		.fw_name		= "atmel_8930_fluid_v2_0_AB.hex",
-	},
-	{
-		.config			= mxt_config_data_8930_v2,
-		.config_length		= ARRAY_SIZE(mxt_config_data_8930_v2),
-		.family_id		= 0x81,
-		.variant_id		= 0x15,
-		.version		= 0x11,
-		.build			= 0xAA,
-		.bootldr_id		= MXT_BOOTLOADER_ID_224E,
-		.fw_name		= "atmel_8930_fluid_v2_0_AB.hex",
-	},
-	{
-		.config			= mxt_config_data_8930_v2,
-		.config_length		= ARRAY_SIZE(mxt_config_data_8930_v2),
-		.family_id		= 0x81,
-		.variant_id		= 0x01,
-		.version		= 0x20,
-		.build			= 0xAB,
-		.bootldr_id		= MXT_BOOTLOADER_ID_224E,
 	},
 };
 
@@ -1880,28 +1775,6 @@ static struct i2c_board_info mxt_device_info_8930[] __initdata = {
 		.irq = MSM_GPIO_TO_INT(MXT_TS_GPIO_IRQ),
 	},
 };
-
-#define MHL_POWER_GPIO       PM8038_GPIO_PM_TO_SYS(MHL_GPIO_PWR_EN)
-static struct msm_mhl_platform_data mhl_platform_data = {
-	.irq = MSM_GPIO_TO_INT(MHL_GPIO_INT),
-	.gpio_mhl_int = MHL_GPIO_INT,
-	.gpio_mhl_reset = MHL_GPIO_RESET,
-	.gpio_mhl_power = MHL_POWER_GPIO,
-	.gpio_hdmi_mhl_mux = HDMI_MHL_MUX_GPIO,
-};
-
-static struct i2c_board_info sii_device_info[] __initdata = {
-	{
-		/*
-		 * keeps SI 8334 as the default
-		 * MHL TX
-		 */
-		I2C_BOARD_INFO("sii8334", 0x39),
-		.platform_data = &mhl_platform_data,
-		.flags = I2C_CLIENT_WAKE,
-	},
-};
-
 
 #ifdef MSM8930_PHASE_2
 
@@ -2176,7 +2049,6 @@ static struct platform_device *common_devices[] __initdata = {
 #endif
 	&msm8930_rpm_device,
 	&msm8930_rpm_log_device,
-	&msm8930_rpm_rbcpr_device,
 	&msm8930_rpm_stat_device,
 #ifdef CONFIG_ION_MSM
 	&msm8930_ion_dev,
@@ -2206,7 +2078,6 @@ static struct platform_device *common_devices[] __initdata = {
 	&msm8960_device_cache_erp,
 	&msm8930_iommu_domain_device,
 	&msm_tsens_device,
-	&msm_multi_ch_pcm,
 };
 
 static struct platform_device *cdp_devices[] __initdata = {
@@ -2414,12 +2285,6 @@ static struct i2c_registry msm8960_i2c_devices[] __initdata = {
 		mxt_device_info_8930,
 		ARRAY_SIZE(mxt_device_info_8930),
 	},
-	{
-		I2C_SURF | I2C_FFA | I2C_LIQUID | I2C_FLUID,
-		MSM_8930_GSBI9_QUP_I2C_BUS_ID,
-		sii_device_info,
-		ARRAY_SIZE(sii_device_info),
-	},
 };
 #endif /* CONFIG_I2C */
 
@@ -2478,7 +2343,6 @@ static void __init msm8930_cdp_init(void)
 		pr_err("Failed to initialize XO votes\n");
 	platform_device_register(&msm8930_device_rpm_regulator);
 	msm_clock_init(&msm8930_clock_init_data);
-	msm_otg_pdata.phy_init_seq = hsusb_phy_init_seq;
 	msm8960_device_otg.dev.platform_data = &msm_otg_pdata;
 	android_usb_pdata.swfi_latency =
 			msm_rpmrs_levels[0].latency_us;

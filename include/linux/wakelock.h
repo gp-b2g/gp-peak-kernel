@@ -31,7 +31,6 @@ enum {
 	WAKE_LOCK_IDLE,    /* Prevent low power idle */
 	WAKE_LOCK_TYPE_COUNT
 };
-
 struct wake_lock {
 	struct list_head    link;
 	int                 flags;

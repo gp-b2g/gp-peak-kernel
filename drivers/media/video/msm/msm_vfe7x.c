@@ -134,7 +134,7 @@ static void vfe_7x_ops(void *driver_data, unsigned id, size_t len,
 	uint32_t evt_buf[3];
 	struct msm_vfe_resp *rp;
 	void *data;
-	CDBG("%s:id=%d\n", __func__, id);
+	CDBG("msm_vfe7x %s:id=%d\n", __func__, id);
 
 	len = (id == VFE_ADSP_EVENT) ? 0 : len;
 	data = resp->vfe_alloc(sizeof(struct msm_vfe_resp) + len,

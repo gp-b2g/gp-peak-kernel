@@ -138,8 +138,6 @@ struct msm_sensor_fn_t {
 	int32_t (*sensor_match_id)(struct msm_sensor_ctrl_t *s_ctrl);
 	int (*sensor_adjust_frame_lines)
 		(struct msm_sensor_ctrl_t *s_ctrl, uint16_t res);
-	int32_t (*sensor_get_csi_params)(struct msm_sensor_ctrl_t *,
-		struct csi_lane_params_t *);
 	//zxj ++
 	#ifdef ORIGINAL_VERSION
 	#else
@@ -167,16 +165,6 @@ struct msm_sensor_af_move_params_t {
 };
 //zxj --
 
-struct msm_sensor_csi_info {
-	uint32_t csid_version;
-	uint8_t is_csic;
-};
-
-enum msm_sensor_state {
-	MSM_SENSOR_POWER_UP,
-	MSM_SENSOR_POWER_DOWN,
-};
-
 struct msm_sensor_ctrl_t {
 	struct  msm_camera_sensor_info *sensordata;
 	struct i2c_client *msm_sensor_client;
@@ -190,8 +178,6 @@ struct msm_sensor_ctrl_t {
 	struct msm_sensor_reg_t *msm_sensor_reg;
 	struct msm_sensor_v4l2_ctrl_info_t *msm_sensor_v4l2_ctrl_info;
 	uint16_t num_v4l2_ctrl;
-	uint32_t csid_version;
-	uint8_t is_csic;
 
 	uint16_t curr_line_length_pclk;
 	uint16_t curr_frame_length_lines;
@@ -232,10 +218,10 @@ struct msm_sensor_ctrl_t {
 	struct region_params_t region_params[MAX_ACTUATOR_REGION];
 //	struct msm_sensor_af_move_params_t *af_move_params;
 	//zxj --
+	
 	/*c8680, 2012-08-15, add for optimize af {*/
 	struct msm_actuator_ctrl_t *a_ctrl;
 	/*} c8680, 2012-08-15, add for optimize af*/
-	enum msm_sensor_state sensor_state;
 };
 
 void msm_sensor_start_stream(struct msm_sensor_ctrl_t *s_ctrl);
@@ -287,14 +273,7 @@ int msm_sensor_write_res_settings
 int32_t msm_sensor_write_output_settings(struct msm_sensor_ctrl_t *s_ctrl,
 	uint16_t res);
 
-//zxj ++
-int32_t msm_sensor_focus_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp);
-//zxj --
-
-int32_t msm_sensor_adjust_frame_lines1(struct msm_sensor_ctrl_t *s_ctrl,
-	uint16_t res);
-
-int32_t msm_sensor_adjust_frame_lines2(struct msm_sensor_ctrl_t *s_ctrl,
+int32_t msm_sensor_adjust_frame_lines(struct msm_sensor_ctrl_t *s_ctrl,
 	uint16_t res);
 
 int32_t msm_sensor_setting(struct msm_sensor_ctrl_t *s_ctrl,
@@ -308,8 +287,9 @@ int msm_sensor_enable_debugfs(struct msm_sensor_ctrl_t *s_ctrl);
 long msm_sensor_subdev_ioctl(struct v4l2_subdev *sd,
 			unsigned int cmd, void *arg);
 
-int32_t msm_sensor_get_csi_params(struct msm_sensor_ctrl_t *s_ctrl,
-		struct csi_lane_params_t *sensor_output_info);
+//zxj ++
+int32_t msm_sensor_focus_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp);
+//zxj --
 
 struct msm_sensor_ctrl_t *get_sctrl(struct v4l2_subdev *sd);
 
@@ -330,8 +310,5 @@ struct msm_sensor_ctrl_t *get_sctrl(struct v4l2_subdev *sd);
 
 #define VIDIOC_MSM_SENSOR_RELEASE \
 	_IO('V', BASE_VIDIOC_PRIVATE + 11)
-
-#define VIDIOC_MSM_SENSOR_CSID_INFO\
-	_IOWR('V', BASE_VIDIOC_PRIVATE + 12, struct msm_sensor_csi_info *)
 
 #endif

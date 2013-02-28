@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -213,11 +213,11 @@ static u32 vcd_decode_frame_cmn
 	return vcd_handle_input_frame(cctxt, input_frame);
 }
 
-static u32 vcd_pause_cmn(struct vcd_clnt_ctxt *cctxt)
+static u32 vcd_pause_in_run(struct vcd_clnt_ctxt *cctxt)
 {
 	u32 rc = VCD_S_SUCCESS;
 
-	VCD_MSG_LOW("vcd_pause_cmn:");
+	VCD_MSG_LOW("vcd_pause_in_run:");
 
 	if (cctxt->sched_clnt_hdl) {
 		rc = vcd_sched_suspend_resume_clnt(cctxt, false);
@@ -541,12 +541,6 @@ static u32 vcd_set_property_cmn
 			}
 			break;
 		}
-	case VCD_I_SET_TURBO_CLK:
-	{
-		if (cctxt->sched_clnt_hdl)
-			rc = vcd_set_perf_turbo_level(cctxt);
-		break;
-	}
 	case VCD_I_INTRA_PERIOD:
 		{
 			struct vcd_property_i_period *iperiod =
@@ -1709,7 +1703,7 @@ static const struct vcd_clnt_state_table vcd_clnt_table_run = {
 	 vcd_encode_frame_cmn,
 	 vcd_decode_start_in_run,
 	 vcd_decode_frame_cmn,
-	 vcd_pause_cmn,
+	 vcd_pause_in_run,
 	 NULL,
 	 vcd_flush_cmn,
 	 vcd_stop_in_run,
@@ -1784,7 +1778,7 @@ static const struct vcd_clnt_state_table vcd_clnt_table_eos = {
 	 vcd_encode_frame_cmn,
 	 NULL,
 	 vcd_decode_frame_cmn,
-	 vcd_pause_cmn,
+	 NULL,
 	 NULL,
 	 vcd_flush_in_eos,
 	 vcd_stop_in_eos,

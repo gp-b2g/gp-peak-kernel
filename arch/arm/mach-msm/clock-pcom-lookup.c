@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -318,17 +318,33 @@ static struct clk_lookup msm_cmn_clk_7625a_7627a[] __initdata = {
 	CLK_LOOKUP("slave_iface_clk",		ahb_s_clk.c,	"mipi_dsi.1"),
 	CLK_LOOKUP("cam_m_clk",		cam_m_clk.c,	NULL),
 	CLK_LOOKUP("cam_clk",		cam_m_clk.c,	"0-0036"),
+	CLK_LOOKUP("cam_clk",		cam_m_clk.c,	"0-001e"),
 	CLK_LOOKUP("cam_clk",		cam_m_clk.c,	"0-001b"),
 	CLK_LOOKUP("cam_clk",		cam_m_clk.c,	"0-0010"),
+	CLK_LOOKUP("cam_clk",		cam_m_clk.c,	"0-003c"),
+	CLK_LOOKUP("cam_clk",		cam_m_clk.c,	"0-003d"),
+	CLK_LOOKUP("cam_clk",		cam_m_clk.c,	"0-0040"),
+	CLK_LOOKUP("cam_clk",		cam_m_clk.c,	"0-0076"),
 	CLK_LOOKUP("cam_clk",		cam_m_clk.c,	"0-0078"),
+	CLK_LOOKUP("cam_clk",		cam_m_clk.c,	"0-007a"),
 	CLK_LOOKUP("cam_clk",		cam_m_clk.c,	"0-006c"),
 	CLK_LOOKUP("cam_clk",		cam_m_clk.c,	"0-000d"),
+	CLK_LOOKUP("cam_clk",		cam_m_clk.c,	"0-0060"),
+	CLK_LOOKUP("cam_clk",		cam_m_clk.c,	"0-0020"),	
 	CLK_LOOKUP("csi_clk",		csi0_clk.c,	"msm_camera_ov9726.0"),
 	CLK_LOOKUP("csi_pclk",		csi0_p_clk.c,	"msm_camera_ov9726.0"),
 	CLK_LOOKUP("csi_vfe_clk",	csi0_vfe_clk.c,	"msm_camera_ov9726.0"),
+#ifdef CONFIG_GC0339
+	CLK_LOOKUP("csi_clk",		csi0_clk.c,	"msm_camera_gc0339.0"),
+	CLK_LOOKUP("csi_pclk",		csi0_p_clk.c,	"msm_camera_gc0339.0"),
+	CLK_LOOKUP("csi_vfe_clk",	csi0_vfe_clk.c,	"msm_camera_gc0339.0"),
+#endif
 	CLK_LOOKUP("csi_clk",		csi0_clk.c,	"msm_camera_ov7692.0"),
 	CLK_LOOKUP("csi_pclk",		csi0_p_clk.c,	"msm_camera_ov7692.0"),
 	CLK_LOOKUP("csi_vfe_clk",	csi0_vfe_clk.c,	"msm_camera_ov7692.0"),
+	CLK_LOOKUP("csi_clk",		csi0_clk.c,	"msm_camera_mt9v113.0"),
+	CLK_LOOKUP("csi_pclk",		csi0_p_clk.c,	"msm_camera_mt9v113.0"),
+	CLK_LOOKUP("csi_vfe_clk",   csi0_vfe_clk.c,	"msm_camera_mt9v113.0"),
 	CLK_LOOKUP("csi_clk",		csi1_clk.c,	NULL),
 	CLK_LOOKUP("csi_pclk",		csi1_p_clk.c,	NULL),
 	CLK_LOOKUP("csi_vfe_clk",	csi1_vfe_clk.c,	NULL),

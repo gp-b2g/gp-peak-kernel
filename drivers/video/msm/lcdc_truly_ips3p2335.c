@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -24,6 +24,7 @@ static int spi_sclk;
 static int spi_mosi;
 static int gpio_backlight_en;
 static int gpio_display_reset;
+spinlock_t lcdc_ips3p2335_spin_lock;
 
 struct truly_state_type {
 	boolean disp_initialized;
@@ -138,9 +139,8 @@ static void truly_disp_reginit(void)
 		truly_spi_write(0xe0, init_item_v10, sizeof(init_item_v10));
 		truly_spi_write(0x36, init_item_v11, sizeof(init_item_v11));
 		truly_spi_write(0x11, NULL, 0);
-		msleep(150);
+		msleep(10);
 		truly_spi_write(0x29, NULL, 0);
-		msleep(25);
 
 		truly_state.display_on = TRUE;
 	}
@@ -148,12 +148,12 @@ static void truly_disp_reginit(void)
 
 static int lcdc_truly_panel_on(struct platform_device *pdev)
 {
-	struct msm_fb_data_type *mfd = platform_get_drvdata(pdev);
+    struct msm_fb_data_type *mfd = platform_get_drvdata(pdev);
 
-	if (!mfd->cont_splash_done) {
-		mfd->cont_splash_done = 1;
-		return 0;
-	}
+    if (!mfd->cont_splash_done) {
+        mfd->cont_splash_done = 1;
+        return 0;
+    }
 
 	/* Configure reset GPIO that drives DAC */
 	if (lcdc_truly_pdata->panel_config_gpio)
@@ -182,6 +182,7 @@ static void lcdc_truly_set_backlight(struct msm_fb_data_type *mfd)
 	unsigned long flags;
 	int bl_level = mfd->bl_level;
 
+	spin_lock_irqsave(&lcdc_ips3p2335_spin_lock, flags); //disable local irq and preemption
 	/* real backlight level, 1 - max, 16 - min, 17 - off */
 	bl_level = 17 - bl_level;
 
@@ -193,6 +194,7 @@ static void lcdc_truly_set_backlight(struct msm_fb_data_type *mfd)
 		step = bl_level + 16 - prev_bl;
 	} else {
 		pr_info("%s: no change\n", __func__);
+		spin_unlock_irqrestore(&lcdc_ips3p2335_spin_lock, flags);
 		return;
 	}
 
@@ -200,8 +202,6 @@ static void lcdc_truly_set_backlight(struct msm_fb_data_type *mfd)
 		/* turn off backlight */
 		gpio_set_value(gpio_backlight_en, 0);
 	} else {
-		local_irq_save(flags);
-
 		if (prev_bl == 17) {
 			/* turn on backlight */
 			gpio_set_value(gpio_backlight_en, 1);
@@ -215,12 +215,9 @@ static void lcdc_truly_set_backlight(struct msm_fb_data_type *mfd)
 			gpio_set_value(gpio_backlight_en, 1);
 			udelay(1);
 		}
-
-		local_irq_restore(flags);
 	}
-	msleep(20);
 	prev_bl = bl_level;
-
+	spin_unlock_irqrestore(&lcdc_ips3p2335_spin_lock, flags);
 	return;
 }
 
@@ -300,7 +297,7 @@ static int __init lcdc_truly_panel_init(void)
 	pinfo->lcdc.border_clr = 0;		/* blk */
 	pinfo->lcdc.underflow_clr = 0xff;	/* blue */
 	pinfo->lcdc.hsync_skew = 0;
-
+	spin_lock_init(&lcdc_ips3p2335_spin_lock);
 	ret = platform_device_register(&this_device);
 	if (ret) {
 		pr_err("%s not able to register the device\n", __func__);

@@ -136,7 +136,7 @@ int pm8xxx_spk_gain(u8 gain)
 	val = pm8xxx_spk_read(PM8XXX_SPK_CTL1_REG_OFF);
 	if (val < 0)
 		return val;
-	val = (gain << 4) | (val & 0xF);
+	val |= (gain << 4);
 	ret = pm8xxx_spk_write(PM8XXX_SPK_CTL1_REG_OFF, val);
 	if (!ret) {
 		pm8xxx_spk_bank_write(the_spk_chip->base
@@ -162,10 +162,7 @@ int pm8xxx_spk_enable(int enable)
 	val = pm8xxx_spk_read(PM8XXX_SPK_CTL1_REG_OFF);
 	if (val < 0)
 		return val;
-	if (enable)
-		val |= (1 << 3);
-	else
-		val &= ~(1 << 3);
+	val |= (enable << 3);
 	ret = pm8xxx_spk_write(PM8XXX_SPK_CTL1_REG_OFF, val);
 	if (!ret)
 		ret = pm8xxx_spk_bank_write(addr, 6, PWM_EN_MASK);

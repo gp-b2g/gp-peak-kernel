@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -689,12 +689,6 @@ static int snapshot_rb(struct kgsl_device *device, void *snapshot,
 				adreno_find_ctxtmem(device, ptbase, ibaddr,
 					ibsize);
 
-			/* IOMMU uses a NOP IB placed in setsate memory */
-			if (NULL == memdesc)
-				if (kgsl_gpuaddr_in_memdesc(
-						&device->mmu.setstate_memory,
-						ibaddr, ibsize))
-					memdesc = &device->mmu.setstate_memory;
 			/*
 			 * The IB from CP_IB1_BASE and the IBs for legacy
 			 * context switch go into the snapshot all

@@ -50,7 +50,6 @@
 #define MSM_VFE_DRV_NAME "msm_vfe"
 #define MSM_VPE_DRV_NAME "msm_vpe"
 #define MSM_GEMINI_DRV_NAME "msm_gemini"
-#define MSM_MERCURY_DRV_NAME "msm_mercury"
 #define MSM_I2C_MUX_DRV_NAME "msm_cam_i2c_mux"
 
 #define MAX_NUM_CSIPHY_DEV 3
@@ -139,12 +138,13 @@ struct isp_msg_output {
 
 /* message id for v4l2_subdev_notify*/
 enum msm_camera_v4l2_subdev_notify {
+	NOTIFY_CID_CHANGE, /* arg = msm_camera_csid_params */
 	NOTIFY_ISP_MSG_EVT, /* arg = enum ISP_MESSAGE_ID */
 	NOTIFY_VFE_MSG_OUT, /* arg = struct isp_msg_output */
 	NOTIFY_VFE_MSG_STATS,  /* arg = struct isp_msg_stats */
 	NOTIFY_VFE_MSG_COMP_STATS, /* arg = struct msm_stats_buf */
 	NOTIFY_VFE_BUF_EVT, /* arg = struct msm_vfe_resp */
-	NOTIFY_VFE_CAMIF_ERROR,
+	NOTIFY_ISPIF_STREAM, /* arg = enable parameter for s_stream */
 	NOTIFY_VPE_MSG_EVT,
 	NOTIFY_PCLK_CHANGE, /* arg = pclk */
 	NOTIFY_CSIPHY_CFG, /* arg = msm_camera_csiphy_params */
@@ -169,7 +169,7 @@ enum isp_vfe_cmd_id {
 
 struct msm_cam_v4l2_device;
 struct msm_cam_v4l2_dev_inst;
-#define MSM_MAX_IMG_MODE                MSM_V4L2_EXT_CAPTURE_MODE_MAX
+#define MSM_MAX_IMG_MODE                8
 
 enum msm_buffer_state {
 	MSM_BUFFER_STATE_UNUSED,

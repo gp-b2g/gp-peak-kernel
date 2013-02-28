@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -676,10 +676,9 @@ u32 vidc_insert_addr_table(struct video_client_ctx *client_ctx,
 						(unsigned long *) &buffer_size,
 						UNCACHED,
 						ION_IOMMU_UNMAP_DELAYED);
-				if (ret || !iova) {
-					ERR(
-					"%s():ION iommu map fail, ret = %d, iova = 0x%lx\n",
-						__func__, ret, iova);
+				if (ret) {
+					ERR("%s():ION iommu map fail\n",
+					 __func__);
 					goto ion_map_error;
 				}
 				phys_addr = iova;
@@ -781,7 +780,7 @@ u32 vidc_insert_addr_table_kernel(struct video_client_ctx *client_ctx,
 		*num_of_buffers = *num_of_buffers + 1;
 		DBG("%s() : client_ctx = %p, user_virt_addr = 0x%08lx, "
 			"kernel_vaddr = 0x%08lx inserted!", __func__,
-			client_ctx, user_vaddr, kernel_vaddr);
+			client_ctx, user_vaddr, *kernel_vaddr);
 	}
 	mutex_unlock(&client_ctx->enrty_queue_lock);
 	return true;

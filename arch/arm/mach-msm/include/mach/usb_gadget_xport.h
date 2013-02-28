@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -21,13 +21,12 @@ enum transport_type {
 	USB_GADGET_XPORT_SMD,
 	USB_GADGET_XPORT_BAM,
 	USB_GADGET_XPORT_BAM2BAM,
-	USB_GADGET_XPORT_BAM2BAM_IPA,
 	USB_GADGET_XPORT_HSIC,
 	USB_GADGET_XPORT_HSUART,
 	USB_GADGET_XPORT_NONE,
 };
 
-#define XPORT_STR_LEN	12
+#define XPORT_STR_LEN	10
 
 static char *xport_to_str(enum transport_type t)
 {
@@ -42,8 +41,6 @@ static char *xport_to_str(enum transport_type t)
 		return "BAM";
 	case USB_GADGET_XPORT_BAM2BAM:
 		return "BAM2BAM";
-	case USB_GADGET_XPORT_BAM2BAM_IPA:
-		return "BAM2BAM_IPA";
 	case USB_GADGET_XPORT_HSIC:
 		return "HSIC";
 	case USB_GADGET_XPORT_HSUART:
@@ -67,8 +64,6 @@ static enum transport_type str_to_xport(const char *name)
 		return USB_GADGET_XPORT_BAM;
 	if (!strncasecmp("BAM2BAM", name, XPORT_STR_LEN))
 		return USB_GADGET_XPORT_BAM2BAM;
-	if (!strncasecmp("BAM2BAM_IPA", name, XPORT_STR_LEN))
-		return USB_GADGET_XPORT_BAM2BAM_IPA;
 	if (!strncasecmp("HSIC", name, XPORT_STR_LEN))
 		return USB_GADGET_XPORT_HSIC;
 	if (!strncasecmp("HSUART", name, XPORT_STR_LEN))

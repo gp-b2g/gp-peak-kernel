@@ -1,4 +1,4 @@
-/* Copyright (c) 2002,2007-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2002,2007-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -442,13 +442,11 @@ z180_cmdstream_issueibcmds(struct kgsl_device_private *dev_priv,
 	    (ctrl & KGSL_CONTEXT_CTX_SWITCH)) {
 		KGSL_CMD_INFO(device, "context switch %d -> %d\n",
 			context->id, z180_dev->ringbuffer.prevctx);
-		kgsl_mmu_setstate(&device->mmu, pagetable,
-				KGSL_MEMSTORE_GLOBAL);
+		kgsl_mmu_setstate(&device->mmu, pagetable);
 		cnt = PACKETSIZE_STATESTREAM;
 		ofs = 0;
 	}
 	kgsl_setstate(&device->mmu,
-			KGSL_MEMSTORE_GLOBAL,
 			kgsl_mmu_pt_get_flags(device->mmu.hwpagetable,
 			device->id));
 
@@ -861,8 +859,7 @@ z180_drawctxt_destroy(struct kgsl_device *device,
 	if (z180_dev->ringbuffer.prevctx == context->id) {
 		z180_dev->ringbuffer.prevctx = Z180_INVALID_CONTEXT;
 		device->mmu.hwpagetable = device->mmu.defaultpagetable;
-		kgsl_setstate(&device->mmu, KGSL_MEMSTORE_GLOBAL,
-				KGSL_MMUFLAGS_PTUPDATE);
+		kgsl_setstate(&device->mmu, KGSL_MMUFLAGS_PTUPDATE);
 	}
 }
 
@@ -890,8 +887,7 @@ static void z180_irqctrl(struct kgsl_device *device, int state)
 
 	if (state) {
 		z180_regwrite(device, (ADDR_VGC_IRQENABLE >> 2), 3);
-		z180_regwrite(device, MH_INTERRUPT_MASK,
-			kgsl_mmu_get_int_mask());
+		z180_regwrite(device, MH_INTERRUPT_MASK, KGSL_MMU_INT_MASK);
 	} else {
 		z180_regwrite(device, (ADDR_VGC_IRQENABLE >> 2), 0);
 		z180_regwrite(device, MH_INTERRUPT_MASK, 0);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -100,7 +100,6 @@ enum rpm_vreg_id_8930 {
 	RPM_VREG_ID_PM8038_L10,
 	RPM_VREG_ID_PM8038_L11,
 	RPM_VREG_ID_PM8038_L12,
-	RPM_VREG_ID_PM8038_L13,
 	RPM_VREG_ID_PM8038_L14,
 	RPM_VREG_ID_PM8038_L15,
 	RPM_VREG_ID_PM8038_L16,
@@ -112,7 +111,6 @@ enum rpm_vreg_id_8930 {
 	RPM_VREG_ID_PM8038_L22,
 	RPM_VREG_ID_PM8038_L23,
 	RPM_VREG_ID_PM8038_L24,
-	RPM_VREG_ID_PM8038_L25,
 	RPM_VREG_ID_PM8038_L26,
 	RPM_VREG_ID_PM8038_L27,
 	RPM_VREG_ID_PM8038_S1,
@@ -156,7 +154,6 @@ enum rpm_vreg_id_8930 {
 };
 
 /* Minimum high power mode loads in uA. */
-#define RPM_VREG_8930_LDO_5_HPM_MIN_LOAD		0
 #define RPM_VREG_8930_LDO_50_HPM_MIN_LOAD		5000
 #define RPM_VREG_8930_LDO_150_HPM_MIN_LOAD		10000
 #define RPM_VREG_8930_LDO_300_HPM_MIN_LOAD		10000

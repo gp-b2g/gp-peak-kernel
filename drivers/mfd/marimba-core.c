@@ -1,4 +1,4 @@
-/* Copyright (c) 2009-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2009-2011, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -322,7 +322,7 @@ int timpani_write(struct marimba *marimba, u8 reg,
 }
 EXPORT_SYMBOL(timpani_write);
 
-static int cur_codec_type = -1, cur_adie_type = -1, cur_connv_type = -1;
+static int cur_codec_type = -1, cur_connv_type = -1;
 static int adie_arry_idx;
 
 int adie_get_detected_codec_type(void)
@@ -771,7 +771,7 @@ static void marimba_init_reg(struct i2c_client *client, u8 driver_data)
 }
 #endif
 
-static int __devinit marimba_probe(struct i2c_client *client,
+static int marimba_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
 {
 #ifdef CONFIG_MARIMBA_IIC_DEVICE
@@ -864,8 +864,9 @@ static int __devinit marimba_probe(struct i2c_client *client,
 			ssbi_adap = NULL;
 
 		if (!marimba->client) {
-			dev_err(&marimba->client->dev,
-				"can't attach client %d\n", i);
+			//dev_err(&marimba->client->dev,
+			//	"can't attach client %d\n", i);
+			printk("can't attach marimba client %d\n", i);
 			status = -ENOMEM;
 			goto fail;
 		}

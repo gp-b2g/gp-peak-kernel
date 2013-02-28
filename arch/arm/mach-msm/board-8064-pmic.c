@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -337,7 +337,6 @@ static int apq8064_pm8921_therm_mitigation[] = {
 };
 
 #define MAX_VOLTAGE_MV          4200
-#define CHG_TERM_MA		100
 static struct pm8921_charger_platform_data
 apq8064_pm8921_chg_pdata __devinitdata = {
 	.safety_time		= 180,
@@ -345,7 +344,7 @@ apq8064_pm8921_chg_pdata __devinitdata = {
 	.max_voltage		= MAX_VOLTAGE_MV,
 	.min_voltage		= 3200,
 	.resume_voltage_delta	= 100,
-	.term_current		= CHG_TERM_MA,
+	.term_current		= 100,
 	.cool_temp		= 10,
 	.warm_temp		= 40,
 	.temp_check_period	= 1,
@@ -361,19 +360,16 @@ apq8064_pm8921_chg_pdata __devinitdata = {
 static struct pm8xxx_ccadc_platform_data
 apq8064_pm8xxx_ccadc_pdata = {
 	.r_sense		= 10,
-	.calib_delay_ms		= 600000,
 };
 
 static struct pm8921_bms_platform_data
 apq8064_pm8921_bms_pdata __devinitdata = {
-	.battery_type			= BATT_UNKNOWN,
-	.r_sense			= 10,
-	.v_cutoff			= 3400,
-	.max_voltage_uv			= MAX_VOLTAGE_MV * 1000,
-	.rconn_mohm			= 18,
-	.shutdown_soc_valid_limit	= 20,
-	.adjust_soc_low_threshold	= 25,
-	.chg_term_ua			= CHG_TERM_MA * 1000,
+	.battery_type	= BATT_UNKNOWN,
+	.r_sense		= 10,
+	.i_test			= 2500,
+	.v_failure		= 3000,
+	.calib_delay_ms		= 600000,
+	.max_voltage_uv		= MAX_VOLTAGE_MV * 1000,
 };
 
 static struct pm8921_platform_data

@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -699,10 +699,6 @@ static int adreno_dump(struct kgsl_device *device)
 
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
 
-	struct kgsl_memdesc **reg_map;
-	void *reg_map_array;
-	int num_iommu_units = 0;
-
 	mb();
 
 	if (adreno_is_a2xx(adreno_dev))
@@ -784,10 +780,6 @@ static int adreno_dump(struct kgsl_device *device)
 	/* extract the latest ib commands from the buffer */
 	ib_list.count = 0;
 	i = 0;
-	/* get the register mapped array in case we are using IOMMU */
-	num_iommu_units = kgsl_mmu_get_reg_map_desc(&device->mmu,
-							&reg_map_array);
-	reg_map = reg_map_array;
 	for (read_idx = 0; read_idx < num_item; ) {
 		uint32_t this_cmd = rb_copy[read_idx++];
 		if (adreno_cmd_is_ib(this_cmd)) {
@@ -800,10 +792,7 @@ static int adreno_dump(struct kgsl_device *device)
 					ib_list.offsets[i],
 					ib_list.bases[i],
 					ib_list.sizes[i], 0);
-		} else if (this_cmd == cp_type0_packet(MH_MMU_PT_BASE, 1) ||
-			(num_iommu_units && this_cmd == (reg_map[0]->gpuaddr +
-			(KGSL_IOMMU_CONTEXT_USER << KGSL_IOMMU_CTX_SHIFT) +
-			KGSL_IOMMU_TTBR0))) {
+		} else if (this_cmd == cp_type0_packet(MH_MMU_PT_BASE, 1)) {
 
 			KGSL_LOG_DUMP(device, "Current pagetable: %x\t"
 				"pagetable base: %x\n",
@@ -819,8 +808,6 @@ static int adreno_dump(struct kgsl_device *device)
 				cur_pt_base);
 		}
 	}
-	if (num_iommu_units)
-		kfree(reg_map_array);
 
 	/* Restore cur_pt_base back to the pt_base of
 	   the process in whose context the GPU hung */
@@ -916,6 +903,7 @@ int adreno_postmortem_dump(struct kgsl_device *device, int manual)
 			kgsl_idle(device,  KGSL_TIMEOUT_DEFAULT);
 
 	}
+
 	KGSL_LOG_DUMP(device, "POWER: FLAGS = %08lX | ACTIVE POWERLEVEL = %08X",
 			pwr->power_flags, pwr->active_pwrlevel);
 

@@ -15,7 +15,7 @@ REFERENCES
 EXTERNALIZED FUNCTIONS
   None
 
-Copyright(c) 1992-2009, 2012 The Linux Foundation. All rights reserved.
+Copyright(c) 1992-2009, 2012 Code Aurora Forum. All rights reserved.
 
 This software is licensed under the terms of the GNU General Public
 License version 2, as published by the Free Software Foundation, and
@@ -73,7 +73,6 @@ $Header: //source/qcom/qct/multimedia2/Audio/drivers/QDSP5Driver/QDSP5Interface/
 #define AUDPP_CMD_ENA_DEC_V         	0x4000
 #define AUDPP_CMD_DIS_DEC_V        	0x0000
 #define AUDPP_CMD_DEC_STATE_M          	0x4000
-#define AUDPP_CMD_LPA_MODE		0x2000
 
 #define AUDPP_CMD_UPDATDE_CFG_DEC	0x8000
 #define AUDPP_CMD_DONT_UPDATE_CFG_DEC	0x0000

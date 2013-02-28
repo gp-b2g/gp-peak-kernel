@@ -39,22 +39,9 @@ static const struct input_device_id usfc_tsc_ids[] = {
 		.flags = INPUT_DEVICE_ID_MATCH_EVBIT |
 			INPUT_DEVICE_ID_MATCH_KEYBIT |
 			INPUT_DEVICE_ID_MATCH_ABSBIT,
-		.evbit = { BIT_MASK(EV_ABS) | BIT_MASK(EV_KEY) },
+		.evbit = { BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS) },
 		.keybit = { [BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH) },
-		/* assumption: ABS_X & ABS_Y are in the same long */
-		.absbit = { [BIT_WORD(ABS_X)] = BIT_MASK(ABS_X) |
-						BIT_MASK(ABS_Y) },
-	},
-	{
-		.flags = INPUT_DEVICE_ID_MATCH_EVBIT |
-			INPUT_DEVICE_ID_MATCH_KEYBIT |
-			INPUT_DEVICE_ID_MATCH_ABSBIT,
-		.evbit = { BIT_MASK(EV_ABS) | BIT_MASK(EV_KEY) },
-		.keybit = { [BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH) },
-		/* assumption: MT_.._X & MT_.._Y are in the same long */
-		.absbit = { [BIT_WORD(ABS_MT_POSITION_X)] =
-			BIT_MASK(ABS_MT_POSITION_X) |
-			BIT_MASK(ABS_MT_POSITION_Y) },
+		.absbit = { BIT_MASK(ABS_X) | BIT_MASK(ABS_Y) },
 	},
 	{ } /* Terminating entry */
 };
@@ -89,12 +76,12 @@ static bool usfcdev_match(struct input_handler *handler, struct input_dev *dev)
 	int ind = handler->minor;
 
 	pr_debug("%s: name=[%s]; ind=%d\n", __func__, dev->name, ind);
-
 	if (s_usfcdev_events[ind].registered_event &&
 			s_usfcdev_events[ind].match_cb) {
 		rc = (*s_usfcdev_events[ind].match_cb)((uint16_t)ind, dev);
 		pr_debug("%s: [%s]; rc=%d\n", __func__, dev->name, rc);
 	}
+
 	return rc;
 }
 
@@ -141,12 +128,10 @@ static bool usfcdev_filter(struct input_handle *handle,
 {
 	uint16_t ind = (uint16_t)handle->handler->minor;
 
-	pr_debug("%s: event_type=%d; filter=%d; abs_xy=%ld; abs_y_mt[]=%ld\n",
+	pr_debug("%s: event_type=%d; filter=%d\n",
 		__func__,
 		ind,
-		s_usfcdev_events[ind].filter,
-		 usfc_tsc_ids[0].absbit[0],
-		 usfc_tsc_ids[1].absbit[1]);
+		s_usfcdev_events[ind].filter);
 
 	return s_usfcdev_events[ind].filter;
 }

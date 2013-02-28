@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -245,7 +245,6 @@ static struct msm_panel_common_pdata mdp_pdata = {
 #else
 	.mem_hid = MEMTYPE_EBI1,
 #endif
-	.mdp_iommu_split_domain = 1,
 };
 
 void __init apq8064_mdp_writeback(struct memtype_reserve* reserve_table)
@@ -304,16 +303,7 @@ static struct platform_device hdmi_msm_device = {
 	.dev.platform_data = &hdmi_msm_data,
 };
 
-static char wfd_check_mdp_iommu_split_domain(void)
-{
-	return mdp_pdata.mdp_iommu_split_domain;
-}
-
 #ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
-static struct msm_wfd_platform_data wfd_pdata = {
-	.wfd_check_mdp_iommu_split = wfd_check_mdp_iommu_split_domain,
-};
-
 static struct platform_device wfd_panel_device = {
 	.name = "wfd_panel",
 	.id = 0,
@@ -323,7 +313,6 @@ static struct platform_device wfd_panel_device = {
 static struct platform_device wfd_device = {
 	.name          = "msm_wfd",
 	.id            = -1,
-	.dev.platform_data = &wfd_pdata,
 };
 #endif
 
@@ -474,18 +463,11 @@ static int mipi_dsi_panel_power(int on)
 			}
 		}
 
-		rc = regulator_disable(reg_l11);
-		if (rc) {
-			pr_err("disable reg_l1 failed, rc=%d\n", rc);
-			return -ENODEV;
-		}
-
 		rc = regulator_disable(reg_lvs7);
 		if (rc) {
 			pr_err("disable reg_lvs7 failed, rc=%d\n", rc);
 			return -ENODEV;
 		}
-
 		rc = regulator_disable(reg_l2);
 		if (rc) {
 			pr_err("disable reg_l2 failed, rc=%d\n", rc);

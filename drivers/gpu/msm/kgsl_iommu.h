@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -103,8 +103,6 @@ struct kgsl_iommu_unit {
  * instance of the IOMMU driver
  * @iommu_last_cmd_ts: The timestamp of last command submitted that
  * aceeses iommu registers
- * @clk_event_queued: Indicates whether an event to disable clocks
- * is already queued or not
  * @device: Pointer to kgsl device
  * @asids: A bit structure indicating which id's are presently used
  * @asid: Contains the initial value of IOMMU_CONTEXTIDR when a domain
@@ -115,7 +113,6 @@ struct kgsl_iommu {
 	struct kgsl_iommu_unit iommu_units[KGSL_IOMMU_MAX_UNITS];
 	unsigned int unit_count;
 	unsigned int iommu_last_cmd_ts;
-	bool clk_event_queued;
 	struct kgsl_device *device;
 	unsigned long *asids;
 	unsigned int asid;

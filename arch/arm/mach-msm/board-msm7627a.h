@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -108,7 +108,6 @@ void __init msm7627a_sensor_init(void);
 #endif
 
 void __init msm7627a_camera_init(void);
-int lcd_camera_power_onoff(int on);
 
 void __init msm7627a_add_io_devices(void);
 void __init qrd7627a_add_io_devices(void);

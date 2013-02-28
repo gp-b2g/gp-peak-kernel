@@ -1,4 +1,4 @@
-/* Copyright (c) 2009-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2009-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -880,6 +880,7 @@ static struct i2c_board_info cy8info[] __initdata = {
 static struct msm_camera_device_platform_data msm_camera_csi_device_data[] = {
 	{
 		.csid_core = 0,
+		.is_csic = 1,
 		.is_vpe    = 1,
 		.ioclk = {
 			.vfe_clk_rate =	153600000,

@@ -48,6 +48,7 @@
 #define MSM_AXI_QOS_SNAPSHOT	192000
 
 
+spinlock_t  write_lock;
 static struct msm_adsp_module *qcam_mod;
 static struct msm_adsp_module *vfe_mod;
 static struct msm_vfe_callback *resp;
@@ -331,6 +332,7 @@ static int vfe_7x_init(struct msm_vfe_callback *presp,
 		goto get_vfe_fail;
 	}
 
+	spin_lock_init(&write_lock);
 	return 0;
 
 get_vfe_fail:
@@ -435,7 +437,9 @@ static int vfe_7x_config(struct msm_vfe_cfg_cmd *cmd, void *data)
 	void   *cmd_data_alloc = NULL;
 	long rc = 0;
 	struct msm_vfe_command_7k *vfecmd;
+	unsigned long flags;
 
+	spin_lock_irqsave(&write_lock, flags);
 	vfecmd = kmalloc(sizeof(struct msm_vfe_command_7k), GFP_ATOMIC);
 	if (!vfecmd) {
 		pr_err("vfecmd alloc failed!\n");
@@ -632,7 +636,9 @@ static int vfe_7x_config(struct msm_vfe_cfg_cmd *cmd, void *data)
 		if (vfecmd->queue == QDSP_CMDQUEUE) {
 			switch (*(uint32_t *)cmd_data) {
 			case VFE_RESET_CMD:
+				spin_unlock_irqrestore(&write_lock, flags);
 				msm_camio_vfe_blk_reset();
+				spin_lock_irqsave(&write_lock, flags);
 				vfestopped = 0;
 				break;
 			case VFE_START_CMD:
@@ -710,9 +716,11 @@ static int vfe_7x_config(struct msm_vfe_cfg_cmd *cmd, void *data)
 		goto config_done;
 
 config_send:
-	CDBG("send adsp command = %d\n", *(uint32_t *)cmd_data);
+	CDBG("send adsp command = %d %d\n", *(uint32_t *)cmd_data,
+							vfecmd->queue);
 	rc = msm_adsp_write(vfe_mod, vfecmd->queue,
 				cmd_data, vfecmd->length);
+	spin_unlock_irqrestore(&write_lock, flags);
 
 config_done:
 	kfree(cmd_data_alloc);

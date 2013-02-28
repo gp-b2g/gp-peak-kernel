@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -14,6 +14,7 @@
 #include "msm_fb.h"
 #include "mipi_dsi.h"
 #include "mipi_NT35510.h"
+#include <mach/socinfo.h>
 
 static struct msm_panel_info pinfo;
 
@@ -59,8 +60,13 @@ static int mipi_video_nt35510_wvga_pt_init(void)
 	delayed from VSYNC active edge */
 	pinfo.lcdc.hsync_skew = 0;
 	pinfo.clk_rate = 499000000;
-	pinfo.bl_max = 255;
+
 	pinfo.bl_min = 1;
+	if((machine_is_msm8625_qrd5() && hw_version_is(3, 0)) || (machine_is_msm7x27a_qrd5a() && hw_version_is(3, 0)))
+		pinfo.bl_max = 255;
+	else
+		pinfo.bl_max = 31;
+
 	pinfo.fb_num = 2;
 
 	pinfo.mipi.mode = DSI_VIDEO_MODE;

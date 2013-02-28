@@ -1,7 +1,7 @@
 /* arch/arm/mach-msm/pm.h
  *
  * Copyright (C) 2007 Google, Inc.
- * Copyright (c) 2009-2012, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2009-2012, Code Aurora Forum. All rights reserved.
  * Author: San Mehat <san@android.com>
  *
  * This software is licensed under the terms of the GNU General Public
@@ -76,11 +76,6 @@ struct msm_pm_sleep_status_data {
 	uint32_t mask;
 };
 
-struct msm_pm_cpr_ops {
-	void (*cpr_suspend)(void);
-	void (*cpr_resume)(void);
-};
-
 struct msm_pm_sleep_ops {
 	void *(*lowest_limits)(bool from_idle,
 			enum msm_pm_sleep_mode sleep_mode, uint32_t latency_us,
@@ -141,7 +136,5 @@ static inline void msm_pm_add_stats(enum msm_pm_time_stats_id *enable_stats,
 		int size) {}
 static inline void msm_pm_add_stat(enum msm_pm_time_stats_id id, int64_t t) {}
 #endif
-
-void msm_pm_set_cpr_ops(struct msm_pm_cpr_ops *ops);
 
 #endif  /* __ARCH_ARM_MACH_MSM_PM_H */

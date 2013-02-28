@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1030,7 +1030,6 @@ static void __init msm8625_reserve(void)
 	msm7x27a_reserve();
 	memblock_remove(MSM8625_SECONDARY_PHYS, SZ_8);
 	memblock_remove(MSM8625_WARM_BOOT_PHYS, SZ_32);
-	memblock_remove(MSM8625_NON_CACHE_MEM, SZ_2K);
 }
 
 static void __init msm7x27a_device_i2c_init(void)
@@ -1131,7 +1130,6 @@ static void __init msm8625_rumi3_init(void)
 			 ARRAY_SIZE(msm8625_pm_data));
 	BUG_ON(msm_pm_boot_init(&msm_pm_8625_boot_pdata));
 	msm8x25_spm_device_init();
-	msm_pm_register_cpr_ops();
 }
 
 #define UART1DM_RX_GPIO		45
@@ -1222,7 +1220,6 @@ static void __init msm7x27a_pm_init(void)
 				ARRAY_SIZE(msm8625_pm_data));
 		BUG_ON(msm_pm_boot_init(&msm_pm_8625_boot_pdata));
 		msm8x25_spm_device_init();
-		msm_pm_register_cpr_ops();
 	} else {
 		msm_pm_set_platform_data(msm7x27a_pm_data,
 				ARRAY_SIZE(msm7x27a_pm_data));

@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -59,7 +59,7 @@ static int mipi_video_truly_qhd_pt_init(void)
 	pinfo.lcdc.hsync_skew = 0;
 	pinfo.clk_rate = 699000000;
 	pinfo.lcd.refx100 = 6000; /* FB driver calc FPS based on this value */
-	pinfo.bl_max = 255;
+	pinfo.bl_max = 16;
 	pinfo.bl_min = 1;
 	pinfo.fb_num = 2;
 

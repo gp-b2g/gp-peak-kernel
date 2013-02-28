@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -219,7 +219,6 @@ static u32 ddl_handle_core_recoverable_errors(
 			}
 			break;
 		}
-	case VIDC_1080P_ERROR_NON_IDR_FRAME_TYPE:
 	case VIDC_1080P_ERROR_BIT_STREAM_BUF_EXHAUST:
 	case VIDC_1080P_ERROR_DESCRIPTOR_TABLE_ENTRY_INVALID:
 	case VIDC_1080P_ERROR_MB_COEFF_NOT_DONE:
@@ -244,16 +243,14 @@ static u32 ddl_handle_core_recoverable_errors(
 	case VIDC_1080P_ERROR_SLICE_PARSE_ERROR:
 	case VIDC_1080P_ERROR_NON_PAIRED_FIELD_NOT_SUPPORTED:
 		vcd_status = VCD_ERR_BITSTREAM_ERR;
-		DDL_MSG_ERROR("VIDC_BIT_STREAM_ERR (%u)",
-			(u32)ddl_context->cmd_err_status);
+		DDL_MSG_ERROR("VIDC_BIT_STREAM_ERR");
 		break;
 	case VIDC_1080P_ERROR_B_FRAME_NOT_SUPPORTED:
 	case VIDC_1080P_ERROR_UNSUPPORTED_FEATURE_IN_PROFILE:
 	case VIDC_1080P_ERROR_RESOLUTION_NOT_SUPPORTED:
 		if (ddl->decoding) {
 			vcd_status = VCD_ERR_BITSTREAM_ERR;
-			DDL_MSG_ERROR("VIDC_BIT_STREAM_ERR (%u)",
-				(u32)ddl_context->cmd_err_status);
+			DDL_MSG_ERROR("VIDC_BIT_STREAM_ERR");
 		}
 		break;
 	default:
@@ -769,6 +766,6 @@ void print_core_recoverable_errors(u32 error_code)
 	break;
 	}
 	if (string)
-		DDL_MSG_LOW("Recoverable Error code = 0x%x : %s",
+		DDL_MSG_ERROR("Recoverable Error code = 0x%x : %s",
 					  error_code, string);
 }

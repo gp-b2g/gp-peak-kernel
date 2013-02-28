@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -84,9 +84,6 @@
 #define MSM8625_INT_L2CC_EM		(GIC_SPI_START + 32 + 22)
 #define MSM8625_INT_L2CC_INTR		(GIC_SPI_START + 32 + 23)
 #define MSM8625_INT_CE_IRQ		(GIC_SPI_START + 32 + 24)
-#define MSM8625_INT_CPR_IRQ0		(GIC_SPI_START + 32 + 25)
-#define MSM8625_INT_CPR_IRQ1		(GIC_SPI_START + 32 + 26)
-#define MSM8625_INT_CPR_IRQ2		(GIC_SPI_START + 32 + 27)
 
 #define MSM8625_INT_ADSP_A11_SMSM	MSM8625_INT_ADSP_A11
 #endif

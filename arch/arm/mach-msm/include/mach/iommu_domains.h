@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -18,10 +18,8 @@
 enum {
 	VIDEO_DOMAIN,
 	CAMERA_DOMAIN,
-	DISPLAY_READ_DOMAIN,
-	DISPLAY_WRITE_DOMAIN,
-	ROTATOR_SRC_DOMAIN,
-	ROTATOR_DST_DOMAIN,
+	DISPLAY_DOMAIN,
+	ROTATOR_DOMAIN,
 	MAX_DOMAINS
 };
 

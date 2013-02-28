@@ -528,29 +528,6 @@ struct platform_device mpq_cpudai_mi2s_tx = {
 	},
 };
 
-struct msm_mi2s_pdata apq_mi2s_data = {
-	.rx_sd_lines = MSM_MI2S_SD0,
-	.tx_sd_lines = MSM_MI2S_SD3,
-};
-
-struct platform_device apq_cpudai_mi2s = {
-	.name	= "msm-dai-q6-mi2s",
-	.id	= -1,
-	.dev = {
-		.platform_data = &apq_mi2s_data,
-	},
-};
-
-struct platform_device apq_cpudai_i2s_rx = {
-	.name	= "msm-dai-q6",
-	.id	= PRIMARY_I2S_RX,
-};
-
-struct platform_device apq_cpudai_i2s_tx = {
-	.name	= "msm-dai-q6",
-	.id	= PRIMARY_I2S_TX,
-};
-
 struct platform_device apq_cpu_fe = {
 	.name	= "msm-dai-fe",
 	.id	= -1,
@@ -787,7 +764,6 @@ static struct resource resources_hsusb_host[] = {
 	},
 };
 
-#define MDM2AP_PBLRDY			46
 static struct resource resources_hsic_host[] = {
 	{
 		.start	= 0x12510000,
@@ -809,26 +785,6 @@ static struct resource resources_hsic_host[] = {
 		.start	= 47,
 		.end	= 47,
 		.name	= "wakeup",
-		.flags	= IORESOURCE_IO,
-	},
-	{
-		.start	= MDM2AP_PBLRDY,
-		.end	= MDM2AP_PBLRDY,
-		.name	= "MDM2AP_PBLRDY",
-		.flags	= IORESOURCE_IO,
-	},
-
-	/* Interrupt threshold(ITC) control is the max rate at which hsic/usb
-	*  controller generates interrupts. Interval is measured in
-	*  micorframes(125us). It can be caluculated as (2**N) * 125us. Where N
-	*  is the value indicated below resource. For example, if resource
-	*  indicates 6, ITC: (2**6) * 125us = 8ms. Hence hsic controller
-	*  generates interrupts at 8ms rate.
-	*/
-	{
-		.start	= 6,
-		.end	= 6,
-		.name	= "ITC",
 		.flags	= IORESOURCE_IO,
 	},
 };
@@ -902,22 +858,6 @@ struct platform_device apq8064_device_ehci_host4 = {
 		.dma_mask               = &dma_mask,
 		.coherent_dma_mask      = 0xffffffff,
 	},
-};
-
-#define SHARED_IMEM_TZ_BASE 0x2a03f720
-static struct resource tzlog_resources[] = {
-	{
-		.start = SHARED_IMEM_TZ_BASE,
-		.end = SHARED_IMEM_TZ_BASE + SZ_4K - 1,
-		.flags = IORESOURCE_MEM,
-	},
-};
-
-struct platform_device apq_device_tz_log = {
-	.name		= "tz_log",
-	.id		= 0,
-	.num_resources	= ARRAY_SIZE(tzlog_resources),
-	.resource	= tzlog_resources,
 };
 
 /* MSM Video core device */
@@ -1105,59 +1045,6 @@ static struct msm_bus_vectors vidc_vdec_1080p_vectors[] = {
 	},
 };
 
-static struct msm_bus_vectors vidc_venc_1080p_turbo_vectors[] = {
-	{
-		.src = MSM_BUS_MASTER_VIDEO_ENC,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 222298112,
-		.ib  = 3522000000U,
-	},
-	{
-		.src = MSM_BUS_MASTER_VIDEO_DEC,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 330301440,
-		.ib  = 3522000000U,
-	},
-	{
-		.src = MSM_BUS_MASTER_AMPSS_M0,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 2500000,
-		.ib  = 700000000,
-	},
-	{
-		.src = MSM_BUS_MASTER_AMPSS_M0,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 2500000,
-		.ib  = 10000000,
-	},
-};
-static struct msm_bus_vectors vidc_vdec_1080p_turbo_vectors[] = {
-	{
-		.src = MSM_BUS_MASTER_VIDEO_ENC,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 222298112,
-		.ib  = 3522000000U,
-	},
-	{
-		.src = MSM_BUS_MASTER_VIDEO_DEC,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 330301440,
-		.ib  = 3522000000U,
-	},
-	{
-		.src = MSM_BUS_MASTER_AMPSS_M0,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 2500000,
-		.ib  = 700000000,
-	},
-	{
-		.src = MSM_BUS_MASTER_AMPSS_M0,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 2500000,
-		.ib  = 10000000,
-	},
-};
-
 static struct msm_bus_paths vidc_bus_client_config[] = {
 	{
 		ARRAY_SIZE(vidc_init_vectors),
@@ -1186,14 +1073,6 @@ static struct msm_bus_paths vidc_bus_client_config[] = {
 	{
 		ARRAY_SIZE(vidc_vdec_1080p_vectors),
 		vidc_vdec_1080p_vectors,
-	},
-	{
-		ARRAY_SIZE(vidc_venc_1080p_turbo_vectors),
-		vidc_venc_1080p_turbo_vectors,
-	},
-	{
-		ARRAY_SIZE(vidc_vdec_1080p_turbo_vectors),
-		vidc_vdec_1080p_turbo_vectors,
 	},
 };
 
@@ -1778,23 +1657,6 @@ static struct fs_driver_data ijpeg_fs_data = {
 	.bus_port0 = MSM_BUS_MASTER_JPEG_ENC,
 };
 
-static struct fs_driver_data mdp_fs_data = {
-	.clks = (struct fs_clk_data[]){
-		{ .name = "core_clk" },
-		{ .name = "iface_clk" },
-		{ .name = "bus_clk" },
-		{ .name = "vsync_clk" },
-		{ .name = "lut_clk" },
-		{ .name = "tv_src_clk" },
-		{ .name = "tv_clk" },
-		{ .name = "reset1_clk" },
-		{ .name = "reset2_clk" },
-		{ 0 }
-	},
-	.bus_port0 = MSM_BUS_MASTER_MDP_PORT0,
-	.bus_port1 = MSM_BUS_MASTER_MDP_PORT1,
-};
-
 static struct fs_driver_data rot_fs_data = {
 	.clks = (struct fs_clk_data[]){
 		{ .name = "core_clk" },
@@ -1847,7 +1709,6 @@ static struct fs_driver_data vcap_fs_data = {
 };
 
 struct platform_device *apq8064_footswitch[] __initdata = {
-	FS_8X60(FS_MDP,    "vdd",       "mdp.0",        &mdp_fs_data),
 	FS_8X60(FS_ROT,    "vdd",	"msm_rotator.0", &rot_fs_data),
 	FS_8X60(FS_IJPEG,  "vdd",	"msm_gemini.0",	&ijpeg_fs_data),
 	FS_8X60(FS_VFE,    "fs_vfe",	NULL,	&vfe_fs_data),
@@ -2120,8 +1981,8 @@ struct platform_device apq8064_rpm_device = {
 };
 
 static struct msm_rpmstats_platform_data msm_rpm_stat_pdata = {
-	.phys_addr_base = 0x0010DD04,
-	.phys_size = SZ_256,
+	.phys_addr_base = 0x0010D204,
+	.phys_size = SZ_8K,
 };
 
 struct platform_device apq8064_rpm_stat_device = {
@@ -2314,16 +2175,12 @@ struct msm_mpm_device_data apq8064_mpm_dev_data __initdata = {
 
 /* AP2MDM_SOFT_RESET is implemented by the PON_RESET_N gpio */
 #define MDM2AP_ERRFATAL			19
-#define I2S_MDM2AP_ERRFATAL		46
 #define AP2MDM_ERRFATAL			18
 #define MDM2AP_STATUS			49
 #define AP2MDM_STATUS			48
 #define AP2MDM_SOFT_RESET		27
-#define I2S_AP2MDM_SOFT_RESET		0
 #define AP2MDM_WAKEUP			35
-#define I2S_AP2MDM_WAKEUP		44
 #define MDM2AP_PBLRDY			46
-#define I2S_MDM2AP_PBLRDY		81
 
 static struct resource mdm_resources[] = {
 	{
@@ -2370,51 +2227,6 @@ static struct resource mdm_resources[] = {
 	},
 };
 
-static struct resource i2s_mdm_resources[] = {
-	{
-		.start	= I2S_MDM2AP_ERRFATAL,
-		.end	= I2S_MDM2AP_ERRFATAL,
-		.name	= "MDM2AP_ERRFATAL",
-		.flags	= IORESOURCE_IO,
-	},
-	{
-		.start	= AP2MDM_ERRFATAL,
-		.end	= AP2MDM_ERRFATAL,
-		.name	= "AP2MDM_ERRFATAL",
-		.flags	= IORESOURCE_IO,
-	},
-	{
-		.start	= MDM2AP_STATUS,
-		.end	= MDM2AP_STATUS,
-		.name	= "MDM2AP_STATUS",
-		.flags	= IORESOURCE_IO,
-	},
-	{
-		.start	= AP2MDM_STATUS,
-		.end	= AP2MDM_STATUS,
-		.name	= "AP2MDM_STATUS",
-		.flags	= IORESOURCE_IO,
-	},
-	{
-		.start	= I2S_AP2MDM_SOFT_RESET,
-		.end	= I2S_AP2MDM_SOFT_RESET,
-		.name	= "AP2MDM_SOFT_RESET",
-		.flags	= IORESOURCE_IO,
-	},
-	{
-		.start	= I2S_AP2MDM_WAKEUP,
-		.end	= I2S_AP2MDM_WAKEUP,
-		.name	= "AP2MDM_WAKEUP",
-		.flags	= IORESOURCE_IO,
-	},
-	{
-		.start	= I2S_MDM2AP_PBLRDY,
-		.end	= I2S_MDM2AP_PBLRDY,
-		.name	= "MDM2AP_PBLRDY",
-		.flags	= IORESOURCE_IO,
-	},
-};
-
 struct platform_device mdm_8064_device = {
 	.name		= "mdm2_modem",
 	.id		= -1,
@@ -2422,12 +2234,6 @@ struct platform_device mdm_8064_device = {
 	.resource	= mdm_resources,
 };
 
-struct platform_device i2s_mdm_8064_device = {
-	.name		= "mdm2_modem",
-	.id		= -1,
-	.num_resources	= ARRAY_SIZE(i2s_mdm_resources),
-	.resource	= i2s_mdm_resources,
-};
 static int apq8064_LPM_latency = 1000; /* >100 usec for WFI */
 
 struct platform_device apq8064_cpu_idle_device = {
@@ -2684,15 +2490,15 @@ struct msm_iommu_domain_name apq8064_iommu_ctx_names[] = {
 		.name = "jpegd_dst",
 		.domain = CAMERA_DOMAIN,
 	},
-	/* Rotator src*/
+	/* Rotator */
 	{
 		.name = "rot_src",
-		.domain = ROTATOR_SRC_DOMAIN,
+		.domain = ROTATOR_DOMAIN,
 	},
-	/* Rotator dst */
+	/* Rotator */
 	{
 		.name = "rot_dst",
-		.domain = ROTATOR_DST_DOMAIN,
+		.domain = ROTATOR_DOMAIN,
 	},
 	/* Video */
 	{
@@ -2748,36 +2554,18 @@ static struct mem_pool apq8064_camera_pools[] =  {
 		},
 };
 
-static struct mem_pool apq8064_display_read_pools[] =  {
+static struct mem_pool apq8064_display_pools[] =  {
 	[GEN_POOL] =
-	/* One address space for display reads */
+	/* One address space for display */
 		{
 			.paddr	= SZ_128K,
 			.size	= SZ_2G - SZ_128K,
 		},
 };
 
-static struct mem_pool apq8064_display_write_pools[] =  {
+static struct mem_pool apq8064_rotator_pools[] =  {
 	[GEN_POOL] =
-	/* One address space for display writes */
-		{
-			.paddr	= SZ_128K,
-			.size	= SZ_2G - SZ_128K,
-		},
-};
-
-static struct mem_pool apq8064_rotator_src_pools[] =  {
-	[GEN_POOL] =
-	/* One address space for rotator src */
-		{
-			.paddr	= SZ_128K,
-			.size	= SZ_2G - SZ_128K,
-		},
-};
-
-static struct mem_pool apq8064_rotator_dst_pools[] =  {
-	[GEN_POOL] =
-	/* One address space for rotator dst */
+	/* One address space for rotator */
 		{
 			.paddr	= SZ_128K,
 			.size	= SZ_2G - SZ_128K,
@@ -2793,21 +2581,13 @@ static struct msm_iommu_domain apq8064_iommu_domains[] = {
 			.iova_pools = apq8064_camera_pools,
 			.npools = ARRAY_SIZE(apq8064_camera_pools),
 		},
-		[DISPLAY_READ_DOMAIN] = {
-			.iova_pools = apq8064_display_read_pools,
-			.npools = ARRAY_SIZE(apq8064_display_read_pools),
+		[DISPLAY_DOMAIN] = {
+			.iova_pools = apq8064_display_pools,
+			.npools = ARRAY_SIZE(apq8064_display_pools),
 		},
-		[DISPLAY_WRITE_DOMAIN] = {
-			.iova_pools = apq8064_display_write_pools,
-			.npools = ARRAY_SIZE(apq8064_display_write_pools),
-		},
-		[ROTATOR_SRC_DOMAIN] = {
-			.iova_pools = apq8064_rotator_src_pools,
-			.npools = ARRAY_SIZE(apq8064_rotator_src_pools),
-		},
-		[ROTATOR_DST_DOMAIN] = {
-			.iova_pools = apq8064_rotator_dst_pools,
-			.npools = ARRAY_SIZE(apq8064_rotator_dst_pools),
+		[ROTATOR_DOMAIN] = {
+			.iova_pools = apq8064_rotator_pools,
+			.npools = ARRAY_SIZE(apq8064_rotator_pools),
 		},
 };
 

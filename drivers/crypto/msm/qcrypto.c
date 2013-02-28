@@ -888,7 +888,7 @@ static void _qce_aead_complete(void *cookie, unsigned char *icv,
 						ctx->authsize, 1);
 
 			} else {
-				unsigned char tmp[SHA256_DIGESTSIZE] = {0};
+				unsigned char tmp[SHA256_DIGESTSIZE];
 
 				/* compare icv from src */
 				scatterwalk_map_and_copy(tmp,

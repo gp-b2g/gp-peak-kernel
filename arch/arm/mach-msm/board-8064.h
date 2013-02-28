@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -78,13 +78,6 @@ void apq8064_init_pmic(void);
 
 extern struct msm_camera_board_info apq8064_camera_board_info;
 void apq8064_init_cam(void);
-
-
-/* Tabla slave address for I2C */
-#define APQ_8064_TABLA_I2C_SLAVE_ADDR		0x0d
-#define APQ_8064_TABLA_ANALOG_I2C_SLAVE_ADDR	0x77
-#define APQ_8064_TABLA_DIGITAL1_I2C_SLAVE_ADDR	0x66
-#define APQ_8064_TABLA_DIGITAL2_I2C_SLAVE_ADDR	0x55
 
 #define APQ_8064_GSBI1_QUP_I2C_BUS_ID 0
 #define APQ_8064_GSBI3_QUP_I2C_BUS_ID 3

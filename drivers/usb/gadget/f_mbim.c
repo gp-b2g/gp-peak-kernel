@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -19,6 +19,7 @@
 #include <linux/usb/cdc.h>
 
 #include <linux/usb/composite.h>
+#include <linux/usb/android_composite.h>
 #include <linux/platform_device.h>
 
 #include <linux/spinlock.h>
@@ -39,9 +40,6 @@
 #define MBIM_GET_DATAGRAM_COUNT		_IOR(MBIM_IOCTL_MAGIC, 3, u16)
 
 #define NR_MBIM_PORTS			1
-
-/* ID for Microsoft OS String */
-#define MBIM_OS_STRING_ID   0xEE
 
 struct ctrl_pkt {
 	void			*buf;
@@ -69,8 +67,8 @@ enum mbim_notify_state {
 };
 
 struct f_mbim {
-	struct usb_function		function;
-	struct usb_composite_dev	*cdev;
+	struct usb_function function;
+	struct usb_composite_dev *cdev;
 
 	atomic_t	online;
 	bool		is_open;
@@ -91,7 +89,6 @@ struct f_mbim {
 	struct mbim_ep_descs		hs;
 
 	u8				ctrl_id, data_id;
-	u8				data_alt_int;
 
 	struct ndp_parser_opts		*parser_opts;
 
@@ -217,7 +214,7 @@ static struct usb_cdc_mbb_desc mbb_desc = {
 	.bcdMbbVersion =	cpu_to_le16(0x0100),
 
 	.wMaxControlMessage =	cpu_to_le16(0x1000),
-	.bNumberFilters =	0x20,
+	.bNumberFilters =	0x10,
 	.bMaxFilterSize =	0x80,
 	.wMaxSegmentSize =	cpu_to_le16(0xfe0),
 	.bmNetworkCapabilities = 0x20,
@@ -359,63 +356,6 @@ static struct usb_gadget_strings *mbim_strings[] = {
 	NULL,
 };
 
-/* Microsoft OS Descriptors */
-
-/*
- * We specify our own bMS_VendorCode byte which Windows will use
- * as the bRequest value in subsequent device get requests.
- */
-#define MBIM_VENDOR_CODE	0xA5
-
-/* Microsoft OS String */
-static u8 mbim_os_string[] = {
-	18, /* sizeof(mtp_os_string) */
-	USB_DT_STRING,
-	/* Signature field: "MSFT100" */
-	'M', 0, 'S', 0, 'F', 0, 'T', 0, '1', 0, '0', 0, '0', 0,
-	/* vendor code */
-	MBIM_VENDOR_CODE,
-	/* padding */
-	0
-};
-
-/* Microsoft Extended Configuration Descriptor Header Section */
-struct mbim_ext_config_desc_header {
-	__le32	dwLength;
-	__u16	bcdVersion;
-	__le16	wIndex;
-	__u8	bCount;
-	__u8	reserved[7];
-};
-
-/* Microsoft Extended Configuration Descriptor Function Section */
-struct mbim_ext_config_desc_function {
-	__u8	bFirstInterfaceNumber;
-	__u8	bInterfaceCount;
-	__u8	compatibleID[8];
-	__u8	subCompatibleID[8];
-	__u8	reserved[6];
-};
-
-/* Microsoft Extended Configuration Descriptor */
-static struct {
-	struct mbim_ext_config_desc_header	header;
-	struct mbim_ext_config_desc_function    function;
-} mbim_ext_config_desc = {
-	.header = {
-		.dwLength = __constant_cpu_to_le32(sizeof mbim_ext_config_desc),
-		.bcdVersion = __constant_cpu_to_le16(0x0100),
-		.wIndex = __constant_cpu_to_le16(4),
-		.bCount = 1,
-	},
-	.function = {
-		.bFirstInterfaceNumber = 0,
-		.bInterfaceCount = 1,
-		.compatibleID = { 'A', 'L', 'T', 'R', 'C', 'F', 'G' },
-		/* .subCompatibleID = DYNAMIC */
-	},
-};
-
 /*
  * Here are options for the Datagram Pointer table (NDP) parser.
  * There are 2 different formats: NDP16 and NDP32 in the spec (ch. 3),
@@ -542,7 +482,9 @@ static void fmbim_ctrl_response_available(struct f_mbim *dev)
 	unsigned long			flags;
 	int				ret;
 
-	pr_debug("dev:%p portno#%d\n", dev, dev->port_num);
+	int notif_c = 0;
+
+	pr_info("dev:%p portno#%d\n", dev, dev->port_num);
 
 	spin_lock_irqsave(&dev->lock, flags);
 
@@ -564,12 +506,8 @@ static void fmbim_ctrl_response_available(struct f_mbim *dev)
 		return;
 	}
 
-	if (atomic_inc_return(&dev->not_port.notify_count) != 1) {
-		pr_debug("delay ep_queue: notifications queue is busy[%d]",
-			atomic_read(&dev->not_port.notify_count));
-		spin_unlock_irqrestore(&dev->lock, flags);
-		return;
-	}
+	notif_c = atomic_inc_return(&dev->not_port.notify_count);
+	pr_info("atomic_inc_return[notif_c] = %d", notif_c);
 
 	event = req->buf;
 	event->bmRequestType = USB_DIR_IN | USB_TYPE_CLASS
@@ -580,6 +518,8 @@ static void fmbim_ctrl_response_available(struct f_mbim *dev)
 	event->wLength = cpu_to_le16(0);
 	spin_unlock_irqrestore(&dev->lock, flags);
 
+	pr_info("Call usb_ep_queue");
+
 	ret = usb_ep_queue(dev->not_port.notify,
 			   dev->not_port.notify_req, GFP_ATOMIC);
 	if (ret) {
@@ -587,7 +527,7 @@ static void fmbim_ctrl_response_available(struct f_mbim *dev)
 		pr_err("ep enqueue error %d\n", ret);
 	}
 
-	pr_debug("Successful Exit");
+	pr_info("Succcessfull Exit");
 }
 
 static int
@@ -660,7 +600,7 @@ static int mbim_bam_disconnect(struct f_mbim *dev)
 	pr_info("dev:%p port:%d. Do nothing.\n",
 			dev, dev->port_num);
 
-	bam_data_disconnect(&dev->bam_port, dev->port_num);
+	/* bam_data_disconnect(&dev->bam_port, dev->port_num); */
 
 	return 0;
 }
@@ -673,6 +613,7 @@ static inline void mbim_reset_values(struct f_mbim *mbim)
 
 	mbim->ntb_input_size = NTB_DEFAULT_IN_SIZE;
 
+	atomic_set(&mbim->not_port.notify_count, 0);
 	atomic_set(&mbim->online, 0);
 }
 
@@ -750,21 +691,6 @@ static void mbim_do_notify(struct f_mbim *mbim)
 	switch (mbim->not_port.notify_state) {
 
 	case NCM_NOTIFY_NONE:
-		pr_debug("Notification %02x sent\n", event->bNotificationType);
-
-		if (atomic_read(&mbim->not_port.notify_count) <= 0) {
-			pr_debug("notify_none: done");
-			return;
-		}
-
-		spin_unlock(&mbim->lock);
-		status = usb_ep_queue(mbim->not_port.notify, req, GFP_ATOMIC);
-		spin_lock(&mbim->lock);
-		if (status) {
-			atomic_dec(&mbim->not_port.notify_count);
-			pr_err("Queue notify request failed, err: %d", status);
-		}
-
 		return;
 
 	case NCM_NOTIFY_CONNECT:
@@ -797,22 +723,20 @@ static void mbim_do_notify(struct f_mbim *mbim)
 		mbim->not_port.notify_state = NCM_NOTIFY_CONNECT;
 		break;
 	}
-
 	event->bmRequestType = 0xA1;
 	event->wIndex = cpu_to_le16(mbim->ctrl_id);
 
+	mbim->not_port.notify_req = NULL;
 	/*
 	 * In double buffering if there is a space in FIFO,
 	 * completion callback can be called right after the call,
 	 * so unlocking
 	 */
-	atomic_inc(&mbim->not_port.notify_count);
-	pr_debug("queue request: notify_count = %d",
-		atomic_read(&mbim->not_port.notify_count));
 	spin_unlock(&mbim->lock);
 	status = usb_ep_queue(mbim->not_port.notify, req, GFP_ATOMIC);
 	spin_lock(&mbim->lock);
-	if (status) {
+	if (status < 0) {
+		mbim->not_port.notify_req = req;
 		atomic_dec(&mbim->not_port.notify_count);
 		pr_err("usb_ep_queue failed, err: %d", status);
 	}
@@ -839,14 +763,27 @@ static void mbim_notify_complete(struct usb_ep *ep, struct usb_request *req)
 	struct f_mbim			*mbim = req->context;
 	struct usb_cdc_notification	*event = req->buf;
 
-	pr_debug("dev:%p\n", mbim);
+	int notif_c = 0;
+
+	pr_info("dev:%p\n", mbim);
 
 	spin_lock(&mbim->lock);
 	switch (req->status) {
 	case 0:
-		atomic_dec(&mbim->not_port.notify_count);
-		pr_debug("notify_count = %d",
-			atomic_read(&mbim->not_port.notify_count));
+		pr_info("Notification %02x sent\n",
+			event->bNotificationType);
+
+		notif_c = atomic_dec_return(&mbim->not_port.notify_count);
+
+		if (notif_c != 0) {
+			pr_info("Continue to mbim_do_notify()");
+			break;
+		} else {
+			pr_info("notify_count decreased to 0. Do not notify");
+			spin_unlock(&mbim->lock);
+			return;
+		}
+
 		break;
 
 	case -ECONNRESET:
@@ -866,7 +803,9 @@ static void mbim_notify_complete(struct usb_ep *ep, struct usb_request *req)
 		break;
 	}
 
+	mbim->not_port.notify_req = req;
 	mbim_do_notify(mbim);
+
 	spin_unlock(&mbim->lock);
 
 	pr_info("dev:%p Exit\n", mbim);
@@ -1169,63 +1108,6 @@ mbim_setup(struct usb_function *f, const struct usb_ctrlrequest *ctrl)
 	return value;
 }
 
-/*
- * This function handles the Microsoft-specific OS descriptor control
- * requests that are issued by Windows host drivers to determine the
- * configuration containing the MBIM function.
- *
- * Unlike mbim_setup() this function handles two specific device requests,
- * and only when a configuration has not yet been selected.
- */
-static int mbim_ctrlrequest(struct usb_composite_dev *cdev,
-			    const struct usb_ctrlrequest *ctrl)
-{
-	int	value = -EOPNOTSUPP;
-	u16	w_index = le16_to_cpu(ctrl->wIndex);
-	u16	w_value = le16_to_cpu(ctrl->wValue);
-	u16	w_length = le16_to_cpu(ctrl->wLength);
-
-	/* only respond to OS desciptors when no configuration selected */
-	if (cdev->config || !mbim_ext_config_desc.function.subCompatibleID[0])
-		return value;
-
-	pr_debug("%02x.%02x v%04x i%04x l%u",
-			ctrl->bRequestType, ctrl->bRequest,
-			w_value, w_index, w_length);
-
-	/* Handle MSFT OS string */
-	if (ctrl->bRequestType ==
-			(USB_DIR_IN | USB_TYPE_STANDARD | USB_RECIP_DEVICE)
-			&& ctrl->bRequest == USB_REQ_GET_DESCRIPTOR
-			&& (w_value >> 8) == USB_DT_STRING
-			&& (w_value & 0xFF) == MBIM_OS_STRING_ID) {
-
-		value = (w_length < sizeof(mbim_os_string) ?
-				w_length : sizeof(mbim_os_string));
-		memcpy(cdev->req->buf, mbim_os_string, value);
-
-	} else if (ctrl->bRequestType ==
-			(USB_DIR_IN | USB_TYPE_VENDOR | USB_RECIP_DEVICE)
-			&& ctrl->bRequest == MBIM_VENDOR_CODE && w_index == 4) {
-
-		/* Handle Extended OS descriptor */
-		value = (w_length < sizeof(mbim_ext_config_desc) ?
-				w_length : sizeof(mbim_ext_config_desc));
-		memcpy(cdev->req->buf, &mbim_ext_config_desc, value);
-	}
-
-	/* respond with data transfer or status phase? */
-	if (value >= 0) {
-		int rc;
-		cdev->req->zero = value < w_length;
-		cdev->req->length = value;
-		rc = usb_ep_queue(cdev->gadget->ep0, cdev->req, GFP_ATOMIC);
-		if (rc < 0)
-			pr_err("response queue error: %d", rc);
-	}
-	return value;
-}
-
 static int mbim_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 {
 	struct f_mbim		*mbim = func_to_mbim(f);
@@ -1273,6 +1155,7 @@ static int mbim_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 		if (mbim->bam_port.in->driver_data) {
 			pr_info("reset mbim\n");
 			mbim_reset_values(mbim);
+			mbim_bam_disconnect(mbim);
 		}
 
 		/*
@@ -1309,16 +1192,14 @@ static int mbim_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 
 				pr_info("Set mbim port out_desc = 0x%p",
 					mbim->bam_port.out->desc);
-
-				pr_debug("Activate mbim\n");
-				mbim_bam_connect(mbim);
-
 			} else {
 				pr_info("PORTS already SET");
 			}
+
+			pr_info("Activate mbim\n");
+			mbim_bam_connect(mbim);
 		}
 
-		mbim->data_alt_int = alt;
 		spin_lock(&mbim->lock);
 		mbim_notify(mbim);
 		spin_unlock(&mbim->lock);
@@ -1351,10 +1232,7 @@ static int mbim_get_alt(struct usb_function *f, unsigned intf)
 
 	if (intf == mbim->ctrl_id)
 		return 0;
-	else if (intf == mbim->data_id)
-		return mbim->data_alt_int;
-
-	return -EINVAL;
+	return mbim->bam_port.in->driver_data ? 1 : 0;
 }
 
 static void mbim_disable(struct usb_function *f)
@@ -1374,23 +1252,7 @@ static void mbim_disable(struct usb_function *f)
 		mbim->not_port.notify->driver_data = NULL;
 	}
 
-	atomic_set(&mbim->not_port.notify_count, 0);
-
 	pr_info("mbim deactivated\n");
-}
-
-#define MBIM_ACTIVE_PORT	0
-
-static void mbim_suspend(struct usb_function *f)
-{
-	pr_info("mbim suspended\n");
-	bam_data_suspend(MBIM_ACTIVE_PORT);
-}
-
-static void mbim_resume(struct usb_function *f)
-{
-	pr_info("mbim resumed\n");
-	bam_data_resume(MBIM_ACTIVE_PORT);
 }
 
 /*---------------------- function driver setup/binding ---------------------*/
@@ -1421,13 +1283,10 @@ mbim_bind(struct usb_configuration *c, struct usb_function *f)
 	if (status < 0)
 		goto fail;
 	mbim->data_id = status;
-	mbim->data_alt_int = 0;
 
 	mbim_data_nop_intf.bInterfaceNumber = status;
 	mbim_data_intf.bInterfaceNumber = status;
 	mbim_union_desc.bSlaveInterface0 = status;
-
-	mbim->bam_port.cdev = cdev;
 
 	status = -ENODEV;
 
@@ -1496,17 +1355,6 @@ mbim_bind(struct usb_configuration *c, struct usb_function *f)
 			goto fail;
 	}
 
-	/*
-	 * If MBIM is bound in a config other than the first, tell Windows
-	 * about it by returning the num as a string in the OS descriptor's
-	 * subCompatibleID field. Windows only supports up to config #4.
-	 */
-	if (c->bConfigurationValue >= 2 && c->bConfigurationValue <= 4) {
-		pr_debug("MBIM in configuration %d", c->bConfigurationValue);
-		mbim_ext_config_desc.function.subCompatibleID[0] =
-			c->bConfigurationValue + '0';
-	}
-
 	pr_info("mbim(%d): %s speed IN/%s OUT/%s NOTIFY/%s\n",
 			mbim->port_num,
 			gadget_is_dualspeed(c->cdev->gadget) ? "dual" : "full",
@@ -1548,8 +1396,6 @@ static void mbim_unbind(struct usb_configuration *c, struct usb_function *f)
 
 	kfree(mbim->not_port.notify_req->buf);
 	usb_ep_free_request(mbim->not_port.notify, mbim->not_port.notify_req);
-
-	mbim_ext_config_desc.function.subCompatibleID[0] = 0;
 }
 
 /**
@@ -1615,8 +1461,6 @@ int mbim_bind_config(struct usb_configuration *c, unsigned portno)
 	mbim->function.get_alt = mbim_get_alt;
 	mbim->function.setup = mbim_setup;
 	mbim->function.disable = mbim_disable;
-	mbim->function.suspend = mbim_suspend;
-	mbim->function.resume = mbim_resume;
 
 	INIT_LIST_HEAD(&mbim->cpkt_req_q);
 	INIT_LIST_HEAD(&mbim->cpkt_resp_q);
@@ -1663,7 +1507,7 @@ mbim_read(struct file *fp, char __user *buf, size_t count, loff_t *pos)
 			atomic_read(&dev->error)));
 		if (ret < 0) {
 			mbim_unlock(&dev->read_excl);
-			return -ERESTARTSYS;
+			return 0;
 		}
 	}
 
@@ -1679,7 +1523,7 @@ mbim_read(struct file *fp, char __user *buf, size_t count, loff_t *pos)
 		if (ret < 0) {
 			pr_err("Waiting failed\n");
 			mbim_unlock(&dev->read_excl);
-			return -ERESTARTSYS;
+			return 0;
 		}
 		pr_debug("Received request packet\n");
 	}
@@ -1701,7 +1545,7 @@ mbim_read(struct file *fp, char __user *buf, size_t count, loff_t *pos)
 	ret = copy_to_user(buf, cpkt->buf, cpkt->len);
 	if (ret) {
 		pr_err("copy_to_user failed: err %d\n", ret);
-		ret = -ENOMEM;
+		ret = 0;
 	} else {
 		pr_debug("copied %d bytes to user\n", cpkt->len);
 		ret = cpkt->len;
@@ -1798,6 +1642,7 @@ static int mbim_open(struct inode *ip, struct file *fp)
 
 	spin_lock(&_mbim_dev->lock);
 	_mbim_dev->is_open = true;
+	mbim_notify(_mbim_dev);
 	spin_unlock(&_mbim_dev->lock);
 
 	pr_info("Exit, mbim file opened\n");
@@ -1813,6 +1658,7 @@ static int mbim_release(struct inode *ip, struct file *fp)
 
 	spin_lock(&mbim->lock);
 	mbim->is_open = false;
+	mbim_notify(mbim);
 	spin_unlock(&mbim->lock);
 
 	mbim_unlock(&_mbim_dev->open_excl);

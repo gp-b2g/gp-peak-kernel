@@ -48,8 +48,8 @@ void gic_handle_irq(struct pt_regs *regs);
 void gic_cascade_irq(unsigned int gic_nr, unsigned int irq);
 void gic_raise_softirq(const struct cpumask *mask, unsigned int irq);
 void gic_enable_ppi(unsigned int);
-bool gic_is_irq_pending(unsigned int irq);
-void gic_clear_irq_pending(unsigned int irq);
+bool gic_is_spi_pending(unsigned int irq);
+void gic_clear_spi_pending(unsigned int irq);
 #ifdef CONFIG_ARM_GIC
 void gic_set_irq_secure(unsigned int irq);
 #else
@@ -60,9 +60,11 @@ static inline void gic_init(unsigned int nr, int start,
 {
 	gic_init_bases(nr, start, dist, cpu, 0);
 }
-void gic_set_irq_secure(unsigned int irq);
 
-void msm_gic_save(void);
+#endif
+
+#ifdef CONFIG_ARCH_MSM8625
+void msm_gic_save(bool modem_wake, int from_idle);
 void msm_gic_restore(void);
 void core1_gic_configure_and_raise(void);
 #endif

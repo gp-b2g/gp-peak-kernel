@@ -3,7 +3,7 @@
  * MSM Power Management Routines
  *
  * Copyright (C) 2007 Google, Inc.
- * Copyright (c) 2008-2012 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2008-2012 Code Aurora Forum. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -162,7 +162,6 @@ static char *msm_pm_sleep_mode_labels[MSM_PM_SLEEP_MODE_NR] = {
 
 static struct msm_pm_platform_data *msm_pm_modes;
 static struct msm_pm_irq_calls *msm_pm_irq_extns;
-static struct msm_pm_cpr_ops *msm_cpr_ops;
 
 struct msm_pm_kobj_attribute {
 	unsigned int cpu;
@@ -418,11 +417,6 @@ void __init msm_pm_set_irq_extns(struct msm_pm_irq_calls *irq_calls)
 		irq_calls->exit_sleep3 == NULL);
 
 	msm_pm_irq_extns = irq_calls;
-}
-
-void __init msm_pm_set_cpr_ops(struct msm_pm_cpr_ops *ops)
-{
-	msm_cpr_ops = ops;
 }
 
 /******************************************************************************
@@ -889,9 +883,6 @@ static int msm_pm_power_collapse
 		WARN_ON(ret);
 	}
 
-	if (msm_cpr_ops)
-		msm_cpr_ops->cpr_suspend();
-
 	msm_pm_irq_extns->enter_sleep1(true, from_idle,
 						&msm_pm_smem_data->irq_mask);
 	msm_sirc_enter_sleep();
@@ -1151,9 +1142,6 @@ static int msm_pm_power_collapse
 		WARN_ON(ret);
 	}
 
-	if (msm_cpr_ops)
-		msm_cpr_ops->cpr_resume();
-
 	return 0;
 
 power_collapse_early_exit:
@@ -1205,9 +1193,6 @@ power_collapse_restore_gpio_bail:
 
 	if (collapsed)
 		smd_sleep_exit();
-
-	if (msm_cpr_ops)
-		msm_cpr_ops->cpr_resume();
 
 power_collapse_bail:
 	if (cpu_is_msm8625()) {
@@ -1321,7 +1306,7 @@ static int msm_pm_swfi(bool ramp_acpu)
 
 static int64_t msm_pm_timer_enter_suspend(int64_t *period)
 {
-	int64_t time = 0;
+	int time = 0;
 
 	time = msm_timer_get_sclk_time(period);
 	if (!time)

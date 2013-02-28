@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -85,7 +85,6 @@ static int __init mipi_video_orise_720p_pt_init(void)
 	pinfo.mipi.frame_rate = 55;
 	pinfo.mipi.dsi_phy_db = &dsi_video_mode_phy_db;
 	pinfo.mipi.tx_eot_append = TRUE;
-	pinfo.mipi.esc_byte_ratio = 4;
 
 	ret = mipi_orise_device_register(&pinfo, MIPI_DSI_PRIM,
 						MIPI_DSI_PANEL_720P_PT);

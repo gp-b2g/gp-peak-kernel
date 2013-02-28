@@ -15,7 +15,6 @@
 #include <linux/device.h>
 #include <linux/uaccess.h>
 #include <linux/termios.h>
-#include <linux/poll.h>
 #include <linux/ratelimit.h>
 #include <linux/debugfs.h>
 #include "rmnet_usb_ctrl.h"
@@ -270,7 +269,7 @@ resubmit_int_urb:
 			__func__, status);
 }
 
-int rmnet_usb_ctrl_start_rx(struct rmnet_ctrl_dev *dev)
+static int rmnet_usb_ctrl_start_rx(struct rmnet_ctrl_dev *dev)
 {
 	int	retval = 0;
 
@@ -295,6 +294,18 @@ int rmnet_usb_ctrl_stop_rx(struct rmnet_ctrl_dev *dev)
 	usb_kill_urb(dev->inturb);
 
 	return 0;
+}
+
+int rmnet_usb_ctrl_start(struct rmnet_ctrl_dev *dev)
+{
+	int	status = 0;
+
+	mutex_lock(&dev->dev_lock);
+	if (dev->is_opened)
+		status = rmnet_usb_ctrl_start_rx(dev);
+	mutex_unlock(&dev->dev_lock);
+
+	return status;
 }
 
 static int rmnet_usb_ctrl_alloc_rx(struct rmnet_ctrl_dev *dev)
@@ -403,7 +414,7 @@ static int rmnet_usb_ctrl_write(struct rmnet_ctrl_dev *dev, char *buf,
 
 	result = usb_autopm_get_interface(dev->intf);
 	if (result < 0) {
-		dev_dbg(dev->devicep, "%s: Unable to resume interface: %d\n",
+		dev_err(dev->devicep, "%s: Unable to resume interface: %d\n",
 			__func__, result);
 
 		/*
@@ -509,34 +520,14 @@ static int rmnet_ctl_release(struct inode *inode, struct file *file)
 	dev->is_opened = 0;
 	mutex_unlock(&dev->dev_lock);
 
+	rmnet_usb_ctrl_stop_rx(dev);
+
 	if (is_dev_connected(dev))
 		usb_kill_anchored_urbs(&dev->tx_submitted);
 
 	file->private_data = NULL;
 
 	return 0;
-}
-
-static unsigned int rmnet_ctl_poll(struct file *file, poll_table *wait)
-{
-	unsigned int		mask = 0;
-	struct rmnet_ctrl_dev	*dev;
-
-	dev = file->private_data;
-	if (!dev)
-		return POLLERR;
-
-	poll_wait(file, &dev->read_wait_queue, wait);
-	if (!is_dev_connected(dev)) {
-		dev_dbg(dev->devicep, "%s: Device not connected\n",
-			__func__);
-		return POLLERR;
-	}
-
-	if (!list_empty(&dev->rx_list))
-		mask |= POLLIN | POLLRDNORM;
-
-	return mask;
 }
 
 static ssize_t rmnet_ctl_read(struct file *file, char __user *buf, size_t count,
@@ -668,7 +659,7 @@ static int rmnet_ctrl_tiocmset(struct rmnet_ctrl_dev *dev, unsigned int set,
 
 	retval = usb_autopm_get_interface(dev->intf);
 	if (retval < 0) {
-		dev_dbg(dev->devicep, "%s: Unable to resume interface: %d\n",
+		dev_err(dev->devicep, "%s: Unable to resume interface: %d\n",
 			__func__, retval);
 		return retval;
 	}
@@ -732,7 +723,6 @@ static const struct file_operations ctrldev_fops = {
 	.unlocked_ioctl = rmnet_ctrl_ioctl,
 	.open  = rmnet_ctl_open,
 	.release = rmnet_ctl_release,
-	.poll = rmnet_ctl_poll,
 };
 
 int rmnet_usb_ctrl_probe(struct usb_interface *intf,
