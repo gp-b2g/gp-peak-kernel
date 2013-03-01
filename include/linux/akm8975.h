@@ -36,6 +36,8 @@
 #define	AK8975_MODE_POWERDOWN	0x00
 /*! @}*/
 
+#define RBUFF_SIZE		8	/* Rx buffer size */
+
 /*! \name AK8975 register address
 \anchor AK8975_REG
 Defines a register address of the AK8975.*/

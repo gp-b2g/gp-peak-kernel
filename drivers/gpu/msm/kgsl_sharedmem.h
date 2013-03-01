@@ -29,8 +29,6 @@ struct kgsl_process_private;
 
 /** Set if the memdesc describes cached memory */
 #define KGSL_MEMFLAGS_CACHED    0x00000001
-/** Set if the memdesc is mapped into all pagetables */
-#define KGSL_MEMFLAGS_GLOBAL    0x00000002
 
 extern struct kgsl_memdesc_ops kgsl_page_alloc_ops;
 
@@ -157,15 +155,4 @@ kgsl_allocate_contiguous(struct kgsl_memdesc *memdesc, size_t size)
 	return ret;
 }
 
-static inline int kgsl_sg_size(struct scatterlist *sg, int sglen)
-{
-	int i, size = 0;
-	struct scatterlist *s;
-
-	for_each_sg(sg, s, sglen, i) {
-		size += s->length;
-	}
-
-	return size;
-}
 #endif /* __KGSL_SHAREDMEM_H */

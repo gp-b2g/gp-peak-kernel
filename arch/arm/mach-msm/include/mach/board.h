@@ -402,8 +402,12 @@ enum msm_mdp_hw_revision {
 struct msm_panel_common_pdata {
 	uintptr_t hw_revision_addr;
 	int gpio;
+	bool bl_lock;
+	spinlock_t bl_spinlock;
 	int (*backlight_level)(int level, int max, int min);
 	int (*pmic_backlight)(int level);
+	int (*rotate_panel)(void);
+	int (*backlight) (int level, int mode);
 	int (*panel_num)(void);
 	void (*panel_config_gpio)(int);
 	int (*vga_switch)(int select_vga);
@@ -419,6 +423,7 @@ struct msm_panel_common_pdata {
 	u32 ov1_wb_size;  /* overlay1 writeback size */
 	u32 mem_hid;
 	char cont_splash_enabled;
+	char mdp_iommu_split_domain;
 };
 
 
@@ -484,6 +489,10 @@ struct lvds_panel_platform_data {
 	int *gpio;
 };
 
+struct msm_wfd_platform_data {
+	char (*wfd_check_mdp_iommu_split)(void);
+};
+
 #define PANEL_NAME_MAX_LEN 50
 struct msm_fb_platform_data {
 	int (*detect_client)(const char *name);
@@ -504,6 +513,7 @@ struct msm_hdmi_platform_data {
 	int (*gpio_config)(int on);
 	int (*init_irq)(void);
 	bool (*check_hdcp_hw_support)(void);
+	bool is_mhl_enabled;
 };
 
 struct msm_mhl_platform_data {
@@ -523,6 +533,7 @@ struct msm_i2c_platform_data {
 	int aux_dat;
 	int src_clk_rate;
 	int use_gsbi_shared_mode;
+	int keep_ahb_clk_on;
 	void (*msm_i2c_config_gpio)(int iface, int config_type);
 };
 

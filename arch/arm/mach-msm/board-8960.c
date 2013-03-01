@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -51,6 +51,7 @@
 #include <asm/mach/mmc.h>
 
 #include <mach/board.h>
+#include <mach/msm_tspp.h>
 #include <mach/msm_iomap.h>
 #include <mach/msm_spi.h>
 #include <mach/msm_serial_hs.h>
@@ -347,7 +348,7 @@ static int msm8960_paddr_to_memtype(unsigned int paddr)
 	return MEMTYPE_EBI1;
 }
 
-#define FMEM_ENABLED 1
+#define FMEM_ENABLED 0
 
 #ifdef CONFIG_ION_MSM
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
@@ -647,12 +648,13 @@ static void __init reserve_ion_memory(void)
 		msm8960_fmem_pdata.reserved_size_low = fixed_low_size +
 							HOLE_SIZE;
 		msm8960_fmem_pdata.reserved_size_high = fixed_high_size;
+		msm8960_fmem_pdata.size += HOLE_SIZE;
 	}
 
 	/* Since the fixed area may be carved out of lowmem,
 	 * make sure the length is a multiple of 1M.
 	 */
-	fixed_size = (fixed_size + MSM_MM_FW_SIZE + SECTION_SIZE - 1)
+	fixed_size = (fixed_size + HOLE_SIZE + SECTION_SIZE - 1)
 		& SECTION_MASK;
 	msm8960_reserve_fixed_area(fixed_size);
 
@@ -822,7 +824,7 @@ static void __init msm8960_reserve(void)
 #if defined(CONFIG_ION_MSM) && defined(CONFIG_MSM_MULTIMEDIA_USE_ION)
 		if (reserve_info->fixed_area_size) {
 			msm8960_fmem_pdata.phys =
-				reserve_info->fixed_area_start + MSM_MM_FW_SIZE;
+				reserve_info->fixed_area_start;
 			pr_info("mm fw at %lx (fixed) size %x\n",
 				reserve_info->fixed_area_start, MSM_MM_FW_SIZE);
 			pr_info("fmem start %lx (fixed) size %lx\n",
@@ -1058,6 +1060,12 @@ static struct msm_bus_vectors qseecom_clks_init_vectors[] = {
 		.ab = 0,
 	},
 	{
+		.src = MSM_BUS_MASTER_SPS,
+		.dst = MSM_BUS_SLAVE_SPS,
+		.ib = 0,
+		.ab = 0,
+	},
+	{
 		.src = MSM_BUS_MASTER_SPDM,
 		.dst = MSM_BUS_SLAVE_SPDM,
 		.ib = 0,
@@ -1073,6 +1081,12 @@ static struct msm_bus_vectors qseecom_enable_dfab_vectors[] = {
 		.ab = (492 * 8) *  100000UL,
 	},
 	{
+		.src = MSM_BUS_MASTER_SPS,
+		.dst = MSM_BUS_SLAVE_SPS,
+		.ib = (492 * 8) * 1000000UL,
+		.ab = (492 * 8) * 100000UL,
+	},
+	{
 		.src = MSM_BUS_MASTER_SPDM,
 		.dst = MSM_BUS_SLAVE_SPDM,
 		.ib = 0,
@@ -1084,6 +1098,12 @@ static struct msm_bus_vectors qseecom_enable_sfpb_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_SPS,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ib = 0,
+		.ab = 0,
+	},
+	{
+		.src = MSM_BUS_MASTER_SPS,
+		.dst = MSM_BUS_SLAVE_SPS,
 		.ib = 0,
 		.ab = 0,
 	},
@@ -1102,7 +1122,7 @@ static struct msm_bus_paths qseecom_hw_bus_scale_usecases[] = {
 	},
 	{
 		ARRAY_SIZE(qseecom_enable_dfab_vectors),
-		qseecom_enable_sfpb_vectors,
+		qseecom_enable_dfab_vectors,
 	},
 	{
 		ARRAY_SIZE(qseecom_enable_sfpb_vectors),
@@ -1290,9 +1310,89 @@ static struct platform_device qcedev_device = {
 static struct mdm_platform_data sglte_platform_data = {
 	.mdm_version = "4.0",
 	.ramdump_delay_ms = 1000,
-	.soft_reset_inverted = 1,
 	.peripheral_platform_device = NULL,
 	.ramdump_timeout_ms = 600000,
+};
+
+#define MSM_TSIF0_PHYS			(0x18200000)
+#define MSM_TSIF1_PHYS			(0x18201000)
+#define MSM_TSIF_SIZE			(0x200)
+#define MSM_TSPP_PHYS			(0x18202000)
+#define MSM_TSPP_SIZE			(0x1000)
+#define MSM_TSPP_BAM_PHYS		(0x18204000)
+#define MSM_TSPP_BAM_SIZE		(0x2000)
+
+#define TSIF_0_CLK       GPIO_CFG(75, 1, GPIO_CFG_INPUT, \
+	GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA)
+#define TSIF_0_EN        GPIO_CFG(76, 1, GPIO_CFG_INPUT, \
+	GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA)
+#define TSIF_0_DATA      GPIO_CFG(77, 1, GPIO_CFG_INPUT, \
+	GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA)
+#define TSIF_0_SYNC      GPIO_CFG(82, 1, GPIO_CFG_INPUT, \
+	GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA)
+#define TSIF_1_CLK       GPIO_CFG(79, 1, GPIO_CFG_INPUT, \
+	GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA)
+#define TSIF_1_EN        GPIO_CFG(80, 1, GPIO_CFG_INPUT, \
+	GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA)
+#define TSIF_1_DATA      GPIO_CFG(81, 1, GPIO_CFG_INPUT, \
+	GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA)
+#define TSIF_1_SYNC      GPIO_CFG(78, 1, GPIO_CFG_INPUT, \
+	GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA)
+
+static const struct msm_gpio tsif_gpios[] = {
+	{ .gpio_cfg = TSIF_0_CLK,  .label =  "tsif0_clk", },
+	{ .gpio_cfg = TSIF_0_EN,   .label =  "tsif0_en", },
+	{ .gpio_cfg = TSIF_0_DATA, .label =  "tsif0_data", },
+	{ .gpio_cfg = TSIF_0_SYNC, .label =  "tsif0_sync", },
+	{ .gpio_cfg = TSIF_1_CLK,  .label =  "tsif1_clk", },
+	{ .gpio_cfg = TSIF_1_EN,   .label =  "tsif1_en", },
+	{ .gpio_cfg = TSIF_1_DATA, .label =  "tsif1_data", },
+	{ .gpio_cfg = TSIF_1_SYNC, .label =  "tsif1_sync", },
+};
+
+static struct resource tspp_resources[] = {
+	[0] = {
+		.flags = IORESOURCE_IRQ,
+		.start = TSIF_TSPP_IRQ,
+		.end   = TSIF1_IRQ,
+	},
+	[1] = {
+		.flags = IORESOURCE_MEM,
+		.start = MSM_TSIF0_PHYS,
+		.end   = MSM_TSIF0_PHYS + MSM_TSIF_SIZE - 1,
+	},
+	[2] = {
+		.flags = IORESOURCE_MEM,
+		.start = MSM_TSIF1_PHYS,
+		.end   = MSM_TSIF1_PHYS + MSM_TSIF_SIZE - 1,
+	},
+	[3] = {
+		.flags = IORESOURCE_MEM,
+		.start = MSM_TSPP_PHYS,
+		.end   = MSM_TSPP_PHYS + MSM_TSPP_SIZE - 1,
+	},
+	[4] = {
+		.flags = IORESOURCE_MEM,
+		.start = MSM_TSPP_BAM_PHYS,
+		.end   = MSM_TSPP_BAM_PHYS + MSM_TSPP_BAM_SIZE - 1,
+	},
+};
+
+static struct msm_tspp_platform_data tspp_platform_data = {
+	.num_gpios = ARRAY_SIZE(tsif_gpios),
+	.gpios = tsif_gpios,
+	.tsif_pclk = "tsif_pclk",
+	.tsif_ref_clk = "tsif_ref_clk",
+};
+
+static struct platform_device msm_device_tspp = {
+	.name          = "msm_tspp",
+	.id            = 0,
+	.num_resources = ARRAY_SIZE(tspp_resources),
+	.resource      = tspp_resources,
+	.dev = {
+		.platform_data = &tspp_platform_data
+	},
 };
 
 #define MSM_SHARED_RAM_PHYS 0x80000000
@@ -1337,6 +1437,7 @@ static void __init msm8960_init_buses(void)
 
 static struct msm_spi_platform_data msm8960_qup_spi_gsbi1_pdata = {
 	.max_clock_speed = 15060000,
+	.infinite_mode	 = 0xFFC0,
 };
 
 #ifdef CONFIG_USB_MSM_OTG_72K
@@ -1345,7 +1446,7 @@ static struct msm_otg_platform_data msm_otg_pdata;
 static int wr_phy_init_seq[] = {
 	0x44, 0x80, /* set VBUS valid threshold
 			and disconnect valid threshold */
-	0x38, 0x81, /* update DC voltage level */
+	0x68, 0x81, /* update DC voltage level */
 	0x14, 0x82, /* set preemphasis and rise/fall time */
 	0x13, 0x83, /* set source impedance adjusment */
 	-1};
@@ -1353,7 +1454,7 @@ static int wr_phy_init_seq[] = {
 static int liquid_v1_phy_init_seq[] = {
 	0x44, 0x80,/* set VBUS valid threshold
 			and disconnect valid threshold */
-	0x3C, 0x81,/* update DC voltage level */
+	0x6C, 0x81,/* update DC voltage level */
 	0x18, 0x82,/* set preemphasis and rise/fall time */
 	0x23, 0x83,/* set source impedance sdjusment */
 	-1};
@@ -1397,6 +1498,8 @@ static struct msm_bus_scale_pdata usb_bus_scale_pdata = {
 };
 #endif
 
+#define MSM_MPM_PIN_USB1_OTGSESSVLD	40
+
 static struct msm_otg_platform_data msm_otg_pdata = {
 	.mode			= USB_OTG,
 	.otg_control		= OTG_PMIC_CONTROL,
@@ -1405,6 +1508,7 @@ static struct msm_otg_platform_data msm_otg_pdata = {
 	.power_budget		= 750,
 #ifdef CONFIG_MSM_BUS_SCALING
 	.bus_scale_table	= &usb_bus_scale_pdata,
+	.mpm_otgsessvld_int	= MSM_MPM_PIN_USB1_OTGSESSVLD,
 #endif
 };
 #endif
@@ -2198,60 +2302,13 @@ static struct i2c_board_info mxt_device_info[] __initdata = {
 	},
 };
 
-#ifdef CONFIG_FB_MSM_HDMI_MHL_8334
-static void mhl_sii_reset_gpio(int on)
-{
-	gpio_set_value(MHL_GPIO_RESET, on);
-	return;
-}
-
-/*
- * Request for GPIO allocations
- * Set appropriate GPIO directions
- */
-static int mhl_sii_gpio_setup(int on)
-{
-	int ret;
-
-	if (on) {
-		ret = gpio_request(MHL_GPIO_RESET, "W_RST#");
-		if (ret < 0) {
-			pr_err("GPIO RESET request failed: %d\n", ret);
-			return -EBUSY;
-		}
-		ret = gpio_direction_output(MHL_GPIO_RESET, 1);
-		if (ret < 0) {
-			pr_err("SET GPIO RESET direction failed: %d\n", ret);
-			gpio_free(MHL_GPIO_RESET);
-			return -EBUSY;
-		}
-		ret = gpio_request(MHL_GPIO_INT, "W_INT");
-		if (ret < 0) {
-			pr_err("GPIO INT request failed: %d\n", ret);
-			gpio_free(MHL_GPIO_RESET);
-			return -EBUSY;
-		}
-		ret = gpio_direction_input(MHL_GPIO_INT);
-		if (ret < 0) {
-			pr_err("SET GPIO INTR direction failed: %d\n", ret);
-			gpio_free(MHL_GPIO_RESET);
-			gpio_free(MHL_GPIO_INT);
-			return -EBUSY;
-		}
-	} else {
-		gpio_free(MHL_GPIO_RESET);
-		gpio_free(MHL_GPIO_INT);
-	}
-
-	return 0;
-}
-
 static struct msm_mhl_platform_data mhl_platform_data = {
 	.irq = MSM_GPIO_TO_INT(4),
-	.gpio_setup = mhl_sii_gpio_setup,
-	.reset_pin = mhl_sii_reset_gpio,
+	.gpio_mhl_int = MHL_GPIO_INT,
+	.gpio_mhl_reset = MHL_GPIO_RESET,
+	.gpio_mhl_power = 0,
+	.gpio_hdmi_mhl_mux = 0,
 };
-#endif
 
 static struct i2c_board_info sii_device_info[] __initdata = {
 	{
@@ -2485,7 +2542,6 @@ static struct platform_device *common_devices[] __initdata = {
 	&msm_device_vidc,
 	&msm_device_bam_dmux,
 	&msm_fm_platform_init,
-
 #if defined(CONFIG_TSIF) || defined(CONFIG_TSIF_MODULE)
 #ifdef CONFIG_MSM_USE_TSIF1
 	&msm_device_tsif[1],
@@ -2493,7 +2549,7 @@ static struct platform_device *common_devices[] __initdata = {
 	&msm_device_tsif[0],
 #endif
 #endif
-
+	&msm_device_tspp,
 #ifdef CONFIG_HW_RANDOM_MSM
 	&msm_device_rng,
 #endif
@@ -2578,12 +2634,13 @@ static struct platform_device *rumi3_devices[] __initdata = {
 #ifdef CONFIG_MSM_GEMINI
 	&msm8960_gemini_device,
 #endif
+#ifdef CONFIG_MSM_MERCURY
+	&msm8960_mercury_device,
+#endif
 };
 
 static struct platform_device *cdp_devices[] __initdata = {
 	&msm_8960_q6_lpass,
-	&msm_8960_q6_mss_fw,
-	&msm_8960_q6_mss_sw,
 	&msm_8960_riva,
 	&msm_pil_tzapps,
 	&msm_pil_dsps,
@@ -2616,6 +2673,9 @@ static struct platform_device *cdp_devices[] __initdata = {
 #ifdef CONFIG_MSM_GEMINI
 	&msm8960_gemini_device,
 #endif
+#ifdef CONFIG_MSM_MERCURY
+	&msm8960_mercury_device,
+#endif
 	&msm_voice,
 	&msm_voip,
 	&msm_lpa_pcm,
@@ -2638,6 +2698,9 @@ static struct platform_device *cdp_devices[] __initdata = {
 
 static void __init msm8960_i2c_init(void)
 {
+	if (socinfo_get_platform_subtype() == PLATFORM_SUBTYPE_SGLTE)
+		msm8960_i2c_qup_gsbi4_pdata.keep_ahb_clk_on = 1;
+
 	msm8960_device_qup_i2c_gsbi4.dev.platform_data =
 					&msm8960_i2c_qup_gsbi4_pdata;
 
@@ -2950,6 +3013,10 @@ static void __init register_i2c_devices(void)
 						msm8960_i2c_devices[i].info,
 						msm8960_i2c_devices[i].len);
 	}
+
+	if (!mhl_platform_data.gpio_mhl_power)
+		pr_debug("mhl device configured for ext debug board\n");
+
 #ifdef CONFIG_MSM_CAMERA
 	if (msm8960_camera_i2c_devices.machs & mach_mask)
 		i2c_register_board_info(msm8960_camera_i2c_devices.bus,
@@ -3091,6 +3158,11 @@ static void __init msm8960_cdp_init(void)
 
 	platform_add_devices(common_devices, ARRAY_SIZE(common_devices));
 	msm8960_pm8921_gpio_mpp_init();
+	/* Don't add modem devices on APQ targets */
+	if (socinfo_get_id() != 124) {
+		platform_device_register(&msm_8960_q6_mss_fw);
+		platform_device_register(&msm_8960_q6_mss_sw);
+	}
 	platform_add_devices(cdp_devices, ARRAY_SIZE(cdp_devices));
 	msm8960_init_smsc_hub();
 	msm8960_init_hsic();

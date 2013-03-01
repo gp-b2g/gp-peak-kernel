@@ -2,7 +2,7 @@
  *
  * Copyright (C) 2008 Google, Inc.
  * Author: Brian Swetland <swetland@google.com>
- * Copyright (c) 2009-2012, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2009-2012, The Linux Foundation. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -135,6 +135,9 @@ enum usb_chg_state {
  *			or more downstream ports. Capable of supplying
  *			IDEV_CHG_MAX irrespective of devices connected on
  *			accessory ports.
+ * USB_PROPRIETARY_CHARGER A proprietary charger pull DP and DM to specific
+ *			voltages between 2.0-3.3v for identification.
+ *
  */
 enum usb_chg_type {
 	USB_INVALID_CHARGER = 0,
@@ -145,6 +148,7 @@ enum usb_chg_type {
 	USB_ACA_B_CHARGER,
 	USB_ACA_C_CHARGER,
 	USB_ACA_DOCK_CHARGER,
+	USB_PROPRIETARY_CHARGER,
 };
 
 /**
@@ -181,6 +185,8 @@ enum usb_vdd_value {
  * @default_mode: Default operational mode. Applicable only if
  *              OTG switch is controller by user.
  * @pmic_id_irq: IRQ number assigned for PMIC USB ID line.
+ * @mpm_otgsessvld_int: MPM wakeup pin assigned for OTG SESSVLD
+ *              interrupt. Used when .otg_control == OTG_PHY_CONTROL.
  * @mhl_enable: indicates MHL connector or not.
  * @disable_reset_on_disconnect: perform USB PHY and LINK reset
  *              on USB cable disconnection.
@@ -192,6 +198,8 @@ enum usb_vdd_value {
  *              is connected.
  * @core_clk_always_on_workaround: Don't disable core_clk when
  *              USB enters LPM.
+ * @delay_lpm_on_disconnect: Use a delay before entering LPM
+ *              upon USB cable disconnection.
  * @bus_scale_table: parameters for bus bandwidth requirements
  */
 struct msm_otg_platform_data {
@@ -204,11 +212,13 @@ struct msm_otg_platform_data {
 	enum msm_usb_phy_type phy_type;
 	void (*setup_gpio)(enum usb_otg_state state);
 	int pmic_id_irq;
+	unsigned int mpm_otgsessvld_int;
 	bool mhl_enable;
 	bool disable_reset_on_disconnect;
 	bool enable_dcd;
 	bool enable_lpm_on_dev_suspend;
 	bool core_clk_always_on_workaround;
+	bool delay_lpm_on_disconnect;
 	struct msm_bus_scale_pdata *bus_scale_table;
 };
 
@@ -313,9 +323,12 @@ struct msm_otg {
 	bool sm_work_pending;
 	atomic_t pm_suspended;
 	atomic_t in_lpm;
+	atomic_t suspend_work_pending;
 	int async_int;
 	unsigned cur_power;
 	struct delayed_work chg_work;
+	struct delayed_work pmic_id_status_work;
+	struct delayed_work suspend_work;
 	enum usb_chg_state chg_state;
 	enum usb_chg_type chg_type;
 	u8 dcd_retries;
@@ -324,12 +337,12 @@ struct msm_otg {
 	unsigned mA_port;
 	struct timer_list id_timer;
 	unsigned long caps;
-	struct clk *xo_handle;
+	struct msm_xo_voter *xo_handle;
 	uint32_t bus_perf_client;
 	/*
 	 * Allowing PHY power collpase turns off the HSUSB 3.3v and 1.8v
 	 * analog regulators while going to low power mode.
-	 * Currently only 8960(28nm PHY) has the support to allowing PHY
+	 * Currently only 28nm PHY has the support to allowing PHY
 	 * power collapse since it doesn't have leakage currents while
 	 * turning off the power rails.
 	 */
@@ -343,10 +356,18 @@ struct msm_otg {
 	   * Allow putting the core in Low Power mode, when
 	   * USB bus is suspended but cable is connected.
 	   */
-#define ALLOW_LPM_ON_DEV_SUSPEND	    BIT(2)
+#define ALLOW_LPM_ON_DEV_SUSPEND	BIT(2)
+	/*
+	 * Allowing PHY regulators LPM puts the HSUSB 3.3v and 1.8v
+	 * analog regulators into LPM while going to USB low power mode.
+	 */
+#define ALLOW_PHY_REGULATORS_LPM	BIT(3)
 	unsigned long lpm_flags;
 #define PHY_PWR_COLLAPSED		BIT(0)
 #define PHY_RETENTIONED			BIT(1)
+#define XO_SHUTDOWN			BIT(2)
+#define CLOCKS_DOWN			BIT(3)
+#define PHY_REGULATORS_LPM	BIT(4)
 	int reset_counter;
 	unsigned long b_last_se0_sess;
 	unsigned long tmouts;
@@ -359,6 +380,7 @@ struct msm_hsic_host_platform_data {
 	unsigned strobe;
 	unsigned data;
 	struct msm_bus_scale_pdata *bus_scale_table;
+	u32 swfi_latency;
 };
 
 struct msm_usb_host_platform_data {
@@ -376,30 +398,93 @@ struct msm_hsic_peripheral_platform_data {
 	bool core_clk_always_on_workaround;
 };
 
+enum usb_pipe_mem_type {
+	SPS_PIPE_MEM = 0,	/* Default, SPS dedicated pipe memory */
+	USB_PRIVATE_MEM,	/* USB's private memory */
+	SYSTEM_MEM,		/* System RAM, requires allocation */
+};
+
+/**
+ * struct usb_bam_pipe_connect: pipe connection information
+ * between USB/HSIC BAM and another BAM. USB/HSIC BAM can be
+ * either src BAM or dst BAM
+ * @src_phy_addr: src bam physical address.
+ * @src_pipe_index: src bam pipe index.
+ * @dst_phy_addr: dst bam physical address.
+ * @dst_pipe_index: dst bam pipe index.
+ * @mem_type: type of memory used for BAM FIFOs
+ * @data_fifo_base_offset: data fifo offset.
+ * @data_fifo_size: data fifo size.
+ * @desc_fifo_base_offset: descriptor fifo offset.
+ * @desc_fifo_size: descriptor fifo size.
+ */
 struct usb_bam_pipe_connect {
 	u32 src_phy_addr;
-	int src_pipe_index;
+	u32 src_pipe_index;
 	u32 dst_phy_addr;
-	int dst_pipe_index;
+	u32 dst_pipe_index;
+	enum usb_pipe_mem_type mem_type;
 	u32 data_fifo_base_offset;
 	u32 data_fifo_size;
 	u32 desc_fifo_base_offset;
 	u32 desc_fifo_size;
 };
 
+/**
+ * struct msm_usb_bam_platform_data: pipe connection information
+ * between USB/HSIC BAM and another BAM. USB/HSIC BAM can be
+ * either src BAM or dst BAM
+ * @connections: holds all pipe connections data.
+ * @usb_active_bam: set USB or HSIC as the active BAM.
+ * @usb_bam_num_pipes: max number of pipes to use.
+ * @active_conn_num: number of active pipe connections.
+ * @usb_base_address: BAM physical address.
+ */
 struct msm_usb_bam_platform_data {
 	struct usb_bam_pipe_connect *connections;
 	int usb_active_bam;
 	int usb_bam_num_pipes;
+	u32 total_bam_num;
+	u32 usb_base_address;
 };
 
 enum usb_bam {
-	HSUSB_BAM = 0,
+	SSUSB_BAM = 0,
+	HSUSB_BAM,
 	HSIC_BAM,
+	MAX_BAMS,
 };
 
+#ifdef CONFIG_USB_CI13XXX_MSM
+void msm_hw_bam_disable(bool bam_disable);
+
+#else
+static inline void msm_hw_bam_disable(bool bam_disable)
+{
+}
+#endif
+
+#ifdef CONFIG_USB_DWC3_MSM
 int msm_ep_config(struct usb_ep *ep);
 int msm_ep_unconfig(struct usb_ep *ep);
-int msm_data_fifo_config(struct usb_ep *ep, u32 addr, u32 size);
+int msm_data_fifo_config(struct usb_ep *ep, u32 addr, u32 size,
+	u8 dst_pipe_idx);
 
+#else
+static inline int msm_data_fifo_config(struct usb_ep *ep, u32 addr, u32 size,
+	u8 dst_pipe_idx)
+{
+	return -ENODEV;
+}
+
+static inline int msm_ep_config(struct usb_ep *ep)
+{
+	return -ENODEV;
+}
+
+static inline int msm_ep_unconfig(struct usb_ep *ep)
+{
+	return -ENODEV;
+}
+#endif
 #endif

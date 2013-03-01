@@ -1293,7 +1293,7 @@ static struct platform_device gpio_leds_pdev = {
 //end
 
 char CTP_Panel_manufacturer;
-static int register_tp_devices(void)
+int __init register_tp_devices(void)
 {
     	struct kobject *kobj=NULL;
 #ifndef CONFIG_CELLON_PRJ_C8681

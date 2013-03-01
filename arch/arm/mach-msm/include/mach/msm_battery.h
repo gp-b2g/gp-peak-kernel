@@ -1,4 +1,4 @@
-/* Copyright (c) 2009-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2009, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -11,6 +11,7 @@
  *
  */
 
+
 #ifndef __MSM_BATTERY_H__
 #define __MSM_BATTERY_H__
 
@@ -21,8 +22,9 @@
 struct msm_psy_batt_pdata {
 	u32 voltage_max_design;
 	u32 voltage_min_design;
-	u32 batt_technology;
+	u32 voltage_fail_safe;
 	u32 avail_chg_sources;
+	u32 batt_technology;
 	u32 (*calculate_capacity)(u32 voltage);
 };
 

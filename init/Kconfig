@@ -390,7 +390,7 @@ config TREE_RCU
 	  smaller systems.
 
 config TREE_PREEMPT_RCU
-	bool "Preemptable tree-based hierarchical RCU"
+	bool "Preemptible tree-based hierarchical RCU"
 	depends on PREEMPT
 	help
 	  This option selects the RCU implementation that is
@@ -473,10 +473,10 @@ config RCU_FAST_NO_HZ
 	default n
 	help
 	  This option causes RCU to attempt to accelerate grace periods
-	  in order to allow CPUs to enter dynticks-idle state more
-	  quickly.  On the other hand, this option increases the overhead
-	  of the dynticks-idle checking, particularly on systems with
-	  large numbers of CPUs.
+	  in order to allow the final CPU to enter dynticks-idle state
+	  more quickly.  On the other hand, this option increases the
+	  overhead of the dynticks-idle checking, particularly on systems
+	  with large numbers of CPUs.
 
 	  Say Y if energy efficiency is critically important, particularly
 	  	if you have relatively few CPUs.

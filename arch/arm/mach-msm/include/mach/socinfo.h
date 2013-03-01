@@ -1,4 +1,4 @@
-/* Copyright (c) 2009-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2009-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -77,6 +77,7 @@ enum msm_cpu {
 	MSM_CPU_8X55,
 	MSM_CPU_8X60,
 	MSM_CPU_8960,
+	MSM_CPU_8960AB,
 	MSM_CPU_7X27A,
 	FSM_CPU_9XXX,
 	MSM_CPU_7X25A,
@@ -84,12 +85,30 @@ enum msm_cpu {
 	MSM_CPU_7X25AB,
 	MSM_CPU_8064,
 	MSM_CPU_8930,
+	MSM_CPU_8930AA,
 	MSM_CPU_7X27AA,
 	MSM_CPU_9615,
 	MSM_CPU_COPPER,
 	MSM_CPU_8627,
 	MSM_CPU_8625,
 	MSM_CPU_9625
+};
+
+enum pmic_model {
+	PMIC_MODEL_PM8058	= 13,
+	PMIC_MODEL_PM8028	= 14,
+	PMIC_MODEL_PM8901	= 15,
+	PMIC_MODEL_PM8027	= 16,
+	PMIC_MODEL_ISL_9519	= 17,
+	PMIC_MODEL_PM8921	= 18,
+	PMIC_MODEL_PM8018	= 19,
+	PMIC_MODEL_PM8015	= 20,
+	PMIC_MODEL_PM8014	= 21,
+	PMIC_MODEL_PM8821	= 22,
+	PMIC_MODEL_PM8038	= 23,
+	PMIC_MODEL_PM8922	= 24,
+	PMIC_MODEL_PM8917	= 25,
+	PMIC_MODEL_UNKNOWN	= 0xFFFFFFFF
 };
 
 enum msm_cpu socinfo_get_msm_cpu(void);
@@ -100,6 +119,8 @@ char *socinfo_get_build_id(void);
 uint32_t socinfo_get_platform_type(void);
 uint32_t socinfo_get_platform_subtype(void);
 uint32_t socinfo_get_platform_version(void);
+enum pmic_model socinfo_get_pmic_model(void);
+uint32_t socinfo_get_pmic_die_revision(void);
 int __init socinfo_init(void) __must_check;
 const int read_msm_cpu_type(void);
 const int get_core_count(void);
@@ -255,6 +276,15 @@ static inline int cpu_is_msm8960(void)
 #endif
 }
 
+static inline int cpu_is_msm8960ab(void)
+{
+#ifdef CONFIG_ARCH_MSM8960
+	return read_msm_cpu_type() == MSM_CPU_8960AB;
+#else
+	return 0;
+#endif
+}
+
 static inline int cpu_is_apq8064(void)
 {
 #ifdef CONFIG_ARCH_APQ8064
@@ -267,8 +297,16 @@ static inline int cpu_is_apq8064(void)
 static inline int cpu_is_msm8930(void)
 {
 #ifdef CONFIG_ARCH_MSM8930
-	return (read_msm_cpu_type() == MSM_CPU_8930) ||
-	       (read_msm_cpu_type() == MSM_CPU_8627);
+	return read_msm_cpu_type() == MSM_CPU_8930;
+#else
+	return 0;
+#endif
+}
+
+static inline int cpu_is_msm8930aa(void)
+{
+#ifdef CONFIG_ARCH_MSM8930
+	return read_msm_cpu_type() == MSM_CPU_8930AA;
 #else
 	return 0;
 #endif

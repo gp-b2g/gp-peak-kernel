@@ -44,7 +44,7 @@ char strongly_ordered_mem[PAGE_SIZE*2-4];
 
 void map_page_strongly_ordered(void)
 {
-#if defined(CONFIG_ARCH_MSM7X27) || defined(CONFIG_ARCH_MSM7X27A) || defined(CONFIG_ARCH_MSM8625)
+#if defined(CONFIG_ARCH_MSM7X27) && !defined(CONFIG_ARCH_MSM7X27A)
 	long unsigned int phys;
 	struct map_desc map;
 
@@ -67,7 +67,7 @@ EXPORT_SYMBOL(map_page_strongly_ordered);
 
 void write_to_strongly_ordered_memory(void)
 {
-#if defined(CONFIG_ARCH_MSM7X27) || defined(CONFIG_ARCH_MSM7X27A) || defined(CONFIG_ARCH_MSM8625)
+#if defined(CONFIG_ARCH_MSM7X27) && !defined(CONFIG_ARCH_MSM7X27A)
 	if (!strongly_ordered_page) {
 		if (!in_interrupt())
 			map_page_strongly_ordered();

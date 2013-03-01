@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -43,20 +43,39 @@ struct sdcc_gpio {
  * require higher value since it should handle bad signal quality due
  * to size of T-flash adapters.
  */
+
+//--------------SDCARD-------------
 static struct msm_gpio sdc1_cfg_data[] = {
-	{GPIO_CFG(51, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_14MA),
+	{GPIO_CFG(51, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_12MA),
 								"sdc1_dat_3"},
-	{GPIO_CFG(52, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_14MA),
+	{GPIO_CFG(52, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_12MA),
 								"sdc1_dat_2"},
-	{GPIO_CFG(53, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_14MA),
+	{GPIO_CFG(53, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_12MA),
 								"sdc1_dat_1"},
-	{GPIO_CFG(54, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_14MA),
+	{GPIO_CFG(54, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_12MA),
 								"sdc1_dat_0"},
-	{GPIO_CFG(55, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_14MA),
+	{GPIO_CFG(55, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_12MA),
 								"sdc1_cmd"},
-	{GPIO_CFG(56, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_14MA),
+	{GPIO_CFG(56, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_16MA),
 								"sdc1_clk"},
 };
+
+static struct msm_gpio sdc1_sleep_cfg_data[] = {
+       {GPIO_CFG(51, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+               "sdc1_dat_3"},
+       {GPIO_CFG(52, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+               "sdc1_dat_2"},
+       {GPIO_CFG(53, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+               "sdc1_dat_1"},
+       {GPIO_CFG(54, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+               "sdc1_dat_0"},
+       {GPIO_CFG(55, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+               "sdc1_cmd"},
+       {GPIO_CFG(56, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+               "sdc1_clk"},
+};
+
+//----------WIFI----------
 
 static struct msm_gpio sdc2_cfg_data[] = {
 	{GPIO_CFG(62, 2, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
@@ -87,6 +106,8 @@ static struct msm_gpio sdc2_sleep_cfg_data[] = {
 	{GPIO_CFG(67, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
 								"sdc2_dat_0"},
 };
+
+//----------INTERNAL------------
 static struct msm_gpio sdc3_cfg_data[] = {
 	{GPIO_CFG(88, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
 								"sdc3_clk"},
@@ -131,6 +152,7 @@ static struct sdcc_gpio sdcc_cfg_data[] = {
 	{
 		.cfg_data = sdc1_cfg_data,
 		.size = ARRAY_SIZE(sdc1_cfg_data),
+		.sleep_cfg_data = sdc1_sleep_cfg_data,
 	},
 	{
 		.cfg_data = sdc2_cfg_data,
@@ -207,6 +229,10 @@ static int msm_sdcc_setup_vreg(int dev_id, unsigned int enable)
 		return PTR_ERR(curr);
 
 	if (enable) {
+		if (dev_id == 1) {
+			mdelay(5);
+			pr_info("%s: mmc1 Enabling SD slot power\n", __func__);
+		}
 		set_bit(dev_id, &vreg_sts);
 
 		rc = regulator_enable(curr);
@@ -214,6 +240,10 @@ static int msm_sdcc_setup_vreg(int dev_id, unsigned int enable)
 			pr_err("%s: could not enable regulator: %d\n",
 						__func__, rc);
 	} else {
+		if (dev_id == 1) {
+			mdelay(5);
+			pr_info("%s: mmc1 Disabling SD slot power\n", __func__);
+		}
 		clear_bit(dev_id, &vreg_sts);
 
 		rc = regulator_disable(curr);

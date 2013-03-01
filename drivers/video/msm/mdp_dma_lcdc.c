@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2009, 2012 Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2008-2009, 2012 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -241,8 +241,8 @@ int mdp_lcdc_on(struct platform_device *pdev)
 
 	lcdc_underflow_clr |= 0x80000000;	/* enable recovery */
 #else
-	hsync_polarity = 1;
-	vsync_polarity = 1;
+	hsync_polarity = 0;
+	vsync_polarity = 0;
 #endif
 	data_en_polarity = 0;
 

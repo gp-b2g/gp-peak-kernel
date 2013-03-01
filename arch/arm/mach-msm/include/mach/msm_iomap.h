@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2007 Google, Inc.
- * Copyright (c) 2008-2012, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2008-2012, The Linux Foundation. All rights reserved.
  * Author: Brian Swetland <swetland@google.com>
  *
  * This software is licensed under the terms of the GNU General Public
@@ -105,7 +105,7 @@
 
 #define MSM_STRONGLY_ORDERED_PAGE	0xFA0F0000
 #define MSM8625_SECONDARY_PHYS		0x0FE00000
-
+#define MSM8625_NON_CACHE_MEM		0x0FC00000
 
 #if defined(CONFIG_ARCH_MSM9615) || defined(CONFIG_ARCH_MSM7X27) \
 	|| defined(CONFIG_ARCH_MSM7X30)

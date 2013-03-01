@@ -1,4 +1,4 @@
-/* Copyright (c) 2009-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2009-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -3480,6 +3480,7 @@ static struct clk_lookup msm_clocks_8x60[] = {
 	CLK_LOOKUP("xo",		cxo_a_clk.c,	""),
 	CLK_LOOKUP("xo",		pxo_a_clk.c,	""),
 	CLK_LOOKUP("xo",		pxo_clk.c,	"pil_modem"),
+	CLK_LOOKUP("vref_buff",		cxo_clk.c,	"rpm-regulator"),
 	CLK_LOOKUP("pll4",		pll4_clk.c,	"pil_qdsp6v3"),
 	CLK_LOOKUP("measure",		measure_clk.c,	"debug"),
 

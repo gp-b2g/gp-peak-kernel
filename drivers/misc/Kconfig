@@ -480,7 +480,7 @@ config TI_DAC7512
 
 config UID_STAT
 	bool "UID based statistics tracking exported to /proc/uid_stat"
-	default y
+	default n
 
 config VMWARE_BALLOON
 	tristate "VMware Balloon Driver"

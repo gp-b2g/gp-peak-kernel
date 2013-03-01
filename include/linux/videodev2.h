@@ -1169,8 +1169,8 @@ enum v4l2_colorfx {
 #define V4L2_CID_MIN_BUFFERS_FOR_OUTPUT		(V4L2_CID_BASE+40)
 
 /* last CID + 1 */
-#define V4L2_CID_LASTP1                         (V4L2_CID_BASE+41)
-#define V4L2_CID_SPECIAL_EFFECT			(V4L2_CID_BASE+42)
+#define V4L2_CID_LASTP1                         (V4L2_CID_BASE+42)
+#define V4L2_CID_SPECIAL_EFFECT			(V4L2_CID_BASE+43)
 /* Minimum number of buffer neede by the device */
 
 /*  MPEG-class control IDs defined by V4L2 */
@@ -1634,6 +1634,18 @@ enum v4l2_mpeg_vidc_video_intra_refresh_mode {
 #define V4L2_CID_MPEG_VIDC_VIDEO_AIR_REF (V4L2_CID_MPEG_MSM_VIDC_BASE+18)
 #define V4L2_CID_MPEG_VIDC_VIDEO_CIR_MBS (V4L2_CID_MPEG_MSM_VIDC_BASE+19)
 
+#define V4L2_CID_MPEG_VIDC_VIDEO_H264_AU_DELIMITER \
+		(V4L2_CID_MPEG_MSM_VIDC_BASE + 22)
+enum v4l2_mpeg_vidc_video_h264_au_delimiter {
+	V4L2_MPEG_VIDC_VIDEO_H264_AU_DELIMITER_DISABLED = 0,
+	V4L2_MPEG_VIDC_VIDEO_H264_AU_DELIMITER_ENABLED = 1
+};
+#define V4L2_CID_MPEG_VIDC_VIDEO_H264_VUI_TIMING_INFO \
+		(V4L2_CID_MPEG_MSM_VIDC_BASE + 23)
+enum v4l2_mpeg_vidc_video_h264_vui_timing_info {
+	V4L2_MPEG_VIDC_VIDEO_H264_VUI_TIMING_INFO_DISABLED = 0,
+	V4L2_MPEG_VIDC_VIDEO_H264_VUI_TIMING_INFO_ENABLED = 1
+};
 /*  Camera class control IDs */
 #define V4L2_CID_CAMERA_CLASS_BASE 	(V4L2_CTRL_CLASS_CAMERA | 0x900)
 #define V4L2_CID_CAMERA_CLASS 		(V4L2_CTRL_CLASS_CAMERA | 1)
@@ -1864,6 +1876,8 @@ struct v4l2_encoder_cmd {
 		} raw;
 	};
 };
+
+#define V4L2_QCOM_BUF_FLAG_CODECCONFIG	0x4000
 
 /* Decoder commands */
 #define V4L2_DEC_CMD_START       (0)

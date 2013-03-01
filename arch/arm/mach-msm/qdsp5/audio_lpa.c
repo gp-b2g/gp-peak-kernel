@@ -1,7 +1,7 @@
 
 /* audio_lpa.c - low power audio driver
  *
- * Copyright (c) 2012, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2012, The Linux Foundation. All rights reserved.
  *
  * Based on the PCM decoder driver in arch/arm/mach-msm/qdsp5/audio_pcm.c
  *
@@ -463,7 +463,8 @@ static int auddec_dsp_config(struct audio *audio, int enable)
 	cfg_dec_cmd[0] = AUDPP_CMD_CFG_DEC_TYPE;
 	if (enable)
 		cfg_dec_cmd[1 + audio->dec_id] = AUDPP_CMD_UPDATDE_CFG_DEC |
-				AUDPP_CMD_ENA_DEC_V | AUDDEC_DEC_PCM;
+				AUDPP_CMD_ENA_DEC_V | AUDDEC_DEC_PCM |
+				AUDPP_CMD_LPA_MODE;
 	else
 		cfg_dec_cmd[1 + audio->dec_id] = AUDPP_CMD_UPDATDE_CFG_DEC |
 				AUDPP_CMD_DIS_DEC_V;

@@ -101,7 +101,6 @@ enum z180_cmdwindow_type {
 static int z180_start(struct kgsl_device *device, unsigned int init_ram);
 static int z180_stop(struct kgsl_device *device);
 static int z180_wait(struct kgsl_device *device,
-				struct kgsl_context *context,
 				unsigned int timestamp,
 				unsigned int msecs);
 static void z180_regread(struct kgsl_device *device,
@@ -132,9 +131,10 @@ static const struct kgsl_functable z180_functable;
 
 static struct z180_device device_2d0 = {
 	.dev = {
-		KGSL_DEVICE_COMMON_INIT(device_2d0.dev),
 		.name = DEVICE_2D0_NAME,
 		.id = KGSL_DEVICE_2D0,
+		.ver_major = DRIVER_VERSION_MAJOR,
+		.ver_minor = DRIVER_VERSION_MINOR,
 		.mh = {
 			.mharb = Z180_CFG_MHARB,
 			.mh_intf_cfg1 = 0x00032f07,
@@ -149,19 +149,23 @@ static struct z180_device device_2d0 = {
 			.config = Z180_MMU_CONFIG,
 		},
 		.pwrctrl = {
+			.regulator_name = "fs_gfx2d0",
 			.irq_name = KGSL_2D0_IRQ,
 		},
+		.mutex = __MUTEX_INITIALIZER(device_2d0.dev.mutex),
+		.state = KGSL_STATE_INIT,
+		.active_cnt = 0,
 		.iomemname = KGSL_2D0_REG_MEMORY,
 		.ftbl = &z180_functable,
 	},
-	.cmdwin_lock = __SPIN_LOCK_INITIALIZER(device_2d1.cmdwin_lock),
 };
 
 static struct z180_device device_2d1 = {
 	.dev = {
-		KGSL_DEVICE_COMMON_INIT(device_2d1.dev),
 		.name = DEVICE_2D1_NAME,
 		.id = KGSL_DEVICE_2D1,
+		.ver_major = DRIVER_VERSION_MAJOR,
+		.ver_minor = DRIVER_VERSION_MINOR,
 		.mh = {
 			.mharb = Z180_CFG_MHARB,
 			.mh_intf_cfg1 = 0x00032f07,
@@ -176,18 +180,22 @@ static struct z180_device device_2d1 = {
 			.config = Z180_MMU_CONFIG,
 		},
 		.pwrctrl = {
+			.regulator_name = "fs_gfx2d1",
 			.irq_name = KGSL_2D1_IRQ,
 		},
+		.mutex = __MUTEX_INITIALIZER(device_2d1.dev.mutex),
+		.state = KGSL_STATE_INIT,
+		.active_cnt = 0,
 		.iomemname = KGSL_2D1_REG_MEMORY,
 		.ftbl = &z180_functable,
 	},
-	.cmdwin_lock = __SPIN_LOCK_INITIALIZER(device_2d1.cmdwin_lock),
 };
 
-static irqreturn_t z180_irq_handler(struct kgsl_device *device)
+static irqreturn_t z180_isr(int irq, void *data)
 {
 	irqreturn_t result = IRQ_NONE;
 	unsigned int status;
+	struct kgsl_device *device = (struct kgsl_device *) data;
 	struct z180_device *z180_dev = Z180_DEVICE(device);
 
 	z180_regread(device, ADDR_VGC_IRQSTATUS >> 2, &status);
@@ -324,15 +332,13 @@ static void addcmd(struct z180_ringbuffer *rb, unsigned int timestamp,
 	*p++ = ADDR_VGV3_LAST << 24;
 }
 
-static void z180_cmdstream_start(struct kgsl_device *device, int init_ram)
+static void z180_cmdstream_start(struct kgsl_device *device)
 {
 	struct z180_device *z180_dev = Z180_DEVICE(device);
 	unsigned int cmd = VGV3_NEXTCMD_JUMP << VGV3_NEXTCMD_NEXTCMD_FSHIFT;
 
-	if (init_ram) {
-		z180_dev->timestamp = 0;
-		z180_dev->current_timestamp = 0;
-	}
+	z180_dev->timestamp = 0;
+	z180_dev->current_timestamp = 0;
 
 	addmarker(&z180_dev->ringbuffer, 0);
 
@@ -370,8 +376,8 @@ static int z180_idle(struct kgsl_device *device, unsigned int timeout)
 
 	if (timestamp_cmp(z180_dev->current_timestamp,
 		z180_dev->timestamp) > 0)
-		status = z180_wait(device, NULL,
-				z180_dev->current_timestamp, timeout);
+		status = z180_wait(device, z180_dev->current_timestamp,
+					timeout);
 
 	if (status)
 		KGSL_DRV_ERR(device, "z180_waittimestamp() timed out\n");
@@ -442,13 +448,12 @@ z180_cmdstream_issueibcmds(struct kgsl_device_private *dev_priv,
 	    (ctrl & KGSL_CONTEXT_CTX_SWITCH)) {
 		KGSL_CMD_INFO(device, "context switch %d -> %d\n",
 			context->id, z180_dev->ringbuffer.prevctx);
-		kgsl_mmu_setstate(&device->mmu, pagetable);
+		kgsl_mmu_setstate(device, pagetable);
 		cnt = PACKETSIZE_STATESTREAM;
 		ofs = 0;
 	}
-	kgsl_setstate(&device->mmu,
-			kgsl_mmu_pt_get_flags(device->mmu.hwpagetable,
-			device->id));
+	kgsl_setstate(device, kgsl_mmu_pt_get_flags(device->mmu.hwpagetable,
+						    device->id));
 
 	result = wait_event_interruptible_timeout(device->wait_queue,
 				  room_in_rb(z180_dev),
@@ -518,12 +523,13 @@ static int __devinit z180_probe(struct platform_device *pdev)
 	device->parentdev = &pdev->dev;
 
 	z180_dev = Z180_DEVICE(device);
+	spin_lock_init(&z180_dev->cmdwin_lock);
 
 	status = z180_ringbuffer_init(device);
 	if (status != 0)
 		goto error;
 
-	status = kgsl_device_platform_probe(device);
+	status = kgsl_device_platform_probe(device, z180_isr);
 	if (status)
 		goto error_close_ringbuffer;
 
@@ -570,7 +576,7 @@ static int z180_start(struct kgsl_device *device, unsigned int init_ram)
 	if (status)
 		goto error_clk_off;
 
-	z180_cmdstream_start(device, init_ram);
+	z180_cmdstream_start(device);
 
 	mod_timer(&device->idle_timer, jiffies + FIRST_TIMEOUT);
 	kgsl_pwrctrl_irq(device, KGSL_PWRFLAGS_ON);
@@ -590,7 +596,7 @@ static int z180_stop(struct kgsl_device *device)
 
 	del_timer_sync(&device->idle_timer);
 
-	kgsl_mmu_stop(&device->mmu);
+	kgsl_mmu_stop(device);
 
 	/* Disable the clocks before the power rail. */
 	kgsl_pwrctrl_irq(device, KGSL_PWRFLAGS_OFF);
@@ -678,9 +684,10 @@ static void _z180_regread_simple(struct kgsl_device *device,
 {
 	unsigned int *reg;
 
-	BUG_ON(offsetwords * sizeof(uint32_t) >= device->reg_len);
+	BUG_ON(offsetwords * sizeof(uint32_t) >= device->regspace.sizebytes);
 
-	reg = (unsigned int *)(device->reg_virt + (offsetwords << 2));
+	reg = (unsigned int *)(device->regspace.mmio_virt_base
+			+ (offsetwords << 2));
 
 	/*ensure this read finishes before the next one.
 	 * i.e. act like normal readl() */
@@ -695,9 +702,10 @@ static void _z180_regwrite_simple(struct kgsl_device *device,
 {
 	unsigned int *reg;
 
-	BUG_ON(offsetwords*sizeof(uint32_t) >= device->reg_len);
+	BUG_ON(offsetwords*sizeof(uint32_t) >= device->regspace.sizebytes);
 
-	reg = (unsigned int *)(device->reg_virt + (offsetwords << 2));
+	reg = (unsigned int *)(device->regspace.mmio_virt_base
+			+ (offsetwords << 2));
 	kgsl_cffdump_regwrite(device->id, offsetwords << 2, value);
 	/*ensure previous writes post before this one,
 	 * i.e. act like normal writel() */
@@ -798,16 +806,14 @@ static void z180_cmdwindow_write(struct kgsl_device *device,
 }
 
 static unsigned int z180_readtimestamp(struct kgsl_device *device,
-		struct kgsl_context *context, enum kgsl_timestamp_type type)
+			     enum kgsl_timestamp_type type)
 {
 	struct z180_device *z180_dev = Z180_DEVICE(device);
-	(void)context;
 	/* get current EOP timestamp */
 	return z180_dev->timestamp;
 }
 
 static int z180_waittimestamp(struct kgsl_device *device,
-				struct kgsl_context *context,
 				unsigned int timestamp,
 				unsigned int msecs)
 {
@@ -818,14 +824,13 @@ static int z180_waittimestamp(struct kgsl_device *device,
 		msecs = 10 * MSEC_PER_SEC;
 
 	mutex_unlock(&device->mutex);
-	status = z180_wait(device, context, timestamp, msecs);
+	status = z180_wait(device, timestamp, msecs);
 	mutex_lock(&device->mutex);
 
 	return status;
 }
 
 static int z180_wait(struct kgsl_device *device,
-				struct kgsl_context *context,
 				unsigned int timestamp,
 				unsigned int msecs)
 {
@@ -834,7 +839,7 @@ static int z180_wait(struct kgsl_device *device,
 
 	timeout = wait_io_event_interruptible_timeout(
 			device->wait_queue,
-			kgsl_check_timestamp(device, context, timestamp),
+			kgsl_check_timestamp(device, timestamp),
 			msecs_to_jiffies(msecs));
 
 	if (timeout > 0)
@@ -859,7 +864,7 @@ z180_drawctxt_destroy(struct kgsl_device *device,
 	if (z180_dev->ringbuffer.prevctx == context->id) {
 		z180_dev->ringbuffer.prevctx = Z180_INVALID_CONTEXT;
 		device->mmu.hwpagetable = device->mmu.defaultpagetable;
-		kgsl_setstate(&device->mmu, KGSL_MMUFLAGS_PTUPDATE);
+		kgsl_setstate(device, KGSL_MMUFLAGS_PTUPDATE);
 	}
 }
 
@@ -894,11 +899,8 @@ static void z180_irqctrl(struct kgsl_device *device, int state)
 	}
 }
 
-static unsigned int z180_gpuid(struct kgsl_device *device, unsigned int *chipid)
+static unsigned int z180_gpuid(struct kgsl_device *device)
 {
-	if (chipid != NULL)
-		*chipid = 0;
-
 	/* Standard KGSL gpuid format:
 	 * top word is 0x0002 for 2D or 0x0003 for 3D
 	 * Bottom word is core specific identifer
@@ -925,7 +927,6 @@ static const struct kgsl_functable z180_functable = {
 	.power_stats = z180_power_stats,
 	.irqctrl = z180_irqctrl,
 	.gpuid = z180_gpuid,
-	.irq_handler = z180_irq_handler,
 	/* Optional functions */
 	.drawctxt_create = NULL,
 	.drawctxt_destroy = z180_drawctxt_destroy,

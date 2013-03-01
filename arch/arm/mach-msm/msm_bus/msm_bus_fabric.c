@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -131,7 +131,7 @@ static int register_fabric_info(struct platform_device *pdev,
 		fabric->pdata->id, fabric->pdata->len);
 	fabric->hw_data = fabric->fabdev.hw_algo.allocate_hw_data(pdev,
 		fabric->pdata);
-	if (ZERO_OR_NULL_PTR(fabric->hw_data)) {
+	if (ZERO_OR_NULL_PTR(fabric->hw_data) && fabric->pdata->ahb == 0) {
 		MSM_BUS_ERR("Couldn't allocate hw_data for fab: %d\n",
 			fabric->fabdev.id);
 		goto error;

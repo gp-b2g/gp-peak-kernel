@@ -1,4 +1,4 @@
-/* Copyright (c) 2012 Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2012 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -361,7 +361,6 @@ static struct msm_bus_scale_pdata cam_bus_client_pdata = {
 static struct msm_camera_device_platform_data msm_camera_csi_device_data[] = {
 	{
 		.csid_core = 0,
-		.is_csic = 1,
 		.is_vpe    = 1,
 		.cam_bus_scale_table = &cam_bus_client_pdata,
 		.ioclk = {
@@ -370,7 +369,6 @@ static struct msm_camera_device_platform_data msm_camera_csi_device_data[] = {
 	},
 	{
 		.csid_core = 1,
-		.is_csic = 1,
 		.is_vpe    = 1,
 		.cam_bus_scale_table = &cam_bus_client_pdata,
 		.ioclk = {
