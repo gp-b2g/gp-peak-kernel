@@ -21,9 +21,6 @@ self driver for himax
 
 #define ChangeIref1u 1
 
-
-
-
 //#define __HX_DEBUG__
 #define __USB_CHARGER_STATUS__
 #ifdef __HX_DEBUG__
@@ -40,18 +37,9 @@ printk(KERN_ERR"himax->%s_%d:"fmt,__FUNCTION__,__LINE__,##args)
 #define info_printk(fmt,args...)   \
 printk(KERN_INFO"himax->%s_%d:"fmt,__FUNCTION__,__LINE__,##args)
 
-
-#if 0
-#define HIMAX_RO_ATTR S_IRUGO
-#define HIMAX_RW_ATTR (S_IRUGO | S_IWUSR | S_IWGRP)
-#define HIMAX_WO_ATTR (S_IWUSR | S_IWGRP)
-#else
 #define HIMAX_RO_ATTR (S_IRUGO | S_IWUSR)
 #define HIMAX_RW_ATTR HIMAX_RO_ATTR
 #define HIMAX_WO_ATTR HIMAX_RO_ATTR
-#endif
-
-
 
 #define GPIO_OUTPUT_HI    1
 #define GPIO_OUTPUT_LO    0
@@ -67,8 +55,6 @@ printk(KERN_INFO"himax->%s_%d:"fmt,__FUNCTION__,__LINE__,##args)
 #define HIMAX_Y_MAX 1030
 #define HIMAX_MAJOR_MAX 1
 #define HIMAX_WIDTH_MAX 10
-
-
 
 static struct workqueue_struct *himax_wq;
 
@@ -105,7 +91,6 @@ static char * driver_ver [] = {
 #define FW_VER_C8680QM  "Himax_FW_Truly_CT4F0064_Cellon_C8680QM_V70_2012-12-05_2002.i"
 #define FW_VER_C8680GP  "Himax_FW_Truly_Cellon_C8680-4-Point_V12-3_2012-12-04_1514.i"
 
-
 struct himax_ts_data {
     uint16_t addr;
     struct i2c_client *client;
@@ -129,9 +114,6 @@ struct himax_ts_data {
 #endif
     bool upgrade ;  //1:success ;
     struct work_struct  work;
-#ifdef __SELF_REPORT__
-    struct touch_points_info points[TOUCH_MAX_NUMBER];
-#endif
     int (*power)(int on);
 #ifdef CONFIG_HAS_EARLYSUSPEND
     struct early_suspend early_suspend;
@@ -185,12 +167,10 @@ static int  himax_ts_poweron(struct himax_ts_data * ts);
 
 
 int himax_i2c_read(struct himax_ts_data * ts,unsigned char addr, int datalen, unsigned char data[], int *readlen)
- {
+{
      int ret = 0;
      struct i2c_msg msg[2];
      uint8_t start_reg;
-     //uint8_t buf[128] = {0};
-
 
      start_reg = addr;
      msg[0].addr = ts->client->addr;
@@ -210,8 +190,7 @@ int himax_i2c_read(struct himax_ts_data * ts,unsigned char addr, int datalen, un
          return 0;
      }
      return 0;
- }
-
+}
 
 static int hx8526_read_flash(struct himax_ts_data * ts,unsigned char *buf, unsigned int addr, unsigned int length)
  {
@@ -913,125 +892,6 @@ static int charger_notifier_call (struct himax_ts_data *ts,int status)
     return 0 ;
 }
 #endif
-//#define __SELF_REPORT__
-#ifdef __SELF_REPORT__
-static void self_report_function(struct work_struct * work)
-{
-    int i;
-    int ret;
-    int finger_number = 0 ;
-    unsigned long x=0 ,y=0;
-    unsigned long major = 0;
-    unsigned long width = 0 ;
-    int checksum = 0;
-    uint32_t * buf_32 ;
-    static int report_key = 0 ;
-    struct i2c_msg msg[2];
-    uint8_t start_reg;
-    uint32_t buf[6];
-    uint8_t * buf_8 ;
-    struct himax_ts_data *ts = container_of(work, struct himax_ts_data, work);
-    major = width ;
-    finger_number = finger_number ;
-    //read all events
-    start_reg = 0x86;
-
-    msg[0].addr = ts->client->addr;
-    msg[0].flags = 0;
-    msg[0].len = 1;
-    msg[0].buf = &start_reg;
-
-    msg[1].addr = ts->client->addr;
-    msg[1].flags = I2C_M_RD;
-    //msg[1].len = 4 * TOUCH_MAX_NUMBER;
-	msg[1].len =  24;
-    msg[1].buf = (__u8 *)&buf[0];
-
-    ret = i2c_transfer(ts->client->adapter, msg, 2);
-    if (ret < 0)
-	{
-        err_printk("i2c transfer error ret[%d]\n",ret);
-        ts->err_count++ ;
-        if(ts->err_count%2==0){
-            himax_ts_reset(dev_get_platdata(&ts->client->dev));
-            himax_ts_poweron(ts);
-            info_printk(0,"himax tp reset success,err_count[%d]\n",ts->err_count);
-        }
-        goto OUT ;
-	}
-    buf_8 = (uint8_t *)buf ;
-    for (i = 0 ; i < 22; i++)
-    {
-        checksum += buf_8[i];
-    }
-
-    i = buf_8[22];
-    i <<= 8;
-    i |= buf_8[23];
-    if (checksum != i)
-    {
-        err_printk("i2c checksum error ret[%d]\n",ret);
-        buf_32 = (uint32_t *)buf ;
-        for(i=0;i < 6;i++){
-           info_printk(0,"layer[%d]:data[%x]\n",i,buf_32[i]);
-        }
-        goto OUT ;
-    }
-    for(i=0; i<TOUCH_MAX_NUMBER; i++)
-    {
-        if(buf[i]!=TOUCH_DATA_INVALID) {
-            uint8_t * data  = (uint8_t *)&buf[i] ;
-            x = (data[0]<<8) | data[1] ;
-            y = (data[2]<<8) | data[3] ;
-            ret = x ;
-            x = y ;
-            y = ret ;
-            dbg_printk("x=%ld,y=%ld\n",x,y);
-            if(x > HIMAX_X_MAX || y > HIMAX_Y_MAX){
-            ts->points[i].cur_status = TOUCH_UP ;
-            }else {
-            major = HIMAX_MAJOR_MAX;
-            width = HIMAX_WIDTH_MAX/2;
-            ts->points[i].cur_status = TOUCH_DOWN ;
-            finger_number++ ;
-            report_key = 1 ;
-            }
-        }else{
-            ts->points[i].cur_status = TOUCH_UP ;
-        }
-
-        //report key
-        if(ts->points[i].cur_status==TOUCH_DOWN){
-         input_report_abs(ts->input_dev,ABS_MT_TOUCH_MAJOR,major) ;
-         input_report_abs(ts->input_dev,ABS_MT_WIDTH_MAJOR,width) ;
-         input_report_abs(ts->input_dev,ABS_MT_POSITION_X,x) ;
-         input_report_abs(ts->input_dev,ABS_MT_POSITION_Y,y) ;
-         input_report_abs(ts->input_dev,ABS_MT_TRACKING_ID,i);
-         input_mt_sync(ts->input_dev);
-        }else if(ts->points[i].cur_status==TOUCH_UP&&ts->points[i].pre_status==TOUCH_UP){
-            //nothing doing....
-			  continue;
-        }
-        ts->points[i].pre_status = ts->points[i].cur_status ;
-    }
-
-  if(finger_number==0&&(!report_key)){
-    info_printk(0,"no key to report finger [%d],key[%d]\n",finger_number,report_key);
-    goto OUT ;
-  }
-    input_report_key(ts->input_dev,BTN_TOUCH,!!finger_number);
-    input_sync(ts->input_dev);
- if(!finger_number){
-      report_key = 0 ;
- }
-OUT:
-    if (ts->use_irq)
-    	enable_device_irq(ts);
-
-    return ;
-
-}
-#else
 
 static inline void is_project_C8680GP(struct himax_ts_data * ts,unsigned long * x,unsigned long * y)
 {
@@ -1041,7 +901,6 @@ static inline void is_project_C8680GP(struct himax_ts_data * ts,unsigned long * 
         *x = C8680GP_X_POINT ;
         *y = C8680GP_Y_POINT ;
     }
-
 }
 
  static void report_function(struct work_struct *work)
@@ -1058,11 +917,10 @@ static inline void is_project_C8680GP(struct himax_ts_data * ts,unsigned long * 
     uint8_t * buf ;
 	struct i2c_msg msg[2];
 	uint8_t start_reg;
-
+	static int old_x = 0;
+	static int old_y = 0;
 	uint32_t finger_num;
     uint32_t * buf_32 ;
-
-
 	struct himax_ts_data *ts = container_of(work, struct himax_ts_data, work);
     if(!ts->point_num){
        err_printk(" finger number is not detect %d\n",ts->point_num);
@@ -1135,12 +993,6 @@ static inline void is_project_C8680GP(struct himax_ts_data * ts,unsigned long * 
 
 	finger_num=buf[packet_size - 4]&0x0F;
     buf_32 = (uint32_t *)buf ;
-   // info_printk("finger number [%x]\n",finger_num);
-
-    #if 0
-    for(i=0;i<6;i++)
-        dbg_printk("layer[%d]:data[%x]\n",i,buf_32[i]);
-    #endif
 
     //MID:20121122_01
     if((finger_num>0)&&(finger_num<=5))
@@ -1163,6 +1015,16 @@ static inline void is_project_C8680GP(struct himax_ts_data * ts,unsigned long * 
 			 if(x > HIMAX_X_MAX  ||  y > HIMAX_Y_MAX){
                     continue ;
 			  }else{
+				 if(finger_num < 2){
+					if (!(x < (old_x - 4) || x > (old_x + 4)))
+						x = old_x;
+					else
+						old_x = x;	
+					if (!(y < (old_y - 2) || y > (old_y + 2)))
+						y = old_y;
+					else
+						old_y = y;	
+				 }
 				 input_report_key(ts->input_dev, BTN_TOUCH, 1);
 				 input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 1); //Finger Size
 				 input_report_abs(ts->input_dev, ABS_MT_POSITION_X, x);
@@ -1190,10 +1052,6 @@ static inline void is_project_C8680GP(struct himax_ts_data * ts,unsigned long * 
         report_key = 0 ;
 	}else {
         err_printk("himax tp data is error finger [%d],report_key[%d] \n",finger_num,report_key);
-         #if 0
-         for(i=0;i<6;i++)
-         info_printk("layer[%d]:data[%x]\n",i,buf_32[i]);
-         #endif
 	}
 
 OUT:
@@ -1201,14 +1059,10 @@ OUT:
 	  enable_device_irq(ts);
 
 }
-#endif
+
 static void himax_ts_work_func(struct work_struct *work)
 {
-    #ifdef __SELF_REPORT__
-        self_report_function(work);
-    #else
-        report_function(work);
-    #endif
+    report_function(work);
 }
 
 static enum hrtimer_restart himax_ts_timer_func(struct hrtimer *timer)
@@ -1311,7 +1165,7 @@ static int himax_ts_poweron(struct himax_ts_data *ts)
     }
 
 
-     //add for 4/5 point switch
+   //add for 4/5 point switch
    if(ts->cmd_92==true){
       buf0[0] = 0x92;
       buf0[1] = 0x01;        //noneZero :five finger ;Zero :four finger
@@ -1343,103 +1197,9 @@ static int himax_ts_poweron(struct himax_ts_data *ts)
     ts->charger_status = 0 ;
     msleep(120); //120ms
 
-
     return 0;
 }
 
-#if 0
-static int himax_ts_read_flash(struct himax_ts_data *ts)
-{
-    uint8_t buf0[6];
-    uint16_t word_address, Index_word, Index_page,Index_sector;
-    int ret = 0;
-    struct i2c_msg msg[2];
-    uint8_t start_reg;
-    uint32_t buf[6];
-    int i;
-
-    start_reg = 0x59;
-
-   buf0[0] = 0x81;
-    ret = i2c_master_send(ts->client, buf0, 1);//sleep out
-    if(ret < 0) {
-        printk(KERN_ERR "i2c_master_send failed addr = 0x%x\n",ts->client->addr);
-    }
-	else
-	{
-		printk(KERN_ERR "OK addr = 0x%x\n",ts->client->addr);
-	}
-    msleep(120); //120ms
-
-   buf0[0] = 0x43;
-   buf0[1] = 0x01;
-   buf0[2] = 0x00;
-   buf0[3] = 0x02;
-    ret = i2c_master_send(ts->client, buf0, 4);//sleep out
-    if(ret < 0) {
-        printk(KERN_ERR "i2c_master_send failed addr = 0x%x\n",ts->client->addr);
-    }
-    udelay(10);
-
-    word_address = 0x400;
-    Index_word = word_address & 0x001F;
-    Index_page = (word_address & 0x03E0) >> 5;
-    Index_sector = (word_address & 0x1C00) >> 10;
-
-   buf0[0] = 0x44;
-   buf0[1] = Index_word;
-   buf0[2] = Index_page;
-   buf0[3] = Index_sector;
-    ret = i2c_master_send(ts->client, buf0, 4);//sleep out
-    if(ret < 0) {
-        printk(KERN_ERR "i2c_master_send failed addr = 0x%x\n",ts->client->addr);
-    }
-    udelay(5);
-    buf0[0] = 0x46;
-    ret = i2c_master_send(ts->client, buf0, 1);//sleep out
-    if(ret < 0) {
-        printk(KERN_ERR "i2c_master_send failed addr = 0x%x\n",ts->client->addr);
-    }
-    udelay(5);
-
-    msg[0].addr = ts->client->addr;
-    msg[0].flags = 0;
-    msg[0].len = 1;
-    msg[0].buf = &start_reg;
-
-    msg[1].addr = ts->client->addr;
-    msg[1].flags = I2C_M_RD;
-    msg[1].len = 32;
-    msg[1].buf =(__u8*)&buf[0];
-      buf[0] = 0;
-    ret = i2c_transfer(ts->client->adapter, msg, 2);
-	   	    if(ret < 0) {
-	        printk(KERN_ERR "i2c_master_receive failed\n");
-	    }
-	for(i=0;i<4;i++)
-	printk("     buf[%d] = 0x%x",i,buf[i]);
-
-    udelay(5);
-//I2C_start(slave_addr);
-//I2C_CMD(0x43);
-//I2C_PAs(0x00);
-//I2C_PAs(0x00);
-//I2C_PAs(0x02);
-//I2C_stop();
-//delay(10);
-   buf0[0] = 0x43;
-   buf0[1] = 0x00;
-   buf0[2] = 0x00;
-   buf0[3] = 0x02;
-    ret = i2c_master_recv(ts->client, buf0, 4);//sleep out
-    if(ret < 0) {
-        printk(KERN_ERR "i2c_master_send failed addr = 0x%x\n",ts->client->addr);
-    }
-    udelay(10);
-
-    return 0;
-}
-#endif
 static int himax_ts_sleep(struct himax_ts_data *ts)
 {
     uint8_t buf0[6];
@@ -1462,7 +1222,6 @@ static int himax_ts_sleep(struct himax_ts_data *ts)
     }
     msleep(120); //120ms
 
-
    buf0[0] = 0xD7;
    buf0[0] = 0x01;//DP_STB = 1
     ret = i2c_master_send(ts->client, buf0, 2); //command SETDEEPSTB
@@ -1476,38 +1235,11 @@ static int himax_ts_sleep(struct himax_ts_data *ts)
     return 0;
 }
 
-
-
 static int himax_ts_active(struct himax_ts_data *ts)
 {
 
     int ret = 0;
 
-#if 0
-    uint8_t buf0[6];
-   buf0[0] = 0xD7;
-   buf0[1] = 0x00;//DP_STB = 1
-    info_printk(0,"\n");
-    ret = i2c_master_send(ts->client, buf0, 2);//command SETDEEPSTB
-    if(ret < 0) {
-        //printk(KERN_ERR "i2c_master_send failed addr = 0x%x\n",ts->client->addr);
-        err_printk("i2c_master_send failed\n");
-        return ret ;
-    }
-    //msleep(100); //120ms
-    udelay(120);
-
-   buf0[0] = 0x42;
-   buf0[0] = 0x02;//DP_STB = 1
-    ret = i2c_master_send(ts->client, buf0, 2); //turn on reload disable
-    if(ret < 0) {
-        //printk(KERN_ERR "i2c_master_send failed addr = 0x%x\n",ts->client->addr);
-        err_printk("i2c master send failed \n");
-        return ret ;
-    }
-
-    udelay(100); //120ms
-#endif
     himax_ts_reset(dev_get_platdata(&ts->client->dev));
     info_printk("reset device success\n");
     ret = himax_ts_poweron(ts);
@@ -1578,7 +1310,6 @@ static ssize_t himax_mode_store(struct device *dev,
 
 	return count;
 }
-
 
 static ssize_t himax_irq_show(struct device *dev,
 				   struct device_attribute *attr,
@@ -1712,9 +1443,7 @@ static ssize_t himax_timer_store(struct device *dev,
     if(ts->interval > TIMER_MAX_VALUE )
         ts->interval = TIMER_DEFAULT_VALUE;
 
-    return count ;
-
-
+    return count;
 }
 
 static ssize_t himax_reset_store(struct device *dev,
@@ -1734,7 +1463,6 @@ static ssize_t himax_reset_store(struct device *dev,
     return count ;
 }
 
-
 struct device_attribute himax_attr[] = {
     __ATTR(mode, HIMAX_RW_ATTR, himax_mode_show,himax_mode_store),
     __ATTR(state,HIMAX_RW_ATTR, himax_state_show,himax_state_store),
@@ -1745,8 +1473,6 @@ struct device_attribute himax_attr[] = {
     __ATTR(reset,  HIMAX_WO_ATTR, NULL,himax_reset_store),
     __ATTR(timer,  HIMAX_RW_ATTR, himax_timer_show,himax_timer_store)
 };
-
-
 
 static void create_sysfs_file(struct himax_ts_data * ts)
 {
@@ -1781,8 +1507,6 @@ void himax_FlashMode(struct i2c_client * i2c_client,int enter)
 	i2c_smbus_write_i2c_block_data(i2c_client, 0x43, 1, &cmd[0]);
 }
 
-
-
 //1:need upgrade
 u8 himax_read_FW_ver(struct himax_ts_data * ts) //OK
 {
@@ -1795,7 +1519,6 @@ u8 himax_read_FW_ver(struct himax_ts_data * ts) //OK
 	unsigned int i;
 	unsigned char cmd[5];
 
-
     if(get_project(ts)==1)
         FW = HIMAX_FW_C8680 ;
     else if (get_project(ts)==2)
@@ -1806,8 +1529,6 @@ u8 himax_read_FW_ver(struct himax_ts_data * ts) //OK
         err_printk("project name not detect!!!!\n");
         return 0 ;
     }
-
-
 
 	//Himax: Power On Flow
 	cmd[0] = 0x42;
@@ -1852,10 +1573,6 @@ u8 himax_read_FW_ver(struct himax_ts_data * ts) //OK
 	if (hx8526_read_flash(ts,CFG_VER_MAJ_FLASH_buff, CFG_VER_MAJ_FLASH_ADDR, CFG_VER_MAJ_FLASH_LENG) < 0)	goto err;
 	//Himax: Read CFG Minor Version
 	if (hx8526_read_flash(ts,CFG_VER_MIN_FLASH_buff, CFG_VER_MIN_FLASH_ADDR, CFG_VER_MIN_FLASH_LENG) < 0)	goto err;
-
-	//if (hx8526_read_flash(ts,CFG_VER_MIN_FLASH_buff, CFG_VER_MIN_FLASH_ADDR, CFG_VER_MIN_FLASH_LENG) < 0)	goto err;
-
-
 
 	//Himax: Check FW Major Version
 	for (i = 0; i < FW_VER_MAJ_FLASH_LENG * 4; i++)
@@ -1913,7 +1630,6 @@ err:
 	printk("Himax TP: FW update error exit\n");
 	return 0;
 }
-
 
 void himax_unlock_flash(struct himax_ts_data * ts)
 {
@@ -1996,15 +1712,6 @@ static uint8_t himax_calculateChecksum(struct himax_ts_data * ts,char *ImageBuff
 	FileLength = fullLength - 2;
 	memset(cmd, 0x00, sizeof(cmd));
 
-	//himax_HW_reset(RST);
-
-  //if((i2c_smbus_write_i2c_block_data(i2c_client, 0x81, 0, &cmd[0]))< 0)
-		//return 0;
-
-	//mdelay(120);
-	//printk("Ghong_zguoqing_marked, Sleep out: %d\n", __LINE__);
-	//himax_unlock_flash();
-
 	//Bizzy added for Iref
 	if(himax_modifyIref(ts) == 0){
         err_printk("modiy I ref error \n");
@@ -2049,12 +1756,10 @@ static uint8_t himax_calculateChecksum(struct himax_ts_data * ts,char *ImageBuff
 			info_printk("checksum (final): %d\n", checksum);
 
 			//Check Success
-			//if (ImageBuffer[fullLength - 2] == *((uint8_t *)(&checksum)) && ImageBuffer[fullLength - 1] == *((uint8_t *)(&checksum) + 1))
             info_printk("imagebuffer[0x%x] checksum[0x%x]\n",ImageBuffer[fullLength - 1],(0xFF & (checksum >> 8)));
             info_printk("imagebuffer[0x%x] checksum[0x%x]\n",ImageBuffer[fullLength - 2],(0xFF & (checksum)));
             if (ImageBuffer[fullLength - 1] == (u8)(0xFF & (checksum >> 8)) && ImageBuffer[fullLength - 2] == (u8)(0xFF & checksum))
-            //if (ImageBuffer[fullLength - 2] == (u8)(0xFF & (checksum >> 8)) && ImageBuffer[fullLength - 1] == (u8)(0xFF & checksum))
-			{
+ 			{
 
 				himax_FlashMode(ts->client,0);
 				return 1;
@@ -2090,7 +1795,6 @@ void himax_lock_flash(struct himax_ts_data * ts)
 	/* lock sequence stop */
 }
 
-
 //return 1:Success, 0:Fail
 static int fts_ctpm_fw_upgrade_with_i_file(struct himax_ts_data * ts)
 {
@@ -2102,7 +1806,6 @@ static int fts_ctpm_fw_upgrade_with_i_file(struct himax_ts_data * ts)
     int FileLength;
     uint8_t checksumResult = 0;
 
-
     if(get_project(ts)==1){
         ImageBuffer = HIMAX_FW_C8680 ;
         fullFileLength = sizeof(HIMAX_FW_C8680) ;
@@ -2113,7 +1816,6 @@ static int fts_ctpm_fw_upgrade_with_i_file(struct himax_ts_data * ts)
         ImageBuffer = HIMAX_FW_C8680GP ;
         fullFileLength = sizeof(HIMAX_FW_C8680GP) ;
     }
-
 
 	//Try 1 Times
 	for (j = 0; j < 1; j++)
@@ -2242,7 +1944,6 @@ static int himax_fw_upgrade(struct himax_ts_data * ts)
       return -ENODEV ;
     }
 
-
     upgrade = himax_read_FW_ver(ts) ;
     if(upgrade==1){
       struct himax_platform_data * pdata = dev_get_platdata(&ts->client->dev);
@@ -2286,12 +1987,6 @@ static int himax_ts_probe(struct i2c_client *client, const struct i2c_device_id 
         ret = -ENOMEM;
         goto err_alloc_data_failed;
     }
-#ifdef __SELF_REPORT__
-    for(i=0;i<TOUCH_MAX_NUMBER;i++) {
-        ts->points[i].pre_status = TOUCH_UP ;
-        ts->points[i].cur_status = TOUCH_UP ;
-    }
-#endif
 
     INIT_WORK(&ts->work, himax_ts_work_func);
     client->irq = gpio_to_irq(pdata->gpio_int);
@@ -2363,16 +2058,10 @@ static int himax_ts_probe(struct i2c_client *client, const struct i2c_device_id 
     set_bit(EV_KEY,ts->input_dev->evbit);
 
     set_bit(BTN_TOUCH,ts->input_dev->keybit);
-    #if 0
-    ts->input_dev->absbit[0] =  \
-                    BITS_TO_LONGS(ABS_MT_POSITION_X) | BITS_TO_LONGS(ABS_MT_POSITION_Y) |
-                    BITS_TO_LONGS(ABS_MT_TOUCH_MAJOR) | BITS_TO_LONGS(ABS_MT_WIDTH_MAJOR);
-    #endif
     input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, 540, 0, 0);
     input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, 960, 0, 0);
     input_set_abs_params(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0, HIMAX_MAJOR_MAX, 0, 0); //Finger Size
     input_set_abs_params(ts->input_dev, ABS_MT_WIDTH_MAJOR, 0, HIMAX_WIDTH_MAX, 0, 0); //Touch Size
-    //input_set_abs_params(ts->input_dev, ABS_MT_TRACKING_ID,0,TOUCH_MAX_NUMBER-1,0,0);
 
     ret = input_register_device(ts->input_dev);
     if (ret) {
@@ -2385,8 +2074,6 @@ static int himax_ts_probe(struct i2c_client *client, const struct i2c_device_id 
     ts->charger_status = 0 ;
     if (client->irq) {
         ret = request_irq(client->irq, himax_ts_irq_handler,IRQF_DISABLED|IRQF_TRIGGER_LOW, client->name, ts);
-        // |IRQF_SHARED | IRQF_SAMPLE_RANDOM
-        //IRQF_TRIGGER_HIGH | IRQF_TRIGGER_LOW |IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING
         if (ret == 0) {
             ts->use_irq = 1;
         }
@@ -2501,8 +2188,7 @@ static void himax_ts_late_resume(struct early_suspend *h)
 #define HIMAX_TS_NAME "himax_ts"
 
 static const struct i2c_device_id himax_ts_id[] = {
-    { HIMAX_TS_NAME, 0 },
-    { }
+    { HIMAX_TS_NAME, 0 }
 };
 
 static struct i2c_driver himax_ts_driver = {
