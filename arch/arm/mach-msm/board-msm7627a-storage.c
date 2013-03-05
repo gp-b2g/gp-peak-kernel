@@ -93,17 +93,17 @@ static struct msm_gpio sdc2_cfg_data[] = {
 };
 
 static struct msm_gpio sdc2_sleep_cfg_data[] = {
-	{GPIO_CFG(62, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
+	{GPIO_CFG(62, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
 								"sdc2_clk"},
-	{GPIO_CFG(63, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
+	{GPIO_CFG(63, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA),
 								"sdc2_cmd"},
-	{GPIO_CFG(64, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
+	{GPIO_CFG(64, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA),
 								"sdc2_dat_3"},
-	{GPIO_CFG(65, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
+	{GPIO_CFG(65, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA),
 								"sdc2_dat_2"},
-	{GPIO_CFG(66, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
+	{GPIO_CFG(66, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA),
 								"sdc2_dat_1"},
-	{GPIO_CFG(67, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
+	{GPIO_CFG(67, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA),
 								"sdc2_dat_0"},
 };
 
@@ -229,10 +229,6 @@ static int msm_sdcc_setup_vreg(int dev_id, unsigned int enable)
 		return PTR_ERR(curr);
 
 	if (enable) {
-		if (dev_id == 1) {
-			mdelay(5);
-			pr_info("%s: mmc1 Enabling SD slot power\n", __func__);
-		}
 		set_bit(dev_id, &vreg_sts);
 
 		rc = regulator_enable(curr);
@@ -240,10 +236,6 @@ static int msm_sdcc_setup_vreg(int dev_id, unsigned int enable)
 			pr_err("%s: could not enable regulator: %d\n",
 						__func__, rc);
 	} else {
-		if (dev_id == 1) {
-			mdelay(5);
-			pr_info("%s: mmc1 Disabling SD slot power\n", __func__);
-		}
 		clear_bit(dev_id, &vreg_sts);
 
 		rc = regulator_disable(curr);
