@@ -14,30 +14,35 @@
 #include "mipi_dsi.h"
 #include "mipi_otm9608a.h"
 
+//#define USE_HW_VSYNC
+
 static struct msm_panel_info pinfo;
 
 static struct mipi_dsi_phy_ctrl dsi_cmd_mode_phy_db = {
+	/* DSI Bit Clock at 419 MHz, 2 lane, RGB888 */
 	/* regulator */
 	{0x03, 0x01, 0x01, 0x00},
-	/* timing   */
-	{0xc9, 0x9e, 0x2f, 0x00, 0xa8, 0xac, 0x32, 0xa0,
-	0x28, 0x13, 0x14},
-	/* phy ctrl */
-	{0x7f, 0x00, 0x00, 0x00},
-	/* strength */
-	{0xee, 0x02, 0x86, 0x00},
-	/* pll control */
-	{0x01, 0xec, 0x31, 0xd2, 0x00, 0x40, 0x37, 0x62,
-	0x01, 0x0f, 0x07,
-	0x05, 0x14, 0x03, 0x0, 0x0, 0x54, 0x06, 0x10, 0x04, 0x0},
+	/* timing */
+	{0xc9, 0x9e, 0x30, 0x00, 0xa8, 0xac, 0x29, 
+	0x98, 0x24, 0x10, 0x14},
+	/* phy ctrl */ 
+	{0x7f, 0x00, 0x00, 0x00}, 
+	/* strength */ 
+	{0xbb, 0x02, 0x06, 0x00}, 
+	/* pll control */ 
+	{0x01, 0x9e, 0x31, 0xd2, 0x00, 0x40, 0x37, 0x62, 
+	0x01, 0x0f, 0x07, 
+	0x05, 0x14, 0x03, 0x0, 0x0, 0x0, 0x20, 0x0, 0x02, 0x0}, 
 };
 
-static int mipi_cmd_otm9608a_qhd_pt_init(void)
+static int __init mipi_cmd_otm9608a_qhd_pt_init(void)
 {
 	int ret;
 
+#ifdef CONFIG_FB_MSM_MIPI_PANEL_DETECT
 	if (msm_fb_detect_client("mipi_cmd_otm9608a_qhd"))
 		return 0;
+#endif
 
 	pinfo.xres = 540;
 	pinfo.yres = 960;
@@ -45,21 +50,27 @@ static int mipi_cmd_otm9608a_qhd_pt_init(void)
 	pinfo.pdest = DISPLAY_1;
 	pinfo.wait_cycle = 0;
 	pinfo.bpp = 24;
-	pinfo.lcdc.h_back_porch = 100;
-	pinfo.lcdc.h_front_porch = 100;
-	pinfo.lcdc.h_pulse_width = 8;
-	pinfo.lcdc.v_back_porch = 20;
-	pinfo.lcdc.v_front_porch = 20;
-	pinfo.lcdc.v_pulse_width = 1;
+	pinfo.lcdc.h_back_porch = 20;
+	pinfo.lcdc.h_front_porch = 40;
+	pinfo.lcdc.h_pulse_width = 4;
+	pinfo.lcdc.v_back_porch = 8;
+	pinfo.lcdc.v_front_porch = 8;
+	pinfo.lcdc.v_pulse_width = 4;
 
 	pinfo.lcdc.border_clr = 0;	/* blk */
 	pinfo.lcdc.underflow_clr = 0xff;	/* blue */
 	pinfo.lcdc.hsync_skew = 0;
-	pinfo.bl_max = 32;
+	pinfo.bl_max = 20;
 	pinfo.bl_min = 0;
 	pinfo.fb_num = 2;
 
 	pinfo.clk_rate = 499000000;
+
+#ifdef USE_HW_VSYNC
+	pinfo.lcd.vsync_enable = TRUE;
+	pinfo.lcd.hw_vsync_mode = TRUE;
+	pinfo.lcd.vsync_notifier_period = (10 * HZ); 
+#endif
 	pinfo.lcd.refx100 = 6100; /* adjust refx100 to prevent tearing */
 
 	pinfo.mipi.mode = DSI_CMD_MODE;
@@ -68,12 +79,18 @@ static int mipi_cmd_otm9608a_qhd_pt_init(void)
 	pinfo.mipi.rgb_swap = DSI_RGB_SWAP_RGB;
 	pinfo.mipi.data_lane0 = TRUE;
 	pinfo.mipi.data_lane1 = TRUE;
-	pinfo.mipi.t_clk_post = 0x22;
-	pinfo.mipi.t_clk_pre = 0x3f;
+	pinfo.mipi.data_lane2 = FALSE;
+	pinfo.mipi.data_lane3 = FALSE;
+	pinfo.mipi.t_clk_post = 0x20;
+	pinfo.mipi.t_clk_pre = 0x2F;
 	pinfo.mipi.stream = 0; /* dma_p */
 	pinfo.mipi.mdp_trigger = DSI_CMD_TRIGGER_SW_TE;
 	pinfo.mipi.dma_trigger = DSI_CMD_TRIGGER_SW;
+#ifdef USE_HW_VSYNC
 	pinfo.mipi.te_sel = 1; /* TE from vsync gpio */
+#else
+	pinfo.mipi.te_sel = 0; /* TE from vsync gpio */
+#endif
 	pinfo.mipi.interleave_max = 1;
 	pinfo.mipi.insert_dcs_cmd = TRUE;
 	pinfo.mipi.wr_mem_continue = 0x3c;

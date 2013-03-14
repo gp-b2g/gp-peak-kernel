@@ -1,4 +1,4 @@
-/* Copyright (c) 2009-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2009-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -355,7 +355,7 @@ u32 __branch_clk_disable_reg(const struct branch *clk, const char *name)
 {
 	u32 reg_val;
 
-	reg_val = clk->ctl_reg ? readl_relaxed(clk->ctl_reg) : 0;
+	reg_val = readl_relaxed(clk->ctl_reg);
 	if (clk->en_mask) {
 		reg_val &= ~(clk->en_mask);
 		writel_relaxed(reg_val, clk->ctl_reg);
@@ -567,7 +567,7 @@ enum handoff branch_handoff(struct branch *clk, struct clk *c)
 	if (!branch_in_hwcg_mode(clk)) {
 		clk->hwcg_mask = 0;
 		c->flags &= ~CLKFLAG_HWCG;
-		if (clk->ctl_reg && readl_relaxed(clk->ctl_reg) & clk->en_mask)
+		if (readl_relaxed(clk->ctl_reg) & clk->en_mask)
 			return HANDOFF_ENABLED_CLK;
 	} else {
 		c->flags |= CLKFLAG_HWCG;
@@ -613,8 +613,10 @@ static enum handoff rcg_clk_handoff(struct clk *c)
 	ns_val = readl_relaxed(clk->ns_reg) & ns_mask;
 	for (freq = clk->freq_tbl; freq->freq_hz != FREQ_END; freq++) {
 		if ((freq->ns_val & ns_mask) == ns_val &&
-		    (!freq->md_val || freq->md_val == md_val))
+		    (!freq->md_val || freq->md_val == md_val)) {
+			pr_info("%s rate=%d\n", clk->c.dbg_name, freq->freq_hz);
 			break;
+		}
 	}
 	if (freq->freq_hz == FREQ_END)
 		return HANDOFF_UNKNOWN_RATE;

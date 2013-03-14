@@ -219,6 +219,47 @@ struct platform_device msm_device_dmov = {
 	},
 };
 
+static struct acpuclk_pdata msm7x27a_acpuclk_pdata = {
+	.max_speed_delta_khz = 400000,
+};
+
+struct platform_device msm7x27a_device_acpuclk = {
+	.name		= "acpuclk-7627",
+	.id		= -1,
+	.dev.platform_data = &msm7x27a_acpuclk_pdata,
+};
+
+static struct acpuclk_pdata msm7x27aa_acpuclk_pdata = {
+	.max_speed_delta_khz = 504000,
+};
+
+struct platform_device msm7x27aa_device_acpuclk = {
+	.name		= "acpuclk-7627",
+	.id		= -1,
+	.dev.platform_data = &msm7x27aa_acpuclk_pdata,
+};
+
+static struct acpuclk_pdata msm8625_acpuclk_pdata = {
+	/* TODO: Need to update speed delta from H/w Team */
+	.max_speed_delta_khz = 604800,
+};
+
+static struct acpuclk_pdata msm8625ab_acpuclk_pdata = {
+	.max_speed_delta_khz = 801600,
+};
+
+struct platform_device msm8625_device_acpuclk = {
+	.name		= "acpuclk-7627",
+	.id		= -1,
+	.dev.platform_data = &msm8625_acpuclk_pdata,
+};
+
+struct platform_device msm8625ab_device_acpuclk = {
+	.name		= "acpuclk-7627",
+	.id		= -1,
+	.dev.platform_data = &msm8625ab_acpuclk_pdata,
+};
+
 struct platform_device msm_device_smd = {
 	.name	= "msm_smd",
 	.id	= -1,
@@ -868,14 +909,9 @@ void __init msm8x25_kgsl_3d0_init(void)
 {
 	if (cpu_is_msm8625()) {
 		kgsl_3d0_pdata.idle_timeout = HZ/5;
-		kgsl_3d0_pdata.strtstp_sleepwake = false;
-
-		if (SOCINFO_VERSION_MAJOR(socinfo_get_version()) >= 2)
-			/* 8x25 v2.0 & above supports a higher GPU frequency */
-			kgsl_3d0_pdata.pwrlevel[0].gpu_freq = 320000000;
-		else
-			kgsl_3d0_pdata.pwrlevel[0].gpu_freq = 300000000;
-
+		kgsl_3d0_pdata.strtstp_sleepwake = true;
+		/* 8x25 supports a higher GPU frequency */
+		kgsl_3d0_pdata.pwrlevel[0].gpu_freq = 320000000;
 		kgsl_3d0_pdata.pwrlevel[0].bus_freq = 200000000;
 	}
 }
@@ -1908,16 +1944,16 @@ int __init msm7x2x_misc_init(void)
 
 	msm_clock_init(&msm7x27a_clock_init_data);
 	if (cpu_is_msm7x27aa() || cpu_is_msm7x25ab())
-		acpuclk_init(&acpuclk_7x27aa_soc_data);
+		platform_device_register(&msm7x27aa_device_acpuclk);
 	else if (cpu_is_msm8625()) {
 		if (msm8625_cpu_id() == MSM8625)
-			acpuclk_init(&acpuclk_7x27aa_soc_data);
+			platform_device_register(&msm7x27aa_device_acpuclk);
 		else if (msm8625_cpu_id() == MSM8625A)
-			acpuclk_init(&acpuclk_8625_soc_data);
+			platform_device_register(&msm8625_device_acpuclk);
 		else if (msm8625_cpu_id() == MSM8625AB)
-			acpuclk_init(&acpuclk_8625ab_soc_data);
+			platform_device_register(&msm8625ab_device_acpuclk);
 	} else {
-		acpuclk_init(&acpuclk_7x27a_soc_data);
+		platform_device_register(&msm7x27a_device_acpuclk);
 	}
 
 	if (cpu_is_msm8625() &&
