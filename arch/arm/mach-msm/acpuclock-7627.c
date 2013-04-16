@@ -822,7 +822,14 @@ static int acpuclk_7627_set_rate(int cpu, unsigned long rate,
 		acpuclk_set_div(cur_s);
 		drv_state.current_speed = cur_s;
 		/* Re-adjust lpj for the new clock speed. */
-		update_jiffies(cpu, cur_s->lpj);
+#ifdef CONFIG_SMP
+		for_each_possible_cpu(cpu) {
+			per_cpu(cpu_data, cpu).loops_per_jiffy =
+							cur_s->lpj;
+		}
+#endif
+		/* Adjust the global one */
+		loops_per_jiffy = cur_s->lpj;
 
 	}
 done:
