@@ -45,6 +45,8 @@ static int __init mipi_cmd_otm9608a_qhd_pt_init(void)
 
 	pinfo.xres = 540;
 	pinfo.yres = 960;
+	pinfo.width = 54;
+	pinfo.height = 95;
 	pinfo.type = MIPI_CMD_PANEL;
 	pinfo.pdest = DISPLAY_1;
 	pinfo.wait_cycle = 0;
