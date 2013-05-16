@@ -105,6 +105,7 @@
 #define AUDIT_MMAP		1323	/* Record showing descriptor and flags in mmap */
 #define AUDIT_NETFILTER_PKT	1324	/* Packets traversing netfilter chains */
 #define AUDIT_NETFILTER_CFG	1325	/* Netfilter chain modifications */
+#define AUDIT_SECCOMP		1326	/* Secure Computing Event */
 
 #define AUDIT_AVC		1400	/* SE Linux avc denial or grant */
 #define AUDIT_SELINUX_ERR	1401	/* Internal SE Linux Errors */
@@ -431,6 +432,7 @@ extern void __audit_inode(const char *name, const struct dentry *dentry);
 extern void __audit_inode_child(const struct dentry *dentry,
 				const struct inode *parent);
 extern void __audit_ptrace(struct task_struct *t);
+extern void __audit_seccomp(unsigned long syscall, long signr, int code);
 
 static inline int audit_dummy_context(void)
 {
@@ -452,6 +454,13 @@ static inline void audit_inode_child(const struct dentry *dentry,
 		__audit_inode_child(dentry, parent);
 }
 void audit_core_dumps(long signr);
+
+static inline void audit_seccomp(unsigned long syscall, long signr, int code)
+{
+	/* Force a record to be reported if a signal was delivered. */
+	if (signr || unlikely(!audit_dummy_context()))
+		__audit_seccomp(syscall, signr, code);
+}
 
 static inline void audit_ptrace(struct task_struct *t)
 {
@@ -577,6 +586,7 @@ extern int audit_signals;
 #define audit_log_capset(pid, ncr, ocr) ((void)0)
 #define audit_mmap_fd(fd, flags) ((void)0)
 #define audit_ptrace(t) ((void)0)
+#define audit_seccomp(i,s,c) do { ; } while (0)
 #define audit_n_rules 0
 #define audit_signals 0
 #endif
@@ -618,7 +628,7 @@ extern int		    audit_update_lsm_rules(void);
 				/* Private API (for audit.c only) */
 extern int audit_filter_user(struct netlink_skb_parms *cb);
 extern int audit_filter_type(int type);
-extern int  audit_receive_filter(int type, int pid, int uid, int seq,
+extern int audit_receive_filter(int type, int pid, int uid, int seq,
 				void *data, size_t datasz, uid_t loginuid,
 				u32 sessionid, u32 sid);
 extern int audit_enabled;

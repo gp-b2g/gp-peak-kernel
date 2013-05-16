@@ -161,7 +161,7 @@ void recalc_sigpending(void)
 
 #define SYNCHRONOUS_MASK \
 	(sigmask(SIGSEGV) | sigmask(SIGBUS) | sigmask(SIGILL) | \
-	 sigmask(SIGTRAP) | sigmask(SIGFPE))
+	 sigmask(SIGTRAP) | sigmask(SIGFPE) | sigmask(SIGSYS))
 
 int next_signal(struct sigpending *pending, sigset_t *mask)
 {
@@ -1894,19 +1894,21 @@ static int do_signal_stop(int signr)
 		 */
 		if (!(sig->flags & SIGNAL_STOP_STOPPED))
 			sig->group_exit_code = signr;
+		else
+			WARN_ON_ONCE(!task_ptrace(current));
 
 		current->group_stop &= ~GROUP_STOP_SIGMASK;
 		current->group_stop |= signr | gstop;
 		sig->group_stop_count = 1;
 		for (t = next_thread(current); t != current;
 		     t = next_thread(t)) {
+			t->group_stop &= ~GROUP_STOP_SIGMASK;
 			/*
 			 * Setting state to TASK_STOPPED for a group
 			 * stop is always done with the siglock held,
 			 * so this check has no races.
 			 */
 			if (!(t->flags & PF_EXITING) && !task_is_stopped(t)) {
-				t->group_stop &= ~GROUP_STOP_SIGMASK;
 				t->group_stop |= signr | gstop;
 				sig->group_stop_count++;
 				signal_wake_up(t, 0);
@@ -2503,6 +2505,13 @@ int copy_siginfo_to_user(siginfo_t __user *to, siginfo_t *from)
 		err |= __put_user(from->si_uid, &to->si_uid);
 		err |= __put_user(from->si_ptr, &to->si_ptr);
 		break;
+#ifdef __ARCH_SIGSYS
+	case __SI_SYS:
+		err |= __put_user(from->si_call_addr, &to->si_call_addr);
+		err |= __put_user(from->si_syscall, &to->si_syscall);
+		err |= __put_user(from->si_arch, &to->si_arch);
+		break;
+#endif
 	default: /* this is just in case for now ... */
 		err |= __put_user(from->si_pid, &to->si_pid);
 		err |= __put_user(from->si_uid, &to->si_uid);

@@ -55,8 +55,12 @@
 #define PTRACE_O_TRACEEXEC	0x00000010
 #define PTRACE_O_TRACEVFORKDONE	0x00000020
 #define PTRACE_O_TRACEEXIT	0x00000040
+#define PTRACE_O_TRACESECCOMP	0x00000080
 
-#define PTRACE_O_MASK		0x0000007f
+#define PTRACE_O_MASK		0x000000ff
+
+/* flags in @data for PTRACE_SEIZE */
+#define PTRACE_SEIZE_DEVEL	0x80000000 /* temp flag for development */
 
 /* Wait extended result codes for the above trace options.  */
 #define PTRACE_EVENT_FORK	1
@@ -65,6 +69,7 @@
 #define PTRACE_EVENT_EXEC	4
 #define PTRACE_EVENT_VFORK_DONE	5
 #define PTRACE_EVENT_EXIT	6
+#define PTRACE_EVENT_SECCOMP	8
 
 #include <asm/ptrace.h>
 
@@ -87,8 +92,9 @@
 #define PT_TRACE_EXEC	0x00000080
 #define PT_TRACE_VFORK_DONE	0x00000100
 #define PT_TRACE_EXIT	0x00000200
+#define PT_TRACE_SECCOMP	0x00000800
 
-#define PT_TRACE_MASK	0x000003f4
+#define PT_TRACE_MASK	0x00000ff4
 
 /* single stepping state bits (used on ARM and PA-RISC) */
 #define PT_SINGLESTEP_BIT	31

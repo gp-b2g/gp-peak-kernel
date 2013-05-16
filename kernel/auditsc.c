@@ -67,6 +67,7 @@
 #include <linux/syscalls.h>
 #include <linux/capability.h>
 #include <linux/fs_struct.h>
+#include <linux/compat.h>
 
 #include "audit.h"
 
@@ -1266,14 +1267,14 @@ static void show_special(struct audit_context *context, int *call_panic)
 			audit_log_end(ab);
 			ab = audit_log_start(context, GFP_KERNEL,
 					     AUDIT_IPC_SET_PERM);
+			if (unlikely(!ab))
+				return;
 			audit_log_format(ab,
 				"qbytes=%lx ouid=%u ogid=%u mode=%#o",
 				context->ipc.qbytes,
 				context->ipc.perm_uid,
 				context->ipc.perm_gid,
 				context->ipc.perm_mode);
-			if (!ab)
-				return;
 		}
 		break; }
 	case AUDIT_MQ_OPEN: {
@@ -2521,6 +2522,8 @@ void audit_core_dumps(long signr)
 		return;
 
 	ab = audit_log_start(NULL, GFP_KERNEL, AUDIT_ANOM_ABEND);
+	if (unlikely(!ab))
+		return;
 	current_uid_gid(&uid, &gid);
 	audit_log_format(ab, "auid=%u uid=%u gid=%u ses=%u",
 			 auid, uid, gid, sessionid);
@@ -2539,6 +2542,22 @@ void audit_core_dumps(long signr)
 	audit_log_format(ab, " pid=%d comm=", current->pid);
 	audit_log_untrustedstring(ab, current->comm);
 	audit_log_format(ab, " sig=%ld", signr);
+	audit_log_end(ab);
+}
+
+void __audit_seccomp(unsigned long syscall, long signr, int code)
+{
+	struct audit_buffer *ab;
+
+	ab = audit_log_start(NULL, GFP_KERNEL, AUDIT_SECCOMP);
+	if (unlikely(!ab))
+		return;
+	audit_log_task(ab);
+	audit_log_format(ab, " sig=%ld", signr);
+	audit_log_format(ab, " syscall=%ld", syscall);
+	audit_log_format(ab, " compat=%d", is_compat_task());
+	audit_log_format(ab, " ip=0x%lx", KSTK_EIP(current));
+	audit_log_format(ab, " code=0x%x", code);
 	audit_log_end(ab);
 }
 
