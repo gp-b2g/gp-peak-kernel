@@ -653,16 +653,19 @@ static int kgsl_release(struct inode *inodep, struct file *filep)
 
 		next = next + 1;
 	}
+	/*
+	 * Clean up any to-be-freed entries that belong to this
+	 * process and this device. This is done after the context
+	 * are destroyed to avoid possibly freeing memory while
+	 * it is still in use by the GPU.
+	 */
+	kgsl_cancel_events(device, dev_priv);
 
 	device->open_count--;
 	if (device->open_count == 0) {
 		result = device->ftbl->stop(device);
 		kgsl_pwrctrl_set_state(device, KGSL_STATE_INIT);
 	}
-	/* clean up any to-be-freed entries that belong to this
-	 * process and this device
-	 */
-	kgsl_cancel_events(device, dev_priv);
 
 	mutex_unlock(&device->mutex);
 	kfree(dev_priv);

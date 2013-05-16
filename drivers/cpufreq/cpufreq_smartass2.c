@@ -276,7 +276,7 @@ static void cpufreq_smartass_timer(unsigned long cpu)
 	u64 delta_time;
 	int cpu_load;
 	int old_freq;
-	u64 update_time;
+	u64 update_time=0;
 	u64 now_idle;
 	int queued_work = 0;
 	struct smartass_info_s *this_smartass = &per_cpu(smartass_info, cpu);

@@ -377,7 +377,9 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
-		   -fno-delete-null-pointer-checks
+		   -fno-delete-null-pointer-checks \
+		   -ffast-math -fsingle-precision-constant -pipe -mfpu=neon -ftree-vectorize -mfloat-abi=softfp \
+		   --param l2-cache-size=512 --param l1-cache-size=64 --param simultaneous-prefetches=8
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_AFLAGS   := -D__ASSEMBLY__

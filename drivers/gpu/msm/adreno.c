@@ -537,12 +537,17 @@ static int adreno_start(struct kgsl_device *device, unsigned int init_ram)
 	adreno_regwrite(device, REG_RBBM_PM_OVERRIDE2, 0xffffffff);
 
 	/* Only reset CP block if all blocks have previously been reset */
+	#if 0
 	if (!(device->flags & KGSL_FLAGS_SOFT_RESET) ||
 		!adreno_is_a22x(adreno_dev)) {
 		adreno_regwrite(device, REG_RBBM_SOFT_RESET, 0xFFFFFFFF);
 		device->flags |= KGSL_FLAGS_SOFT_RESET;
 	} else
 		adreno_regwrite(device, REG_RBBM_SOFT_RESET, 0x00000001);
+	#else
+		adreno_regwrite(device, REG_RBBM_SOFT_RESET, 0xFFFFFFFF);
+		device->flags |= KGSL_FLAGS_SOFT_RESET;
+	#endif
 
 	/* The core is in an indeterminate state until the reset completes
 	 * after 30ms.
@@ -551,10 +556,7 @@ static int adreno_start(struct kgsl_device *device, unsigned int init_ram)
 
 	adreno_regwrite(device, REG_RBBM_SOFT_RESET, 0x00000000);
 
-	if (adreno_is_a200(adreno_dev))
-		adreno_regwrite(device, REG_RBBM_CNTL, 0x0000FFFF);
-	else
-		adreno_regwrite(device, REG_RBBM_CNTL, 0x00004442);
+	adreno_regwrite(device, REG_RBBM_CNTL, 0x0000FFFF);
 
 	if (adreno_is_a225(adreno_dev)) {
 		/* Enable large instruction store for A225 */
@@ -567,7 +569,7 @@ static int adreno_start(struct kgsl_device *device, unsigned int init_ram)
 	if (cpu_is_msm8960() || cpu_is_msm8930())
 		adreno_regwrite(device, REG_RBBM_PM_OVERRIDE1, 0x200);
 	else
-		adreno_regwrite(device, REG_RBBM_PM_OVERRIDE1, 0);
+		adreno_regwrite(device, REG_RBBM_PM_OVERRIDE1,0xFDC001E0);
 
 	if (!adreno_is_a22x(adreno_dev))
 		adreno_regwrite(device, REG_RBBM_PM_OVERRIDE2, 0);

@@ -52,6 +52,7 @@
 #include <mach/msm_battery.h>
 #include <mach/rpc_server_handset.h>
 #include <mach/socinfo.h>
+#include <mach/oem_rapi_client.h>
 #include "board-msm7x27a-regulator.h"
 #include "devices.h"
 #include "devices-msm7x2xa.h"
