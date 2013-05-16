@@ -348,7 +348,7 @@ static int msm_fb_probe(struct platform_device *pdev)
 		fbram_size =
 			pdev->resource[0].end - pdev->resource[0].start + 1;
 		fbram_phys = (char *)pdev->resource[0].start;
-		fbram = __va(fbram_phys);
+		fbram = ioremap((unsigned long)fbram_phys, fbram_size);
 
 		if (!fbram) {
 			printk(KERN_ERR "fbram ioremap failed!\n");
@@ -1133,10 +1133,10 @@ static int msm_fb_register(struct msm_fb_data_type *mfd)
 	var->grayscale = 0,	/* No graylevels */
 	var->nonstd = 0,	/* standard pixel format */
 	var->activate = FB_ACTIVATE_VBL,	/* activate it at vsync */
-	/* height of picture in mm */
-	var->height = panel_info->height ? panel_info->height : -1,
-	/* width of picture in mm */
-	var->width = panel_info->width ? panel_info->width : -1,
+    /* height of picture in mm */
+    var->height = panel_info->height ? panel_info->height : -1,
+    /* width of picture in mm */
+    var->width = panel_info->width ? panel_info->width : -1, 
 	var->accel_flags = 0,	/* acceleration flags */
 	var->sync = 0,	/* see FB_SYNC_* */
 	var->rotate = 0,	/* angle we rotate counter clockwise */
@@ -2967,7 +2967,7 @@ static int msmfb_overlay_play(struct fb_info *info, unsigned long *argp)
 	}
 
 	ret = mdp4_overlay_play(info, &req);
-
+#if 0
 	if (unset_bl_level && !bl_updated) {
 		pdata = (struct msm_fb_panel_data *)mfd->pdev->
 			dev.platform_data;
@@ -2980,7 +2980,7 @@ static int msmfb_overlay_play(struct fb_info *info, unsigned long *argp)
 			bl_updated = 1;
 		}
 	}
-
+#endif
 	return ret;
 }
 

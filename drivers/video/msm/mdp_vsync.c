@@ -35,6 +35,10 @@
 #include "msm_fb.h"
 #include "mddihost.h"
 
+#ifndef MDP_HW_VSYNC
+	#define MDP_HW_VSYNC
+#endif
+
 #ifdef CONFIG_FB_MSM_MDP40
 #include "mdp4.h"
 

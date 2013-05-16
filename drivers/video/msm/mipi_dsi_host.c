@@ -146,6 +146,11 @@ void mipi_dsi_disable_irq(void)
 
 void mipi_dsi_turn_on_clks(void)
 {
+	if (mipi_dsi_clk_on) {
+		pr_err("%s: mipi_dsi_clks already ON\n", __func__);
+		return;
+	}
+	mipi_dsi_clk_on = 1;
 	local_bh_disable();
 	mipi_dsi_ahb_ctrl(1);
 	mipi_dsi_clk_enable();
@@ -154,6 +159,11 @@ void mipi_dsi_turn_on_clks(void)
 
 void mipi_dsi_turn_off_clks(void)
 {
+	if (mipi_dsi_clk_on == 0) {
+		pr_err("%s: mipi_dsi_clks already OFF\n", __func__);
+		return;
+	}
+	mipi_dsi_clk_on = 0;
 	local_bh_disable();
 	mipi_dsi_clk_disable();
 	mipi_dsi_ahb_ctrl(0);
@@ -1002,7 +1012,10 @@ void mipi_dsi_mdp_busy_wait(struct msm_fb_data_type *mfd)
 		/* wait until DMA finishes the current job */
 		pr_debug("%s: pending pid=%d\n",
 				__func__, current->pid);
-		wait_for_completion(&dsi_mdp_comp);
+		if(!wait_for_completion_timeout(&dsi_mdp_comp, 50*HZ))	{
+			printk(KERN_INFO "[DISPLAY] %s: Wait for dsi_mdp_comp timeout\n", __func__);
+			complete(&dsi_mdp_comp);
+		}
 	}
 	pr_debug("%s: done pid=%d\n",
 				__func__, current->pid);
@@ -1336,7 +1349,8 @@ int mipi_dsi_cmd_dma_tx(struct dsi_buf *tp)
 	MIPI_OUTP(MIPI_DSI_BASE + 0x08c, 0x01);	/* trigger */
 	wmb();
 
-	wait_for_completion(&dsi_dma_comp);
+	/* Set timeout to avoid blocking MDP update */
+	wait_for_completion_timeout(&dsi_dma_comp, msecs_to_jiffies(10000));
 
 	dma_unmap_single(&dsi_dev, tp->dmap, len, DMA_TO_DEVICE);
 	tp->dmap = 0;
