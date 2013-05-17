@@ -35,10 +35,6 @@
 #include "msm_fb.h"
 #include "mddihost.h"
 
-#ifndef MDP_HW_VSYNC
-	#define MDP_HW_VSYNC
-#endif
-
 #ifdef CONFIG_FB_MSM_MDP40
 #include "mdp4.h"
 
@@ -259,7 +255,7 @@ void mdp_vsync_cfg_regs(struct msm_fb_data_type *mfd,
 	 * load the last line + 1 to be in the
 	 * safety zone
 	 */
-	vsync_load_cnt = mfd->panel_info.yres/2;
+	vsync_load_cnt = mfd->panel_info.yres;
 
 	/* line counter init value at the next pulse */
 	MDP_OUTP(MDP_BASE + MDP_PRIM_VSYNC_INIT_VAL,

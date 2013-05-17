@@ -1331,8 +1331,8 @@ static int a2xx_create_gmem_shadow(struct adreno_device *adreno_dev,
 	if (result)
 		return result;
 
-	/* set the gmem shadow flag for the context */
-	drawctxt->flags |= CTXT_FLAGS_GMEM_SHADOW;
+	/* we've allocated the shadow, when swapped out, GMEM must be saved. */
+	drawctxt->flags |= CTXT_FLAGS_GMEM_SHADOW | CTXT_FLAGS_GMEM_SAVE;
 
 	/* blank out gmem shadow. */
 	kgsl_sharedmem_set(&drawctxt->context_gmem_shadow.gmemshadow, 0, 0,

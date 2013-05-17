@@ -97,12 +97,6 @@ void __cpuinit platform_secondary_init(unsigned int cpu)
 
 	WARN_ON(msm_platform_secondary_init(cpu));
 
-	 /* Edge trigger PPIs */
-	writel_relaxed(0x555555F5,
-		MSM_QGIC_DIST_BASE + GIC_DIST_CONFIG + 4);
-	writel_relaxed(0x0000FFFF,
-			MSM_QGIC_DIST_BASE + GIC_DIST_ENABLE_SET);
-	mb();
 	/*
 	 * if any interrupts are already enabled for the primary
 	 * core (e.g. timer irq), then they will not have been enabled

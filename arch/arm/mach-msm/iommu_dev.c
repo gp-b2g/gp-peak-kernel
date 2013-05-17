@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -33,14 +33,13 @@ struct iommu_ctx_iter_data {
 	struct device *dev;
 };
 
-struct platform_device *msm_iommu_root_dev;
+static struct platform_device *msm_iommu_root_dev;
 
 static int each_iommu_ctx(struct device *dev, void *data)
 {
 	struct iommu_ctx_iter_data *res = data;
-	struct msm_iommu_ctx_drvdata *c;
+	struct msm_iommu_ctx_dev *c = dev->platform_data;
 
-	c = dev_get_drvdata(dev);
 	if (!res || !c || !c->name || !res->name)
 		return -EINVAL;
 

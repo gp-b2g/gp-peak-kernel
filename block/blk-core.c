@@ -833,8 +833,6 @@ struct request *blk_get_request(struct request_queue *q, int rw, gfp_t gfp_mask)
 	if (unlikely(test_bit(QUEUE_FLAG_DEAD, &q->queue_flags)))
 		return NULL;
 
-	BUG_ON(rw != READ && rw != WRITE);
-
 	spin_lock_irq(q->queue_lock);
 	if (gfp_mask & __GFP_WAIT) {
 		rq = get_request_wait(q, rw, NULL);

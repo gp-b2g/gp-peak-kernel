@@ -2,7 +2,6 @@
  *  linux/arch/arm/mm/mmu.c
  *
  *  Copyright (C) 1995-2005 Russell King
- *  Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -1139,65 +1138,15 @@ void mem_text_write_kernel_word(unsigned long *addr, unsigned long word)
 }
 EXPORT_SYMBOL(mem_text_write_kernel_word);
 
-volatile  __section(.log.data) int reserved_area = 0;
 static void __init map_lowmem(void)
 {
 	struct memblock_region *reg;
-	struct map_desc map;
-	phys_addr_t start;
-	phys_addr_t end;
 
-#ifdef CONFIG_UNCACHED_BUF
-	unsigned long uncached_start = (unsigned long)__uncached_track_buf;
-	unsigned long uncached_end = (unsigned long)__end_uncached_track_buf;
-	unsigned long uncached_size = uncached_end - uncached_start;
-	/* the tracked buffers must be at the first bank, just because
-	 * the code & data segment must be at the first memory bank
-         * so only check the first memory bank
-         */
-	reg = memblock.memory.regions;
-	start = reg->base;
-	end = start + reg->size;
-
-	/* the first bank must be valid, otherwise ... */
-	if (end > lowmem_limit)
-		end = lowmem_limit;
-	BUG_ON(start >= end);
-
-	if ((__virt_to_phys(uncached_start) <= start) ||
-		(__virt_to_phys(uncached_end) >= end))
-		BUG();
-	printk("uncached_start = 0x%08lx, uncached_end = 0x%08lx.\n",
-		uncached_start, uncached_end);
-
-
-	map.pfn = __phys_to_pfn(start);
-	map.virtual = __phys_to_virt(start);
-	map.length = uncached_start - map.virtual;
-	map.type = MT_MEMORY;
-	create_mapping(&map);
-
-	map.pfn = __phys_to_pfn(__virt_to_phys(uncached_start));
-	map.virtual = uncached_start;
-	map.length = uncached_size;
-	map.type = MT_DEVICE;
-	create_mapping(&map);
-
-	map.pfn = __phys_to_pfn(__virt_to_phys(uncached_end));
-	map.virtual = uncached_end;
-	map.length = end - __virt_to_phys(uncached_end);
-	map.type = MT_MEMORY;
-	create_mapping(&map);
-
-	/* map the remaining lowmem memory banks except the first */
-	for (reg++; reg < (memblock.memory.regions + \
-			memblock.memory.cnt); reg++) {
-#else
 	/* Map all the lowmem memory banks. */
 	for_each_memblock(memory, reg) {
-#endif
-		start = reg->base;
-		end = start + reg->size;
+		phys_addr_t start = reg->base;
+		phys_addr_t end = start + reg->size;
+		struct map_desc map;
 
 		if (end > lowmem_limit)
 			end = lowmem_limit;

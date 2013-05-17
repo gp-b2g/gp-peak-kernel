@@ -228,20 +228,11 @@ void show_stack(struct task_struct *tsk, unsigned long *sp)
 #define S_SMP ""
 #endif
 
-#ifdef CONFIG_ARCH_MSM
-#define __LOG_BUF_LEN   (1 << CONFIG_LOG_BUF_SHIFT)
-extern char __log_buf[];
-extern void flush_log_buf(void *ignored);
-#endif
-
 static int __die(const char *str, int err, struct thread_info *thread, struct pt_regs *regs)
 {
 	struct task_struct *tsk = thread->task;
 	static int die_counter;
 	int ret;
-#if defined(CONFIG_ARCH_MSM) && defined(CONFIG_OUTER_CACHE)
-	unsigned long paddr;
-#endif
 
 	printk(KERN_EMERG "Internal error: %s: %x [#%d]" S_PREEMPT S_SMP "\n",
 	       str, err, ++die_counter);
@@ -262,14 +253,6 @@ static int __die(const char *str, int err, struct thread_info *thread, struct pt
 		dump_backtrace(regs, tsk);
 		dump_instr(KERN_EMERG, regs);
 	}
-
-#ifdef CONFIG_ARCH_MSM
-	flush_log_buf(NULL);
-#ifdef CONFIG_OUTER_CACHE
-	paddr = (unsigned long)__virt_to_phys((unsigned long)__log_buf);
-	outer_clean_range(paddr, paddr + __LOG_BUF_LEN);
-#endif
-#endif
 
 	return ret;
 }
@@ -513,10 +496,6 @@ asmlinkage int arm_syscall(int no, struct pt_regs *regs)
 {
 	struct thread_info *thread = current_thread_info();
 	siginfo_t info;
-
-	/* Emulate/fallthrough. */
-	if (no == -1)
-		return regs->ARM_r0;
 
 	if ((no >> 16) != (__ARM_NR_BASE>> 16))
 		return bad_syscall(no, regs);

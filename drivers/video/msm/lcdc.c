@@ -140,10 +140,6 @@ static int lcdc_on(struct platform_device *pdev)
 		goto out;
 	}
 
-	#define CLKF_INVERT         	0x00000001
-    #define CLKF_NOINVERT       	0x00000002
-    clk_set_flags((struct clk *)pixel_mdp_clk, CLKF_INVERT);
-
 	clk_prepare_enable(pixel_mdp_clk);
 	clk_prepare_enable(pixel_lcdc_clk);
 
@@ -266,11 +262,6 @@ static int lcdc_probe(struct platform_device *pdev)
 	fbi->var.hsync_len = mfd->panel_info.lcdc.h_pulse_width;
 	fbi->var.vsync_len = mfd->panel_info.lcdc.v_pulse_width;
 
-#ifndef CONFIG_MSM_BUS_SCALING
-	mfd->ebi1_clk = clk_get(NULL, "ebi1_lcdc_clk");
-	if (IS_ERR(mfd->ebi1_clk))
-		return PTR_ERR(mfd->ebi1_clk);
-#endif
 	/*
 	 * set driver data
 	 */
