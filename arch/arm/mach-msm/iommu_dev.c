@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -33,7 +33,7 @@ struct iommu_ctx_iter_data {
 	struct device *dev;
 };
 
-static struct platform_device *msm_iommu_root_dev;
+struct platform_device *msm_iommu_root_dev;
 
 static int each_iommu_ctx(struct device *dev, void *data)
 {

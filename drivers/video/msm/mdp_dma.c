@@ -317,7 +317,7 @@ void	mdp3_dsi_cmd_dma_busy_wait(struct msm_fb_data_type *mfd)
 	if (need_wait) {
 		/* wait until DMA finishes the current job */
 		do {
-			ret = wait_for_completion_timeout(&mfd->dma->comp, msecs_to_jiffies(10000));
+			ret = wait_for_completion_timeout(&mfd->dma->comp, msecs_to_jiffies(500));
 		} while (ret <= 0);
 	}
 }
@@ -505,13 +505,7 @@ void mdp_dma2_update(struct msm_fb_data_type *mfd)
 		up(&mfd->sem);
 
 		/* wait until DMA finishes the current job */
-		ret = wait_for_completion_killable_timeout(&mfd->dma->comp, msecs_to_jiffies(500));
-		if (ret <= 0) {
-			mfd->dma->busy = FALSE;
-			mdp_pipe_ctrl(MDP_DMA2_BLOCK, MDP_BLOCK_POWER_OFF, TRUE);
-			complete(&mfd->dma->comp);
-		}
-
+		wait_for_completion_killable(&mfd->dma->comp);
 		mdp_disable_irq(MDP_DMA2_TERM);
 
 	/* signal if pan function is waiting for the update completion */

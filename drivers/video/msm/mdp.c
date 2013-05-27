@@ -1163,7 +1163,7 @@ error:
 static int _mdp_copy_hist_data(struct mdp_histogram_data *hist,
 						struct mdp_hist_mgmt *mgmt)
 {
-	int ret;
+	int ret = 0;
 
 	if (hist->c0) {
 		ret = copy_to_user(hist->c0, mgmt->c0,

@@ -1350,7 +1350,7 @@ int mipi_dsi_cmd_dma_tx(struct dsi_buf *tp)
 	wmb();
 
 	/* Set timeout to avoid blocking MDP update */
-	wait_for_completion_timeout(&dsi_dma_comp, msecs_to_jiffies(10000));
+	wait_for_completion_timeout(&dsi_dma_comp, msecs_to_jiffies(3000));
 
 	dma_unmap_single(&dsi_dev, tp->dmap, len, DMA_TO_DEVICE);
 	tp->dmap = 0;

@@ -805,7 +805,7 @@ static void msm_fb_scale_bl(__u32 *bl_lvl)
 	(*bl_lvl) = temp;
 }
 
-#define LCD_INTERNAL_UPDATE_PERIOD 20 //  1000 / 60 = 16.7ms, must greater than 16.7ms
+#define LCD_INTERNAL_UPDATE_PERIOD 25 //  1000 / 60 = 16.7ms, must greater than 16.7ms
 static bool lcd_updated;
 DEFINE_SEMAPHORE(lcd_update_sem);
 

@@ -709,7 +709,7 @@ void mdp_hw_init(int splash)
 	MDP_OUTP(MDP_CMD_DEBUG_ACCESS_BASE + 0x0104,
 		 ((16 << 6) << 16) | (16) << 6);
 #endif
-
+	wmb();
 	/* MDP cmd block disable */
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 }

@@ -48,7 +48,6 @@
 #include <mach/msm_battery.h>
 #include <linux/smsc911x.h>
 #include <linux/atmel_maxtouch.h>
-/* update Qcomm original  base line , delete 1 line for fmem disable and avoid deadlock*/
 #include <linux/msm_adc.h>
 #include "devices.h"
 #include "timer.h"
@@ -172,10 +171,10 @@ static struct msm_i2c_platform_data msm_gsbi1_qup_i2c_pdata = {
 };
 
 #ifdef CONFIG_ARCH_MSM7X27A
-#define MSM_PMEM_MDP_SIZE       0x4600000
+#define MSM_PMEM_MDP_SIZE       0x2300000
 #define MSM7x25A_MSM_PMEM_MDP_SIZE       0x1500000
 
-#define MSM_PMEM_ADSP_SIZE      0x3700000//0x1100000
+#define MSM_PMEM_ADSP_SIZE      0x1E00000
 #define MSM7x25A_MSM_PMEM_ADSP_SIZE      0xB91000
 
 #endif
@@ -419,8 +418,8 @@ static struct msm_pm_platform_data msm8625_pm_data[MSM_PM_SLEEP_MODE_NR * 2] = {
 	[MSM_PM_MODE(0, MSM_PM_SLEEP_MODE_POWER_COLLAPSE)] = {
 					.idle_supported = 1,
 					.suspend_supported = 1,
-					.idle_enabled = 1,
-					.suspend_enabled = 1,
+					.idle_enabled = 0,
+					.suspend_enabled = 0,
 					.latency = 16000,
 					.residency = 20000,
 	},
@@ -457,8 +456,8 @@ static struct msm_pm_platform_data msm8625_pm_data[MSM_PM_SLEEP_MODE_NR * 2] = {
 	[MSM_PM_MODE(1, MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE)] = {
 					.idle_supported = 1,
 					.suspend_supported = 1,
-					.idle_enabled = 1,
-					.suspend_enabled = 1,
+					.idle_enabled = 0,
+					.suspend_enabled = 0,
 					.latency = 500,
 					.residency = 6000,
 	},
@@ -484,7 +483,6 @@ static struct android_pmem_platform_data android_pmem_adsp_pdata = {
 	.allocator_type = PMEM_ALLOCATORTYPE_BITMAP,
 	.cached = 1,
 	.memory_type = MEMTYPE_EBI1,
-	/*  update Qcomm original  base line , delete 3 lines for fmem disable and avoid deadlock*/
 };
 
 static struct platform_device android_pmem_adsp_device = {
@@ -816,8 +814,6 @@ static void msm7x27a_cfg_uart2dm_serial(void)
 static void msm7x27a_cfg_uart2dm_serial(void) { }
 #endif
 
-/*  update Qcomm original  base line , delete 6 lines for fmem disable and avoid deadlock*/
-
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
 static struct resource ram_console_resources[] = {
 	{
@@ -870,7 +866,6 @@ static struct platform_device *common_devices[] __initdata = {
 	&android_pmem_device,
 	&android_pmem_adsp_device,
 	&android_pmem_audio_device,
-    /*  update Qcomm original  base line , delete 1 line for fmem disable and avoid deadlock*/
 	&msm_device_nand,
 	&msm_device_snd,
 	&msm_device_adspdec,
@@ -925,14 +920,17 @@ static struct memtype_reserve msm7x27a_reserve_table[] __initdata = {
 	},
 };
 
-/*  update Qcomm original  base line , delete 7 lines for fmem disable and avoid deadlock*/
+#ifdef CONFIG_ANDROID_PMEM
+static struct android_pmem_platform_data *pmem_pdata_array[] __initdata = {
+		&android_pmem_adsp_pdata,
+		&android_pmem_audio_pdata,
+		&android_pmem_pdata,
+};
+#endif
 
 static void __init size_pmem_devices(void)
 {
 #ifdef CONFIG_ANDROID_PMEM
-
-    /*  update Qcomm original  base line , delete 2 lines for fmem disable and avoid deadlock*/
-
 	if (machine_is_msm7625a_surf() || machine_is_msm7625a_ffa()) {
 		pmem_mdp_size = MSM7x25A_MSM_PMEM_MDP_SIZE;
 		pmem_adsp_size = MSM7x25A_MSM_PMEM_ADSP_SIZE;
@@ -944,9 +942,6 @@ static void __init size_pmem_devices(void)
 	android_pmem_adsp_pdata.size = pmem_adsp_size;
 	android_pmem_pdata.size = pmem_mdp_size;
 	android_pmem_audio_pdata.size = pmem_audio_size;
-
-    /*  update Qcomm original  base line , delete 19 lines for fmem disable and avoid deadlock*/
-
 #endif
 
 }
@@ -959,13 +954,9 @@ static void __init reserve_memory_for(struct android_pmem_platform_data *p)
 static void __init reserve_pmem_memory(void)
 {
 #ifdef CONFIG_ANDROID_PMEM
-
-
-    /*  update Qcomm original  base line , delete 3 lines and add 3 lines for fmem disable and avoid deadlock*/	
-	reserve_memory_for(&android_pmem_adsp_pdata);
-	reserve_memory_for(&android_pmem_pdata);
-	reserve_memory_for(&android_pmem_audio_pdata);
-
+	unsigned int i;
+	for (i = 0; i < ARRAY_SIZE(pmem_pdata_array); ++i)
+		reserve_memory_for(pmem_pdata_array[i]);
 
 	msm7x27a_reserve_table[MEMTYPE_EBI1].size += pmem_kernel_ebi1_size;
 #endif
@@ -1204,7 +1195,6 @@ static void __init msm7x27a_pm_init(void)
 
 	msm_pm_register_irqs();
 }
-
 
 static void __init cellon_oem_rpc(void)
 {
