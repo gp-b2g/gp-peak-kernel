@@ -279,7 +279,7 @@ void mdp_dsi_video_update(struct msm_fb_data_type *mfd)
 
 	spin_unlock_irqrestore(&mdp_spin_lock, flag);
 
-	ret = wait_for_completion_killable_timeout(&mfd->dma->comp, msecs_to_jiffies(100));
+	ret = wait_for_completion_killable_timeout(&mfd->dma->comp, msecs_to_jiffies(500));
 	if (ret <= 0) {
 		// let's disable LCDC interrupt
 		mdp_intr_mask &= ~LCDC_FRAME_START;

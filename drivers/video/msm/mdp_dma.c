@@ -317,7 +317,7 @@ void	mdp3_dsi_cmd_dma_busy_wait(struct msm_fb_data_type *mfd)
 	if (need_wait) {
 		/* wait until DMA finishes the current job */
 		do {
-			ret = wait_for_completion_timeout(&mfd->dma->comp, msecs_to_jiffies(500));
+			ret = wait_for_completion_timeout(&mfd->dma->comp, msecs_to_jiffies(1000));
 		} while (ret <= 0);
 	}
 }
