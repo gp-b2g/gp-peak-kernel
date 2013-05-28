@@ -589,8 +589,8 @@ static struct resource resources_sdc3[] = {
 	},
 	{
 		.name	= "sdcc_dma_chnl",
-		.start	= DMOV_NAND_CHAN,
-		.end	= DMOV_NAND_CHAN,
+		.start	= DMOV_SDC3_CHAN,
+		.end	= DMOV_SDC3_CHAN,
 		.flags	= IORESOURCE_DMA,
 	},
 	{
@@ -878,7 +878,7 @@ static struct kgsl_device_platform_data kgsl_3d0_pdata = {
 	.init_level = 0,
 	.num_levels = 3,
 	.set_grp_async = set_grp_xbar_async,
-	.idle_timeout = HZ/5,
+	.idle_timeout = HZ,
 	.strtstp_sleepwake = true,
 	.nap_allowed = false,
 	.clk_map = KGSL_CLK_CORE | KGSL_CLK_IFACE | KGSL_CLK_MEM,
@@ -910,6 +910,7 @@ void __init msm8x25_kgsl_3d0_init(void)
 	if (cpu_is_msm8625()) {
 		kgsl_3d0_pdata.idle_timeout = HZ/5;
 		kgsl_3d0_pdata.strtstp_sleepwake = true;
+		/* 8x25 supports a higher GPU frequency */
 		kgsl_3d0_pdata.pwrlevel[0].gpu_freq = 320000000;
 		kgsl_3d0_pdata.pwrlevel[0].bus_freq = 200000000;
 	}
@@ -1346,6 +1347,12 @@ int __init msm_add_sdcc(unsigned int controller, struct mmc_platform_data *plat)
 
 	if (controller < 1 || controller > 4)
 		return -EINVAL;
+
+	if (machine_is_msm8625_skua() || machine_is_msm8625_evb() || machine_is_msm8625_qrd5() || machine_is_msm8625_skub())
+	{
+		msm8625_device_sdc3.resource[2].start = DMOV_NAND_CHAN;
+		msm8625_device_sdc3.resource[2].end = DMOV_NAND_CHAN;
+	}
 
 	if (cpu_is_msm8625())
 		pdev = msm8625_sdcc_devices[controller-1];

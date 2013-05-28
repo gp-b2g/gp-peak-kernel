@@ -48,6 +48,7 @@
 #include <mach/msm_battery.h>
 #include <linux/smsc911x.h>
 #include <linux/atmel_maxtouch.h>
+/* update Qcomm original  base line , delete 1 line for fmem disable and avoid deadlock*/
 #include <linux/msm_adc.h>
 #include "devices.h"
 #include "timer.h"
@@ -483,6 +484,7 @@ static struct android_pmem_platform_data android_pmem_adsp_pdata = {
 	.allocator_type = PMEM_ALLOCATORTYPE_BITMAP,
 	.cached = 1,
 	.memory_type = MEMTYPE_EBI1,
+	/*  update Qcomm original  base line , delete 3 lines for fmem disable and avoid deadlock*/
 };
 
 static struct platform_device android_pmem_adsp_device = {
@@ -814,6 +816,8 @@ static void msm7x27a_cfg_uart2dm_serial(void)
 static void msm7x27a_cfg_uart2dm_serial(void) { }
 #endif
 
+/*  update Qcomm original  base line , delete 6 lines for fmem disable and avoid deadlock*/
+
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
 static struct resource ram_console_resources[] = {
 	{
@@ -866,6 +870,7 @@ static struct platform_device *common_devices[] __initdata = {
 	&android_pmem_device,
 	&android_pmem_adsp_device,
 	&android_pmem_audio_device,
+    /*  update Qcomm original  base line , delete 1 line for fmem disable and avoid deadlock*/
 	&msm_device_nand,
 	&msm_device_snd,
 	&msm_device_adspdec,
@@ -920,17 +925,14 @@ static struct memtype_reserve msm7x27a_reserve_table[] __initdata = {
 	},
 };
 
-#ifdef CONFIG_ANDROID_PMEM
-static struct android_pmem_platform_data *pmem_pdata_array[] __initdata = {
-		&android_pmem_adsp_pdata,
-		&android_pmem_audio_pdata,
-		&android_pmem_pdata,
-};
-#endif
+/*  update Qcomm original  base line , delete 7 lines for fmem disable and avoid deadlock*/
 
 static void __init size_pmem_devices(void)
 {
 #ifdef CONFIG_ANDROID_PMEM
+
+    /*  update Qcomm original  base line , delete 2 lines for fmem disable and avoid deadlock*/
+
 	if (machine_is_msm7625a_surf() || machine_is_msm7625a_ffa()) {
 		pmem_mdp_size = MSM7x25A_MSM_PMEM_MDP_SIZE;
 		pmem_adsp_size = MSM7x25A_MSM_PMEM_ADSP_SIZE;
@@ -942,6 +944,9 @@ static void __init size_pmem_devices(void)
 	android_pmem_adsp_pdata.size = pmem_adsp_size;
 	android_pmem_pdata.size = pmem_mdp_size;
 	android_pmem_audio_pdata.size = pmem_audio_size;
+
+    /*  update Qcomm original  base line , delete 19 lines for fmem disable and avoid deadlock*/
+
 #endif
 
 }
@@ -954,9 +959,13 @@ static void __init reserve_memory_for(struct android_pmem_platform_data *p)
 static void __init reserve_pmem_memory(void)
 {
 #ifdef CONFIG_ANDROID_PMEM
-	unsigned int i;
-	for (i = 0; i < ARRAY_SIZE(pmem_pdata_array); ++i)
-		reserve_memory_for(pmem_pdata_array[i]);
+
+
+    /*  update Qcomm original  base line , delete 3 lines and add 3 lines for fmem disable and avoid deadlock*/	
+	reserve_memory_for(&android_pmem_adsp_pdata);
+	reserve_memory_for(&android_pmem_pdata);
+	reserve_memory_for(&android_pmem_audio_pdata);
+
 
 	msm7x27a_reserve_table[MEMTYPE_EBI1].size += pmem_kernel_ebi1_size;
 #endif

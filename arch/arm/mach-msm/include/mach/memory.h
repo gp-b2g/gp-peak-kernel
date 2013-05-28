@@ -134,5 +134,5 @@ void find_membank0_hole(void);
 #define NPA_MEMORY_NODE_NAME	"/mem/apps/ddr_dpd"
 
 #ifndef CONFIG_ARCH_MSM7X27
-#define CONSISTENT_DMA_SIZE	(SZ_1M * 14)
+#define CONSISTENT_DMA_SIZE	(SZ_1M * 10)
 #endif

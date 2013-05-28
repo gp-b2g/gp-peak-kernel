@@ -171,13 +171,14 @@ void adreno_drawctxt_destroy(struct kgsl_device *device,
 			  struct kgsl_context *context)
 {
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
-	struct adreno_context *drawctxt = context->devctxt;
+	struct adreno_context *drawctxt = NULL;
 
-	if (drawctxt == NULL)
+	if (unlikely(!context || !context->devctxt))
 		return;
 
+	drawctxt = context->devctxt;
 	/* deactivate context */
-	if (adreno_dev->drawctxt_active == drawctxt) {
+	if (unlikely(adreno_dev->drawctxt_active == drawctxt)) {
 		/* no need to save GMEM or shader, the context is
 		 * being destroyed.
 		 */
@@ -236,7 +237,7 @@ void adreno_drawctxt_switch(struct adreno_device *adreno_dev,
 	struct kgsl_device *device = &adreno_dev->dev;
 
 	if (drawctxt) {
-		if (flags & KGSL_CONTEXT_SAVE_GMEM)
+		if (unlikely(flags & KGSL_CONTEXT_SAVE_GMEM))
 			/* Set the flag in context so that the save is done
 			* when this context is switched out. */
 			drawctxt->flags |= CTXT_FLAGS_GMEM_SAVE;

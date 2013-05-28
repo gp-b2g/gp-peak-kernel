@@ -481,7 +481,6 @@ static void mdp_dma2_update_sub(struct msm_fb_data_type *mfd)
 void mdp_dma2_update(struct msm_fb_data_type *mfd)
 #endif
 {
-	int ret = 0;
 	unsigned long flag;
 
 	if (!mfd) {
