@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1867,10 +1867,9 @@ u32 vid_enc_set_recon_buffers(struct video_client_ctx *client_ctx,
 					(unsigned long *)&iova,
 					(unsigned long *)&buffer_size,
 					UNCACHED, 0);
-			if (rc || !iova) {
-				ERR(
-				"%s():ION map iommu addr fail, rc = %d, iova = 0x%lx\n",
-					__func__, rc, iova);
+			if (rc) {
+				ERR("%s():ION map iommu addr fail\n",
+					 __func__);
 				goto map_ion_error;
 			}
 			control->physical_addr =  (u8 *) iova;

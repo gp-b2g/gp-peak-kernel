@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2008-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -36,7 +36,6 @@
 #include "mdp4.h"
 
 u32 dsi_irq;
-u32 esc_byte_ratio;
 
 static boolean tlmm_settings = FALSE;
 
@@ -165,8 +164,8 @@ static int mipi_dsi_on(struct platform_device *pdev)
 	fbi = mfd->fbi;
 	var = &fbi->var;
 	pinfo = &mfd->panel_info;
-	esc_byte_ratio = pinfo->mipi.esc_byte_ratio;
 
+	MSM_FB_INFO("%s: %d\n",__func__,__LINE__);
 	if (mipi_dsi_pdata && mipi_dsi_pdata->dsi_power_save)
 		mipi_dsi_pdata->dsi_power_save(1);
 
@@ -461,6 +460,9 @@ static int mipi_dsi_probe(struct platform_device *pdev)
 	if (pdev_list_cnt >= MSM_FB_MAX_DEV_LIST)
 		return -ENOMEM;
 
+	if (!mfd->cont_splash_done)
+		cont_splash_clk_ctrl(1);
+
 	mdp_dev = platform_device_alloc("mdp", pdev->id);
 	if (!mdp_dev)
 		return -ENOMEM;
@@ -576,10 +578,9 @@ static int mipi_dsi_probe(struct platform_device *pdev)
 	if (rc)
 		goto mipi_dsi_probe_err;
 
-	if ((dsi_pclk_rate < 3300000) || (dsi_pclk_rate > 223000000)) {
-		pr_err("%s: Pixel clock not supported\n", __func__);
+	if ((dsi_pclk_rate < 3300000) || (dsi_pclk_rate > 223000000))
 		dsi_pclk_rate = 35000000;
-	}
+
 	mipi->dsi_pclk_rate = dsi_pclk_rate;
 
 	/*
@@ -595,9 +596,6 @@ static int mipi_dsi_probe(struct platform_device *pdev)
 		goto mipi_dsi_probe_err;
 
 	pdev_list[pdev_list_cnt++] = pdev;
-
-	if (!mfd->cont_splash_done)
-		cont_splash_clk_ctrl(1);
 
 return 0;
 

@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2008-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2008-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1350,7 +1350,7 @@ int mipi_dsi_cmd_dma_tx(struct dsi_buf *tp)
 	wmb();
 
 	/* Set timeout to avoid blocking MDP update */
-	wait_for_completion_timeout(&dsi_dma_comp, msecs_to_jiffies(30000));
+	wait_for_completion_timeout(&dsi_dma_comp, msecs_to_jiffies(10000));
 
 	dma_unmap_single(&dsi_dev, tp->dmap, len, DMA_TO_DEVICE);
 	tp->dmap = 0;

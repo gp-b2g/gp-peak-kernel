@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2008-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -317,7 +317,7 @@ void	mdp3_dsi_cmd_dma_busy_wait(struct msm_fb_data_type *mfd)
 	if (need_wait) {
 		/* wait until DMA finishes the current job */
 		do {
-			ret = wait_for_completion_timeout(&mfd->dma->comp, msecs_to_jiffies(1000));
+			ret = wait_for_completion_timeout(&mfd->dma->comp, msecs_to_jiffies(10000));
 		} while (ret <= 0);
 	}
 }
@@ -481,6 +481,7 @@ static void mdp_dma2_update_sub(struct msm_fb_data_type *mfd)
 void mdp_dma2_update(struct msm_fb_data_type *mfd)
 #endif
 {
+	int ret = 0;
 	unsigned long flag;
 
 	if (!mfd) {
@@ -504,7 +505,13 @@ void mdp_dma2_update(struct msm_fb_data_type *mfd)
 		up(&mfd->sem);
 
 		/* wait until DMA finishes the current job */
-		wait_for_completion_killable(&mfd->dma->comp);
+		ret = wait_for_completion_killable_timeout(&mfd->dma->comp, msecs_to_jiffies(500));
+		if (ret <= 0) {
+			mfd->dma->busy = FALSE;
+			mdp_pipe_ctrl(MDP_DMA2_BLOCK, MDP_BLOCK_POWER_OFF, TRUE);
+			complete(&mfd->dma->comp);
+		}
+
 		mdp_disable_irq(MDP_DMA2_TERM);
 
 	/* signal if pan function is waiting for the update completion */

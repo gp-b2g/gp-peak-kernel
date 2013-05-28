@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2009, 2012 The Linux Foundation. All rights reserved.
+/* Copyright (c) 2008-2009, 2012 Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -34,6 +34,10 @@
 #include "mdp.h"
 #include "msm_fb.h"
 #include "mddihost.h"
+
+#ifndef MDP_HW_VSYNC
+	#define MDP_HW_VSYNC
+#endif
 
 #ifdef CONFIG_FB_MSM_MDP40
 #include "mdp4.h"

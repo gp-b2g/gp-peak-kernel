@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -353,15 +353,6 @@ void ddl_vidc_encode_dynamic_property(struct ddl_client_context *ddl,
 				(u32)(DDL_FRAMERATE_SCALE(encoder->\
 				frame_rate.fps_numerator) /
 				encoder->frame_rate.fps_denominator));
-			if (encoder->vui_timinginfo_enable &&
-				encoder->frame_rate.fps_denominator) {
-				vidc_sm_set_h264_encoder_timing_info(
-					&ddl->shared_mem[ddl->command_channel],
-					DDL_FRAMERATE_SCALE_FACTOR,
-					(u32)(DDL_FRAMERATE_SCALE(encoder->\
-					frame_rate.fps_numerator) / encoder->\
-					frame_rate.fps_denominator) << 1);
-			}
 			encoder->dynamic_prop_change &=
 				~(DDL_ENC_CHANGE_FRAMERATE);
 		}
@@ -389,7 +380,7 @@ static void ddl_vidc_encode_set_profile_level(
 		encode_profile = VIDC_1080P_PROFILE_MPEG4_ADV_SIMPLE;
 	break;
 	case VCD_PROFILE_H264_BASELINE:
-		encode_profile = VIDC_1080P_PROFILE_H264_CONSTRAINED_BASELINE;
+		encode_profile = VIDC_1080P_PROFILE_H264_BASELINE;
 	break;
 	case VCD_PROFILE_H264_MAIN:
 		encode_profile = VIDC_1080P_PROFILE_H264_MAIN;
@@ -588,14 +579,7 @@ void ddl_vidc_encode_init_codec(struct ddl_client_context *ddl)
 		[ddl->command_channel], hdr_ext_control,
 		r_cframe_skip, false, 0,
 		h263_cpfc_enable, encoder->sps_pps.sps_pps_for_idr_enable_flag,
-		encoder->closed_gop, encoder->avc_delimiter_enable,
-		encoder->vui_timinginfo_enable);
-	if (encoder->vui_timinginfo_enable) {
-		vidc_sm_set_h264_encoder_timing_info(
-			&ddl->shared_mem[ddl->command_channel],
-			DDL_FRAMERATE_SCALE_FACTOR,
-			scaled_frame_rate << 1);
-	}
+		encoder->closed_gop);
 	vidc_sm_set_encoder_init_rc_value(&ddl->shared_mem
 		[ddl->command_channel],
 		encoder->target_bit_rate.target_bitrate);
@@ -883,6 +867,7 @@ void ddl_vidc_encode_slice_batch_run(struct ddl_client_context *ddl)
 	DDL_MEMSET(encoder->batch_frame.slice_batch_in.align_virtual_addr, 0,
 		sizeof(struct vidc_1080p_enc_slice_batch_in_param));
 	encoder->batch_frame.out_frm_next_frmindex = 0;
+	encoder->batch_frame.first_output_frame_tag = 0;
 	bitstream_size = encoder->batch_frame.output_frame[0].vcd_frm.alloc_len;
 	encoder->output_buf_req.sz = bitstream_size;
 	y_addr = DDL_OFFSET(ddl_context->dram_base_b.align_physical_addr,
@@ -975,7 +960,6 @@ void ddl_vidc_encode_slice_batch_run(struct ddl_client_context *ddl)
 		ddl_update_core_start_time(__func__, ENC_SLICE_OP_TIME);
 		ddl_set_core_start_time(__func__, ENC_OP_TIME);
 	}
-	encoder->num_slices_comp = 0;
 	ddl_vidc_encode_set_batch_slice_info(ddl);
 	ddl_context->vidc_encode_slice_batch_start[ddl->command_channel] (
 			&enc_param);
@@ -1093,7 +1077,6 @@ void ddl_vidc_decode_frame_run(struct ddl_client_context *ddl)
 		decoder->flush_pending = false;
 	} else
 		dec_param.dpb_flush = false;
-	ddl_set_vidc_timeout(ddl);
 	vidc_sm_set_frame_tag(&ddl->shared_mem[ddl->command_channel],
 		bit_stream->ip_frm_tag);
 	if (ddl_context->pix_cache_enable) {

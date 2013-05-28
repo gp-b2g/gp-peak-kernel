@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -15,7 +15,6 @@
 #include "vcd_power_sm.h"
 #include "vcd_core.h"
 #include "vcd.h"
-#include "vcd_res_tracker.h"
 
 u32 vcd_power_event(
 	struct vcd_dev_ctxt *dev_ctxt,
@@ -298,25 +297,6 @@ u32 vcd_set_perf_level(struct vcd_dev_ctxt *dev_ctxt, u32 perf_lvl)
 	return rc;
 }
 
-u32 vcd_set_perf_turbo_level(struct vcd_clnt_ctxt *cctxt)
-{
-	u32 rc = VCD_S_SUCCESS;
-#ifdef CONFIG_MSM_BUS_SCALING
-	struct vcd_dev_ctxt *dev_ctxt = cctxt->dev_ctxt;
-	pr_err("\n Setting Turbo mode !!");
-
-	if (res_trk_update_bus_perf_level(dev_ctxt,
-			RESTRK_1080P_TURBO_PERF_LEVEL) < 0) {
-		pr_err("\n %s(): update buf perf level failed\n",
-			__func__);
-		return false;
-	}
-	dev_ctxt->curr_perf_lvl = RESTRK_1080P_TURBO_PERF_LEVEL;
-	vcd_update_decoder_perf_level(dev_ctxt, RESTRK_1080P_TURBO_PERF_LEVEL);
-#endif
-	return rc;
-}
-
 u32 vcd_update_decoder_perf_level(struct vcd_dev_ctxt *dev_ctxt, u32 perf_lvl)
 {
 	u32 rc = VCD_S_SUCCESS;
@@ -341,18 +321,6 @@ u32 vcd_update_clnt_perf_lvl(
 	u32 new_perf_lvl;
 	new_perf_lvl = frm_p_units *\
 		(fps->fps_numerator / fps->fps_denominator);
-
-	if ((fps->fps_numerator * 1000) / fps->fps_denominator
-		 > VCD_MAXPERF_FPS_THRESHOLD_X_1000) {
-		u32 max_perf_level = 0;
-		if (res_trk_get_max_perf_level(&max_perf_level)) {
-			new_perf_lvl = max_perf_level;
-			VCD_MSG_HIGH("Using max perf level(%d) for >60fps\n",
-						 new_perf_lvl);
-		} else {
-			VCD_MSG_ERROR("Failed to get max perf level\n");
-		}
-	}
 	if (cctxt->status.req_perf_lvl) {
 		dev_ctxt->reqd_perf_lvl =
 		    dev_ctxt->reqd_perf_lvl - cctxt->reqd_perf_lvl +

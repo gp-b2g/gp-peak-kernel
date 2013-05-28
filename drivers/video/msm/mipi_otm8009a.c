@@ -420,8 +420,8 @@ static struct dsi_cmd_desc otm8009a_display_off_cmds[] = {
 	{DTYPE_DCS_WRITE, 1, 0, 0, 120, sizeof(enter_sleep), enter_sleep}
 };
 
-#define MAX_BL_LEVEL 31
-#define LCD_BL_EN 85
+#define MAX_BL_LEVEL 32
+#define LCD_BL_EN 0
 
 extern int pmic_gpio_direction_output(unsigned gpio);
 extern int pmic_gpio_set_value(unsigned gpio, int value);
@@ -431,7 +431,6 @@ static void mipi_otm8009a_panel_set_backlight(struct msm_fb_data_type *mfd)
 	int level = mfd->bl_level;
 	int max = mfd->panel_info.bl_max;
 	int min = mfd->panel_info.bl_min;
-	int i;
 
 	pr_debug("%s, level = %d\n", __func__, level);
 	if (level < min)
@@ -439,15 +438,12 @@ static void mipi_otm8009a_panel_set_backlight(struct msm_fb_data_type *mfd)
 	if (level > max)
 		level = max;
 
+	pmic_gpio_direction_output(LCD_BL_EN);
 	if (level == 0) {
-		gpio_set_value(LCD_BL_EN, 0);
+		pmic_gpio_set_value(LCD_BL_EN, 0);
 		return;
-	}
-	for (i = 0; i < (MAX_BL_LEVEL - level + 1); i++) {
-		gpio_set_value(LCD_BL_EN, 0);
-		udelay(1);
-		gpio_set_value(LCD_BL_EN, 1);
-		udelay(1);
+	} else {
+		pmic_gpio_set_value(LCD_BL_EN, 1);
 	}
 
 	return;

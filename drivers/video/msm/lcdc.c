@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2008-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -31,6 +31,7 @@
 #include <linux/regulator/consumer.h>
 
 #include "msm_fb.h"
+int clk_set_flags(struct clk *clk, unsigned long flags);
 
 static int lcdc_probe(struct platform_device *pdev);
 static int lcdc_remove(struct platform_device *pdev);
@@ -101,7 +102,7 @@ static int lcdc_on(struct platform_device *pdev)
 #endif
 	mfd = platform_get_drvdata(pdev);
 
-	cont_splash_clk_ctrl(0);
+    cont_splash_clk_ctrl(0);
 
 	if (lcdc_pdata && lcdc_pdata->lcdc_get_clk)
 		panel_pixclock_freq = lcdc_pdata->lcdc_get_clk();
@@ -140,6 +141,10 @@ static int lcdc_on(struct platform_device *pdev)
 		goto out;
 	}
 
+	#define CLKF_INVERT         	0x00000001
+    #define CLKF_NOINVERT       	0x00000002
+    clk_set_flags((struct clk *)pixel_mdp_clk, CLKF_INVERT);
+
 	clk_prepare_enable(pixel_mdp_clk);
 	clk_prepare_enable(pixel_lcdc_clk);
 
@@ -154,18 +159,18 @@ out:
 	return ret;
 }
 
-static void cont_splash_clk_ctrl(int enable)
-{
-	static int cont_splash_clks_enabled;
-	if (enable && !cont_splash_clks_enabled) {
-		clk_prepare_enable(pixel_mdp_clk);
-		clk_prepare_enable(pixel_lcdc_clk);
-		cont_splash_clks_enabled = 1;
-	} else if (!enable && cont_splash_clks_enabled) {
-		clk_disable_unprepare(pixel_mdp_clk);
-		clk_disable_unprepare(pixel_lcdc_clk);
-		cont_splash_clks_enabled = 0;
-	}
+static void cont_splash_clk_ctrl(int enable) {
+    static int cont_splash_clks_enabled;
+
+    if (enable && !cont_splash_clks_enabled) {
+        clk_prepare_enable(pixel_mdp_clk);
+        clk_prepare_enable(pixel_lcdc_clk);
+        cont_splash_clks_enabled = 1;
+    } else if (!enable && cont_splash_clks_enabled) {
+        clk_disable_unprepare(pixel_mdp_clk);
+        clk_disable_unprepare(pixel_lcdc_clk);
+        cont_splash_clks_enabled = 0;
+    }
 }
 
 static int lcdc_probe(struct platform_device *pdev)
@@ -216,7 +221,7 @@ static int lcdc_probe(struct platform_device *pdev)
 	if (!mdp_dev)
 		return -ENOMEM;
 
-	cont_splash_clk_ctrl(1);
+    cont_splash_clk_ctrl(1);
 
 	/*
 	 * link to the latest pdev

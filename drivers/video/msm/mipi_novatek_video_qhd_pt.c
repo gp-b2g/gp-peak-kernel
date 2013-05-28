@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2011, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -73,7 +73,6 @@ static int __init mipi_video_novatek_qhd_pt_init(void)
 	pinfo.mipi.vc = 0;
 	pinfo.mipi.rgb_swap = DSI_RGB_SWAP_BGR;
 	pinfo.mipi.data_lane0 = TRUE;
-	pinfo.mipi.esc_byte_ratio = 4;
 #if defined(NOVATEK_TWO_LANE)
 	pinfo.mipi.data_lane1 = TRUE;
 #endif

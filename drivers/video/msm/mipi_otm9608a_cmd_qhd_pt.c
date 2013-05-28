@@ -22,8 +22,8 @@ static struct mipi_dsi_phy_ctrl dsi_cmd_mode_phy_db = {
 	/* regulator */
 	{0x03, 0x0a, 0x04, 0x01, 0x20},
 	/* timing   */
-	{0xb9, 0x8e, 0x1f, 0x20, 0xaf, 0xb3, 0x52, 
-	 0x98, 0x48, 0x13, 0x14},
+	{0xb9, 0x8e, 0x1f, 0x24, 0xaf, 0xb3, 0x52, 
+     0x98, 0x48, 0x23, 0x24}, 
 	/* phy ctrl */
 	{0x7f, 0x00, 0x00, 0x00},
 	/* strength */
@@ -51,12 +51,12 @@ static int __init mipi_cmd_otm9608a_qhd_pt_init(void)
 	pinfo.pdest = DISPLAY_1;
 	pinfo.wait_cycle = 0;
 	pinfo.bpp = 24;
-	pinfo.lcdc.h_back_porch = 20;
-	pinfo.lcdc.h_front_porch = 40;
-	pinfo.lcdc.h_pulse_width = 4;
-	pinfo.lcdc.v_back_porch = 8;
-	pinfo.lcdc.v_front_porch = 8;
-	pinfo.lcdc.v_pulse_width = 4;
+	pinfo.lcdc.h_back_porch = 100;
+	pinfo.lcdc.h_front_porch = 100;
+	pinfo.lcdc.h_pulse_width = 8;
+	pinfo.lcdc.v_back_porch = 20;
+	pinfo.lcdc.v_front_porch = 20;
+	pinfo.lcdc.v_pulse_width = 1;
 
 	pinfo.lcdc.border_clr = 0;	/* blk */
 	pinfo.lcdc.underflow_clr = 0xff;	/* blue */
@@ -67,13 +67,13 @@ static int __init mipi_cmd_otm9608a_qhd_pt_init(void)
 
 	pinfo.clk_rate = 984000000;
 	pinfo.mipi.dsi_pclk_rate = 22300000;
-	pinfo.mipi.frame_rate = 58;
+	pinfo.mipi.frame_rate = 62;
 
 #ifdef USE_HW_VSYNC
 	pinfo.lcd.vsync_enable = TRUE;
 	pinfo.lcd.hw_vsync_mode = TRUE;
 #endif
-	pinfo.lcd.refx100 = 6000; /* adjust refx100 to prevent tearing */
+	pinfo.lcd.refx100 = 6200; /* adjust refx100 to prevent tearing */
 
 	pinfo.mipi.mode = DSI_CMD_MODE;
 	pinfo.mipi.dst_format = DSI_CMD_DST_FORMAT_RGB888;

@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2009, 2012 The Linux Foundation. All rights reserved.
+/* Copyright (c) 2008-2009, 2012 Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -152,6 +152,11 @@ int mdp_lcdc_on(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
+	if (!(mfd->cont_splash_done)) {
+		mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
+		MDP_OUTP(MDP_BASE + timer_base, 0);
+	}
+
 	/* DMA register config */
 
 	dma_base = DMA_P_BASE;
@@ -241,19 +246,13 @@ int mdp_lcdc_on(struct platform_device *pdev)
 
 	lcdc_underflow_clr |= 0x80000000;	/* enable recovery */
 #else
-	hsync_polarity = 0;
-	vsync_polarity = 0;
+	hsync_polarity = 1;
+	vsync_polarity = 1;
 #endif
 	data_en_polarity = 0;
 
 	ctrl_polarity =
 	    (data_en_polarity << 2) | (vsync_polarity << 1) | (hsync_polarity);
-
-	if (!(mfd->cont_splash_done)) {
-		mdp_pipe_ctrl(MDP_CMD_BLOCK,
-			MDP_BLOCK_POWER_OFF, FALSE);
-		MDP_OUTP(MDP_BASE + timer_base, 0);
-	}
 
 	MDP_OUTP(MDP_BASE + timer_base + 0x4, hsync_ctrl);
 	MDP_OUTP(MDP_BASE + timer_base + 0x8, vsync_period);
@@ -318,11 +317,11 @@ int mdp_lcdc_off(struct platform_device *pdev)
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 	mdp_pipe_ctrl(block, MDP_BLOCK_POWER_OFF, FALSE);
 
+	/* delay to make sure the last frame finishes */
+	mdelay(16);
+
 	ret = panel_next_off(pdev);
 	up(&mfd->dma->mutex);
-
-	/* delay to make sure the last frame finishes */
-	msleep(16);
 
 	return ret;
 }

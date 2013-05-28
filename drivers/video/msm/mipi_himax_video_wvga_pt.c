@@ -45,12 +45,12 @@ static int __init mipi_video_himax_wvga_pt_init(void)
 	pinfo.pdest = DISPLAY_1;
 	pinfo.wait_cycle = 0;
 	pinfo.bpp = 24;
-	pinfo.lcdc.h_back_porch = 49;
-	pinfo.lcdc.h_front_porch = 49;
-	pinfo.lcdc.h_pulse_width = 17;
-	pinfo.lcdc.v_back_porch = 17;
-	pinfo.lcdc.v_front_porch = 17;
-	pinfo.lcdc.v_pulse_width = 4;
+	pinfo.lcdc.h_back_porch = 15;
+	pinfo.lcdc.h_front_porch = 5;
+	pinfo.lcdc.h_pulse_width = 5;
+	pinfo.lcdc.v_back_porch = 16;
+	pinfo.lcdc.v_front_porch = 8;
+	pinfo.lcdc.v_pulse_width = 8;
 	pinfo.lcdc.border_clr = 0;	/* blk */
 	pinfo.lcdc.underflow_clr = 0xff;	/* blue */
 	/* number of dot_clk cycles HSYNC active edge
