@@ -14,34 +14,40 @@
 #include "mipi_dsi.h"
 #include "mipi_NT35565.h"
 
+#define USE_HW_VSYNC
+
 static struct msm_panel_info pinfo;
 
 static struct mipi_dsi_phy_ctrl dsi_cmd_mode_phy_db = {
 	/* DSI Bit Clock at 500 MHz, 2 lane, RGB888 */
 	/* regulator */
-	{0x03, 0x01, 0x01, 0x00},
+	{0x03, 0x0a, 0x04, 0x01, 0x20},
 	/* timing   */
-	{0xB4, 0x8D, 0x1D, 0x00, 0x20, 0x94, 0x20,
-	0x8F, 0x20, 0x03, 0x04},
+	{0xcb, 0x9f, 0x32, 0x10, 0xaf, 0xb3, 0x3c,
+     0x96, 0x22, 0x03, 0x04},
 	/* phy ctrl */
 	{0x7f, 0x00, 0x00, 0x00},
 	/* strength */
 	{0xee, 0x02, 0x86, 0x00},	/* strength */
 	/* pll control */
-	{0x40, 0xf9, 0xb0, 0xda, 0x00, 0x50, 0x48, 0x63,
-	0x30, 0x07, 0x03,
-	0x05, 0x14, 0x03, 0x0, 0x0, 0x54, 0x06, 0x10, 0x04, 0x0},
+	{0x40, 0xec, 0x31, 0xd2, 0x02, 0x50, 0x48, 0x63,
+	0x01, 0x0f, 0x07,
+	0x05, 0x14, 0x03, 0x0, 0x0, 0x0, 0x20, 0x0, 0x02, 0x0},
 };
 
-static int mipi_cmd_nt35565_qhd_pt_init(void)
+static int __init mipi_cmd_nt35565_qhd_pt_init(void)
 {
 	int ret;
 
+#ifdef CONFIG_FB_MSM_MIPI_PANEL_DETECT
 	if (msm_fb_detect_client("mipi_cmd_nt35565_qhd"))
 		return 0;
+#endif
 
 	pinfo.xres = 540;
 	pinfo.yres = 960;
+    pinfo.width = 54;
+    pinfo.height = 95; 
 	pinfo.type = MIPI_CMD_PANEL;
 	pinfo.pdest = DISPLAY_1;
 	pinfo.wait_cycle = 0;
@@ -60,14 +66,15 @@ static int mipi_cmd_nt35565_qhd_pt_init(void)
 	pinfo.bl_min = 0;
 	pinfo.fb_num = 2;
 
-	pinfo.clk_rate = 454000000;
+	pinfo.clk_rate = 984000000;
+	pinfo.mipi.dsi_pclk_rate = 22300000;
+	pinfo.mipi.frame_rate = 62;
 
-	//pinfo.lcd.vsync_enable = TRUE;
-	//pinfo.lcd.hw_vsync_mode = TRUE;
-	pinfo.lcd.refx100 = 6000; /* adjust refx100 to prevent tearing */
-	pinfo.lcd.v_back_porch = 11;
-	pinfo.lcd.v_front_porch = 10;
-	pinfo.lcd.v_pulse_width = 5;
+#ifdef USE_HW_VSYNC
+	pinfo.lcd.vsync_enable = TRUE;
+	pinfo.lcd.hw_vsync_mode = TRUE;
+#endif
+	pinfo.lcd.refx100 = 6200; /* adjust refx100 to prevent tearing */
 
 	pinfo.mipi.mode = DSI_CMD_MODE;
 	pinfo.mipi.dst_format = DSI_CMD_DST_FORMAT_RGB888;
@@ -75,12 +82,18 @@ static int mipi_cmd_nt35565_qhd_pt_init(void)
 	pinfo.mipi.rgb_swap = DSI_RGB_SWAP_RGB;
 	pinfo.mipi.data_lane0 = TRUE;
 	pinfo.mipi.data_lane1 = TRUE;
+	pinfo.mipi.data_lane2 = FALSE;
+	pinfo.mipi.data_lane3 = FALSE;
 	pinfo.mipi.t_clk_post = 0x22;
 	pinfo.mipi.t_clk_pre = 0x3f;
 	pinfo.mipi.stream = 0; /* dma_p */
 	pinfo.mipi.mdp_trigger = DSI_CMD_TRIGGER_SW;
 	pinfo.mipi.dma_trigger = DSI_CMD_TRIGGER_SW;
+#ifdef USE_HW_VSYNC
 	pinfo.mipi.te_sel = 1; /* TE from vsync gpio */
+#else
+	pinfo.mipi.te_sel = 0; /* TE from vsync gpio */
+#endif
 	pinfo.mipi.interleave_max = 1;
 	pinfo.mipi.insert_dcs_cmd = TRUE;
 	pinfo.mipi.wr_mem_continue = 0x3c;
