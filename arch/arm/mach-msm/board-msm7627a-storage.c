@@ -46,15 +46,15 @@ struct sdcc_gpio {
 
 //--------------SDCARD-------------
 static struct msm_gpio sdc1_cfg_data[] = {
-	{GPIO_CFG(51, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_12MA),
+	{GPIO_CFG(51, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_12MA),
 								"sdc1_dat_3"},
-	{GPIO_CFG(52, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_12MA),
+	{GPIO_CFG(52, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_12MA),
 								"sdc1_dat_2"},
-	{GPIO_CFG(53, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_12MA),
+	{GPIO_CFG(53, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_12MA),
 								"sdc1_dat_1"},
-	{GPIO_CFG(54, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_12MA),
+	{GPIO_CFG(54, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_12MA),
 								"sdc1_dat_0"},
-	{GPIO_CFG(55, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_12MA),
+	{GPIO_CFG(55, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_12MA),
 								"sdc1_cmd"},
 	{GPIO_CFG(56, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_16MA),
 								"sdc1_clk"},
@@ -273,7 +273,7 @@ static unsigned int msm7627a_sdcc_slot_status(struct device *dev)
 {
 	int status;
 
-	status = gpio_tlmm_config(GPIO_CFG(gpio_sdc1_hw_det, 0, GPIO_CFG_INPUT,
+	status = gpio_tlmm_config(GPIO_CFG(gpio_sdc1_hw_det, 2, GPIO_CFG_INPUT,
 				GPIO_CFG_PULL_UP, GPIO_CFG_8MA),
 				GPIO_CFG_ENABLE);
 	if (status)

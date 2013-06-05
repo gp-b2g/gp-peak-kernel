@@ -5448,7 +5448,7 @@ msmsdcc_runtime_suspend(struct device *dev)
 	int rc = 0;
 	unsigned long flags;
 
-	if (strcmp(mmc_hostname(mmc), "mmc0") || strcmp(mmc_hostname(mmc), "mmc1")) {
+	if (host->plat->is_sdio_al_client) {
 		rc = 0;
 		goto out;
 	}
