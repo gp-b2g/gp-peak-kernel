@@ -909,7 +909,7 @@ void __init msm8x25_kgsl_3d0_init(void)
 {
 	if (cpu_is_msm8625()) {
 		kgsl_3d0_pdata.idle_timeout = HZ/5;
-		kgsl_3d0_pdata.strtstp_sleepwake = true;
+		kgsl_3d0_pdata.strtstp_sleepwake = false;
 		/* 8x25 supports a higher GPU frequency */
 		kgsl_3d0_pdata.pwrlevel[0].gpu_freq = 320000000;
 		kgsl_3d0_pdata.pwrlevel[0].bus_freq = 200000000;
@@ -2011,7 +2011,7 @@ void __init msm_common_io_init(void)
 
 void __init msm8625_init_irq(void)
 {
-	msm_gic_irq_extn_init();
+	msm_gic_irq_extn_init(MSM_QGIC_DIST_BASE, MSM_QGIC_CPU_BASE);
 	gic_init(0, GIC_PPI_START, MSM_QGIC_DIST_BASE,
 			(void *)MSM_QGIC_CPU_BASE);
 	/* Edge trigger PPIs

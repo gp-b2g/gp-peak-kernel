@@ -27,6 +27,7 @@
 #include <linux/time.h>
 #include "logger.h"
 
+#include <mach/oem_rapi_client.h>
 #include <asm/ioctls.h>
 
 /*
@@ -266,8 +267,9 @@ static void fix_up_readers(struct logger_log *log, size_t len)
 	if (clock_interval(old, new, log->head))
 		log->head = get_next_entry(log, log->head, len);
 
+	/*add the (reader) check since there is crash on access reader->r_off*/
 	list_for_each_entry(reader, &log->readers, list)
-		if (clock_interval(old, new, reader->r_off))
+		if (reader && clock_interval(old, new, reader->r_off))
 			reader->r_off = get_next_entry(log, reader->r_off, len);
 }
 
@@ -432,8 +434,13 @@ static int logger_release(struct inode *ignored, struct file *file)
 {
 	if (file->f_mode & FMODE_READ) {
 		struct logger_reader *reader = file->private_data;
+		struct logger_log *log;
+		log = reader->log;
+		mutex_lock(&log->mutex);
 		list_del(&reader->list);
 		kfree(reader);
+		reader = NULL;
+		mutex_unlock(&log->mutex);
 	}
 
 	return 0;
@@ -576,6 +583,9 @@ static struct logger_log *get_log_from_minor(int minor)
 static int __init init_log(struct logger_log *log)
 {
 	int ret;
+#ifdef CONFIG_MSM_AMSS_ENHANCE_DEBUG
+	nzi_buf_item_type input;
+#endif
 
 	ret = misc_register(&log->misc);
 	if (unlikely(ret)) {
@@ -584,6 +594,15 @@ static int __init init_log(struct logger_log *log)
 		return ret;
 	}
 
+#ifdef CONFIG_MSM_AMSS_ENHANCE_DEBUG
+	/* for MP compact debuging */
+	input.extension.len = 0;
+	input.address = (uint32_t)__virt_to_phys((unsigned long)log->buffer);
+	input.size = 256*1024;
+	strncpy(input.file_name, log->misc.name, NZI_ITEM_FILE_NAME_LENGTH);
+	input.file_name[NZI_ITEM_FILE_NAME_LENGTH - 1] = 0;
+	send_modem_logaddr(&input);
+#endif
 	printk(KERN_INFO "logger: created %luK log '%s'\n",
 	       (unsigned long) log->size >> 10, log->misc.name);
 

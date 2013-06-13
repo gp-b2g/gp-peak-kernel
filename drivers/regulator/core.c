@@ -1573,9 +1573,14 @@ static int _regulator_enable(struct regulator_dev *rdev)
  */
 int regulator_enable(struct regulator *regulator)
 {
-	struct regulator_dev *rdev = regulator->rdev;
+	struct regulator_dev *rdev;
 	int ret = 0;
 
+	if (regulator == NULL || IS_ERR(regulator)) {
+		pr_err("%s NULL regulator pointer passed, return..\n", __func__);
+		return -EINVAL;
+	}
+	rdev = regulator->rdev;
 	mutex_lock(&rdev->mutex);
 
 	if (!regulator_check_voltage_update(rdev)) {
@@ -1671,10 +1676,15 @@ static int _regulator_disable(struct regulator_dev *rdev,
  */
 int regulator_disable(struct regulator *regulator)
 {
-	struct regulator_dev *rdev = regulator->rdev;
+	struct regulator_dev *rdev;
 	struct regulator_dev *supply_rdev = NULL;
 	int ret = 0;
 
+	if (regulator == NULL || IS_ERR(regulator)) {
+		pr_err("%s NULL regulator pointer passed, return..\n", __func__);
+		return -EINVAL;
+	}
+	rdev = regulator->rdev;
 	mutex_lock(&rdev->mutex);
 	ret = _regulator_disable(rdev, &supply_rdev);
 	if (ret)
@@ -1738,10 +1748,15 @@ static int _regulator_force_disable(struct regulator_dev *rdev,
  */
 int regulator_force_disable(struct regulator *regulator)
 {
-	struct regulator_dev *rdev = regulator->rdev;
+	struct regulator_dev *rdev;
 	struct regulator_dev *supply_rdev = NULL;
 	int ret;
 
+	if (regulator == NULL || IS_ERR(regulator)) {
+		pr_err("%s NULL regulator pointer passed, return..\n", __func__);
+		return -EINVAL;
+	}
+	rdev = regulator->rdev;
 	mutex_lock(&rdev->mutex);
 	regulator->uA_load = 0;
 	ret = _regulator_force_disable(rdev, &supply_rdev);
@@ -1778,7 +1793,10 @@ static int _regulator_is_enabled(struct regulator_dev *rdev)
 int regulator_is_enabled(struct regulator *regulator)
 {
 	int ret;
-
+	if (regulator == NULL || IS_ERR(regulator)) {
+		pr_err("%s NULL regulator pointer passed, return..\n", __func__);
+		return -EINVAL;
+	}
 	mutex_lock(&regulator->rdev->mutex);
 	ret = _regulator_is_enabled(regulator->rdev);
 	mutex_unlock(&regulator->rdev->mutex);

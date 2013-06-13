@@ -180,7 +180,7 @@ static int msm_gic_set_irq_wake(struct irq_data *d, unsigned int on)
 	return 0;
 }
 
-void __init msm_gic_irq_extn_init(void)
+void __init msm_gic_irq_extn_init(void __iomem *db, void __iomem *cb)
 {
 	gic_arch_extn.irq_mask	= msm_gic_mask_irq;
 	gic_arch_extn.irq_unmask = msm_gic_unmask_irq;
@@ -249,7 +249,7 @@ int msm_gic_irq_enter_sleep2(bool modem_wake, int from_idle)
 		/* save the contents of GIC CPU interface and Distributor
 		 * Disable all the Interrupts, if we enter from idle pc
 		 */
-		msm_gic_save();
+		msm_gic_save(modem_wake, from_idle);
 		irq_set_irq_type(MSM8625_INT_A9_M2A_6, IRQF_TRIGGER_RISING);
 		enable_irq(MSM8625_INT_A9_M2A_6);
 		pr_debug("%s going for sleep now\n", __func__);

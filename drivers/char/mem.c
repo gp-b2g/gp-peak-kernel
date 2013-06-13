@@ -829,6 +829,9 @@ static ssize_t kmsg_writev(struct kiocb *iocb, const struct iovec *iv,
 	ssize_t ret = -EFAULT;
 	size_t len = iov_length(iv, count);
 
+	//don't printk androit init log, if you want, turn it on.
+	return 0;
+
 	line = kmalloc(len + 1, GFP_KERNEL);
 	if (line == NULL)
 		return -ENOMEM;

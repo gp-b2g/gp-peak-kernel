@@ -4854,7 +4854,10 @@ static struct clk_lookup msm_clocks_copper[] = {
 	CLK_LOOKUP("core_clk", camss_jpeg_jpeg0_clk.c, ""),
 	CLK_LOOKUP("core_clk", camss_jpeg_jpeg1_clk.c, ""),
 	CLK_LOOKUP("core_clk", camss_jpeg_jpeg2_clk.c, ""),
-	CLK_LOOKUP("iface_clk", camss_jpeg_jpeg_ahb_clk.c, ""),
+	CLK_LOOKUP("iface_clk", camss_jpeg_jpeg_ahb_clk.c,
+						"fda64000.qcom,iommu"),
+	CLK_LOOKUP("core_clk", camss_jpeg_jpeg_axi_clk.c,
+						"fda64000.qcom,iommu"),
 	CLK_LOOKUP("bus_clk", camss_jpeg_jpeg_axi_clk.c, ""),
 	CLK_LOOKUP("bus_clk", camss_jpeg_jpeg_ocmemnoc_clk.c, ""),
 	CLK_LOOKUP("core_clk", camss_mclk0_clk.c, ""),
@@ -4875,11 +4878,15 @@ static struct clk_lookup msm_clocks_copper[] = {
 	CLK_LOOKUP("iface_clk", camss_vfe_vfe_ahb_clk.c, ""),
 	CLK_LOOKUP("bus_clk", camss_vfe_vfe_axi_clk.c, ""),
 	CLK_LOOKUP("bus_clk", camss_vfe_vfe_ocmemnoc_clk.c, ""),
-	CLK_LOOKUP("iface_clk", mdss_ahb_clk.c, ""),
+	CLK_LOOKUP("iface_clk", mdss_ahb_clk.c, "fd928000.qcom,iommu"),
+	CLK_LOOKUP("core_clk", mdss_axi_clk.c, "fd928000.qcom,iommu"),
 	CLK_LOOKUP("bus_clk", mdss_axi_clk.c, ""),
 	CLK_LOOKUP("core_clk", oxili_gfx3d_clk.c, ""),
 	CLK_LOOKUP("iface_clk", oxilicx_ahb_clk.c, ""),
 	CLK_LOOKUP("bus_clk", oxilicx_axi_clk.c, ""),
+	CLK_LOOKUP("iface_clk", venus0_ahb_clk.c, "fdc84000.qcom,iommu"),
+	CLK_LOOKUP("core_clk", venus0_axi_clk.c, "fdc84000.qcom,iommu"),
+	CLK_LOOKUP("bus_clk", venus0_axi_clk.c, ""),
 
 	/* LPASS clocks */
 	CLK_LOOKUP("core_clk", audio_core_slimbus_core_clk.c, "fe12f000.slim"),
@@ -4918,7 +4925,7 @@ static struct clk_lookup msm_clocks_copper[] = {
 	CLK_LOOKUP("bus_clk",  q6ss_ahb_lfabif_clk.c, "pil-q6v5-lpass"),
 	CLK_LOOKUP("mem_clk", gcc_boot_rom_ahb_clk.c, ""),
 	CLK_LOOKUP("bus_clk",  gcc_mss_cfg_ahb_clk.c, ""),
-	CLK_LOOKUP("core_clk", gcc_prng_ahb_clk.c, "msm_rng.0"),
+	CLK_LOOKUP("core_clk", gcc_prng_ahb_clk.c, "msm_rng"),
 
 	/* TODO: Remove dummy clocks as soon as they become unnecessary */
 	CLK_DUMMY("phy_clk",       NULL,    "msm_otg", OFF),
