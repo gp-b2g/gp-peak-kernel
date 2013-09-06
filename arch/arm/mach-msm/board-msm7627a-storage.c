@@ -172,7 +172,7 @@ static struct sdcc_gpio sdcc_cfg_data[] = {
 #ifdef CONFIG_CELLON_PRJ_C8681
 static int gpio_sdc1_hw_det = 29;
 #else
-static int gpio_sdc1_hw_det = 35;
+static int gpio_sdc1_hw_det = 42;
 #endif
 static void gpio_sdc1_config(void)
 {

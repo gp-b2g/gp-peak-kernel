@@ -99,6 +99,7 @@ static int msmsdcc_prep_xfer(struct msmsdcc_host *host, struct mmc_data
 
 static u64 dma_mask = DMA_BIT_MASK(32);
 static unsigned int msmsdcc_pwrsave = 1;
+static bool en_runtime_suspend = 1;
 
 static struct mmc_command dummy52cmd;
 static struct mmc_request dummy52mrq = {
@@ -5448,7 +5449,7 @@ msmsdcc_runtime_suspend(struct device *dev)
 	int rc = 0;
 	unsigned long flags;
 
-	if (host->plat->is_sdio_al_client) {
+	if (strcmp(mmc_hostname(mmc), "mmc0") || strcmp(mmc_hostname(mmc), "mmc1")) {
 		rc = 0;
 		goto out;
 	}
@@ -5562,6 +5563,8 @@ msmsdcc_runtime_resume(struct device *dev)
 	return 0;
 }
 
+module_param_named(en_suspend, en_runtime_suspend, bool, S_IRUGO | S_IWUSR);
+
 static int msmsdcc_runtime_idle(struct device *dev)
 {
 	struct mmc_host *mmc = dev_get_drvdata(dev);
@@ -5570,8 +5573,10 @@ static int msmsdcc_runtime_idle(struct device *dev)
 	if (host->plat->is_sdio_al_client)
 		return 0;
 
-	/* Idle timeout is not configurable for now */
-	pm_schedule_suspend(dev, MSM_MMC_IDLE_TIMEOUT);
+        if (likely(en_runtime_suspend)) {
+		/* Idle timeout is not configurable for now */
+		pm_schedule_suspend(dev, MSM_MMC_IDLE_TIMEOUT);
+	}
 
 	return -EAGAIN;
 }
@@ -5591,7 +5596,7 @@ static int msmsdcc_pm_suspend(struct device *dev)
 
 	if (!pm_runtime_suspended(dev))
 		rc = msmsdcc_runtime_suspend(dev);
-	//msleep(75);
+
 	return rc;
 }
 
@@ -5630,7 +5635,13 @@ static int msmsdcc_pm_resume(struct device *dev)
 
 	if (mmc->card && mmc_card_sdio(mmc->card))
 		rc = msmsdcc_runtime_resume(dev);
-	else
+	/*
+	 * As runtime PM is enabled before calling the device's platform resume
+	 * callback, we use the pm_runtime_suspended API to know if SDCC is
+	 * really runtime suspended or not and set the pending_resume flag only
+	 * if its not runtime suspended.
+	 */
+	else if (!pm_runtime_suspended(dev))
 		host->pending_resume = true;
 
 	if (host->plat->status_irq) {

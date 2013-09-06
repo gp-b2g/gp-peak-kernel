@@ -589,8 +589,8 @@ static struct resource resources_sdc3[] = {
 	},
 	{
 		.name	= "sdcc_dma_chnl",
-		.start	= DMOV_SDC3_CHAN,
-		.end	= DMOV_SDC3_CHAN,
+		.start	= DMOV_NAND_CHAN,
+		.end	= DMOV_NAND_CHAN,
 		.flags	= IORESOURCE_DMA,
 	},
 	{
@@ -1257,8 +1257,8 @@ static struct resource msm8625_resources_sdc3[] = {
 	},
 	{
 		.name	= "sdcc_dma_chnl",
-		.start	= DMOV_SDC3_CHAN,
-		.end	= DMOV_SDC3_CHAN,
+		.start	= DMOV_NAND_CHAN,
+		.end	= DMOV_NAND_CHAN,
 		.flags	= IORESOURCE_DMA,
 	},
 	{
@@ -1347,12 +1347,6 @@ int __init msm_add_sdcc(unsigned int controller, struct mmc_platform_data *plat)
 
 	if (controller < 1 || controller > 4)
 		return -EINVAL;
-
-	if (machine_is_msm8625_skua() || machine_is_msm8625_evb() || machine_is_msm8625_qrd5() || machine_is_msm8625_skub())
-	{
-		msm8625_device_sdc3.resource[2].start = DMOV_NAND_CHAN;
-		msm8625_device_sdc3.resource[2].end = DMOV_NAND_CHAN;
-	}
 
 	if (cpu_is_msm8625())
 		pdev = msm8625_sdcc_devices[controller-1];

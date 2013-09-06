@@ -24,6 +24,7 @@
 
 #define GPIO_WLAN_3V3_EN 39
 static const char *id = "WLPW";
+static bool wlan_powered_up;
 
 enum {
 	WLAN_VREG_S3 = 0,
@@ -212,6 +213,11 @@ static unsigned int msm_AR600X_setup_power(bool on)
 	int rc = 0;
 	static bool init_done;
 
+	if (wlan_powered_up) {
+		pr_info("WLAN already powered up\n");
+		return 0;
+	}
+
 	if (unlikely(!init_done)) {
 		gpio_wlan_config();
 		rc = qrf6285_init_regs();
@@ -296,6 +302,7 @@ static unsigned int msm_AR600X_setup_power(bool on)
 	}
 
 	pr_info("WLAN power-up success\n");
+	wlan_powered_up = true;
 	return 0;
 set_clock_fail:
 	setup_wlan_clock(0);
@@ -311,12 +318,18 @@ reg_disable:
 	wlan_switch_regulators(0);
 out:
 	pr_info("WLAN power-up failed\n");
+	wlan_powered_up = false;
 	return rc;
 }
 
 static unsigned int msm_AR600X_shutdown_power(bool on)
 {
 	int rc = 0;
+
+	if (!wlan_powered_up) {
+		pr_info("WLAN is not powered up, returning success\n");
+		return 0;
+	}
 
 	/* Disable the A0 clock */
 	rc = setup_wlan_clock(on);
@@ -378,7 +391,7 @@ static unsigned int msm_AR600X_shutdown_power(bool on)
 			__func__, rc);
 		goto reg_disable;
 	}
-
+	wlan_powered_up = false;
 	pr_info("WLAN power-down success\n");
 	return 0;
 set_clock_fail:

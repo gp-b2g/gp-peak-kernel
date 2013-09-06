@@ -45,7 +45,6 @@ static DEFINE_PER_CPU(struct cpufreq_work_struct, cpufreq_work);
 static struct workqueue_struct *msm_cpufreq_wq;
 #endif
 
-extern uint8_t current_qcomm_mode;
 struct cpufreq_suspend_t {
 	struct mutex suspend_mutex;
 	int device_suspended;
@@ -281,12 +280,6 @@ static int __cpuinit msm_cpufreq_init(struct cpufreq_policy *policy)
 	policy->min = CONFIG_MSM_CPU_FREQ_MIN;
 	policy->max = CONFIG_MSM_CPU_FREQ_MAX;
 #endif
-
-	/*set the cpu max frequency */
-	if(current_qcomm_mode == MSM_BOOT_FTM){
-		policy->max = policy->min;
-		policy->cpuinfo.max_freq = policy->min;
-	}
 
 	cur_freq = acpuclk_get_rate(policy->cpu);
 	if (cpufreq_frequency_table_target(policy, table, cur_freq,
