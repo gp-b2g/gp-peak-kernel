@@ -111,9 +111,9 @@ static int suspend_prepare(void)
 		goto Finish;
 
 	error = suspend_freeze_processes();
-	if (!error) {
-		return 0;
-	  goto Thaw;
+	if (error) {
+		error = -EAGAIN;	
+		goto Thaw;
 	}
 
 #define FREE_PAGE_NUMBER (100)
@@ -127,6 +127,7 @@ static int suspend_prepare(void)
 				   printk(KERN_ERR "PM: No enough memory\n");
 		   }
 	}
+	free_pages = global_page_state(NR_FREE_PAGES);
 	if (!error)
 		   return 0;
 

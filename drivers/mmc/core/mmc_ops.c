@@ -414,10 +414,8 @@ int mmc_switch(struct mmc_card *card, u8 set, u8 index, u8 value,
 		err = mmc_send_status(card, &status);
 		if (err)
 			return err;
-	#if 0	
 		if (card->host->caps & MMC_CAP_WAIT_WHILE_BUSY)
 			break;
-	#endif	
 		if (mmc_host_is_spi(card->host))
 			break;
 	} while (R1_CURRENT_STATE(status) == R1_STATE_PRG);

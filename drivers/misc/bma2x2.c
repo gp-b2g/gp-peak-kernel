@@ -2919,8 +2919,13 @@ static int bma2x2_probe(struct i2c_client *client,
 		goto exit;
 	}
 	/* read chip id */
-	tempvalue = i2c_smbus_read_byte_data(client, BMA2X2_CHIP_ID_REG);
-	printk(KERN_INFO "bma chip id[%x]\n", tempvalue);
+	{
+	int i = 0;
+	for(i = 0; i < 3; i++){ 
+		tempvalue = i2c_smbus_read_byte_data(client, BMA2X2_CHIP_ID_REG);
+		printk(KERN_INFO "bma chip id[%x]\n", tempvalue);
+	}
+	}
 
 	switch (tempvalue) {
 	case BMA255_CHIP_ID:

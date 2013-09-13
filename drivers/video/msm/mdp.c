@@ -1933,7 +1933,6 @@ static int mdp_on(struct platform_device *pdev)
 {
 	int ret = 0;
 
-	MSM_FB_INFO("%s: %d\n",__func__,__LINE__);
 #ifdef CONFIG_FB_MSM_MDP40
 	struct msm_fb_data_type *mfd;
 	mdp4_overlay_ctrl_db_reset();

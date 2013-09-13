@@ -306,6 +306,7 @@ struct mmc_host *mmc_alloc_host(int extra, struct device *dev)
 {
 	int err;
 	struct mmc_host *host;
+	char name[20];
 
 	if (!idr_pre_get(&mmc_host_idr, GFP_KERNEL))
 		return NULL;
@@ -321,6 +322,11 @@ struct mmc_host *mmc_alloc_host(int extra, struct device *dev)
 		goto free;
 
 	dev_set_name(&host->class_dev, "mmc%d", host->index);
+
+	snprintf(name, 20, "kmmcd%d", host->index);
+	host->workqueue = alloc_ordered_workqueue((const char*)name, 0);
+	if (!host->workqueue)
+		goto free;
 
 	host->parent = dev;
 	host->class_dev.parent = dev;
@@ -501,6 +507,8 @@ void mmc_free_host(struct mmc_host *host)
 	idr_remove(&mmc_host_idr, host->index);
 	spin_unlock(&mmc_host_lock);
 	wake_lock_destroy(&host->detect_wake_lock);
+	destroy_workqueue(host->workqueue);
+	host->workqueue = NULL;
 
 	put_device(&host->class_dev);
 }

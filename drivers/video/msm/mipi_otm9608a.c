@@ -20,6 +20,9 @@
 #include "msm_fb_panel.h"
 #include "mipi_otm9608a.h"
 
+//Fix white noise and recovery black screen issue.
+extern bool kernel_booted;
+
 static struct msm_panel_common_pdata *mipi_otm9608a_pdata;
 static struct dsi_buf otm9608a_tx_buf;
 static struct dsi_buf otm9608a_rx_buf;
@@ -586,7 +589,7 @@ static struct dsi_cmd_desc otm9608a_cmd_display_on_cmds[] = {
 	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(cmd107), cmd107},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0,	sizeof(cmd108), cmd108},
 	{DTYPE_DCS_LWRITE, 1, 0, 0, 0,	sizeof(cmd109), cmd109},
-	{DTYPE_DCS_WRITE, 1, 0, 0, 120, sizeof(cmd110), cmd110},
+	{DTYPE_DCS_WRITE, 1, 0, 0, 10, sizeof(cmd110), cmd110},
 	{DTYPE_DCS_WRITE, 1, 0, 0, 10, sizeof(cmd111), cmd111},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(cmd112), cmd112},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(cmd113), cmd113},
@@ -600,7 +603,7 @@ static char display_off[2] = {0x28, 0x00};
 static char enter_sleep[2] = {0x10, 0x00};
 
 static struct dsi_cmd_desc otm9608a_display_off_cmds[] = {
-	{DTYPE_DCS_WRITE, 1, 0, 0, 0, sizeof(display_off), display_off},
+	{DTYPE_DCS_WRITE, 1, 0, 0, 10, sizeof(display_off), display_off},
 	{DTYPE_DCS_WRITE, 1, 0, 0, 120, sizeof(enter_sleep), enter_sleep}
 };
 
@@ -615,6 +618,10 @@ static void mipi_otm9608a_set_backlight(struct msm_fb_data_type *mfd)
 	int i;
 
 	printk("%s, level = %d\n", __func__, level);
+
+	//Fix white noise and recovery black screen issue.
+	if (!kernel_booted)
+		kernel_booted = true;
 
 	spin_lock_irqsave(&otm9608a_spin_lock, flags); //disable local irq and preemption
 	if (level < min)

@@ -783,8 +783,6 @@ static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 	struct msm_fb_panel_data *pdata = NULL;
 	int ret = 0;
 
-	MSM_FB_INFO("%s: call address %p blank %d\n", __func__, __builtin_frame_address(0), op_enable);
-
 	if (!op_enable)
 		return -EPERM;
 
@@ -796,7 +794,6 @@ static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 
 	switch (blank_mode) {
 	case FB_BLANK_UNBLANK:
-		MSM_FB_INFO("%s: FB_BLANK_UNBLANK mode\n",__func__);
 		if (!mfd->panel_power_on) {
 			ret = pdata->on(mfd->pdev);
 			if (ret == 0) {
@@ -820,7 +817,6 @@ static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 	case FB_BLANK_NORMAL:
 	case FB_BLANK_POWERDOWN:
 	default:
-		MSM_FB_INFO("%s: FB_default mode \n",__func__);
 		if (mfd->panel_power_on) {
 			int curr_pwr_state;
 
@@ -937,7 +933,6 @@ static void msm_fb_imageblit(struct fb_info *info, const struct fb_image *image)
 static int msm_fb_blank(int blank_mode, struct fb_info *info)
 {
 	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)info->par;
-	MSM_FB_INFO("%s: %d\n",__func__, __LINE__);
 	return msm_fb_blank_sub(blank_mode, info, mfd->op_enable);
 }
 
@@ -1053,7 +1048,6 @@ static int msm_fb_register(struct msm_fb_data_type *mfd)
 	int *id;
 	int fbram_offset;
 	int remainder, remainder_mode2;
-
 	/*
 	 * fb info initialization
 	 */

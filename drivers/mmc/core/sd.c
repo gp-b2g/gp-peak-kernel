@@ -727,13 +727,6 @@ int mmc_sd_get_cid(struct mmc_host *host, u32 ocr, u32 *cid, u32 *rocr)
 	 * respond.
 	 */
 	mmc_go_idle(host);
-#if 0
-    if (cardinit) {
-        printk("mmc: init card flag.\n");
-        msleep(50);
-        cardinit = 0;
-    }
-#endif
 
 	/*
 	 * If SD_SEND_IF_COND indicates an SD 2.0
@@ -794,15 +787,6 @@ int mmc_sd_get_csd(struct mmc_host *host, struct mmc_card *card)
 	err = mmc_send_csd(card, card->raw_csd);
 	if (err)
 		return err;
-#if 0	
-	/* Fix for some buggy card with CSD tacc == 0*/
-	if(!card->csd.tacc_ns)
-	{
-		printk(KERN_INFO "This SDCARD CSD tacc is zero! Fix it for 100ms\n");
-		card->csd.tacc_ns = 100000 * 1000;
-	}	
-#endif	
-
 
 	err = mmc_decode_csd(card);
 	if (err)

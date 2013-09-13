@@ -22,8 +22,8 @@ static struct mipi_dsi_phy_ctrl dsi_cmd_mode_phy_db = {
 	/* regulator */
 	{0x03, 0x0a, 0x04, 0x01, 0x20},
 	/* timing   */
-	{0xcb, 0x9f, 0x32, 0x10, 0xaf, 0xb3, 0x3c,
-     0x96, 0x22, 0x03, 0x04},
+	{0xc1, 0x90, 0x24, 0x00, 0xa0, 0x9f, 0x22, 0x90,
+	0x18, 0x03, 0x04},
 	/* phy ctrl */
 	{0x7f, 0x00, 0x00, 0x00},
 	/* strength */
@@ -66,14 +66,12 @@ static int __init mipi_cmd_otm9608a_qhd_pt_init(void)
 	pinfo.fb_num = 2;
 
 	pinfo.clk_rate = 984000000;
-	pinfo.mipi.dsi_pclk_rate = 22300000;
-	pinfo.mipi.frame_rate = 62;
 
 #ifdef USE_HW_VSYNC
 	pinfo.lcd.vsync_enable = TRUE;
 	pinfo.lcd.hw_vsync_mode = TRUE;
 #endif
-	pinfo.lcd.refx100 = 6200; /* adjust refx100 to prevent tearing */
+	pinfo.lcd.refx100 = 6100; /* adjust refx100 to prevent tearing */
 
 	pinfo.mipi.mode = DSI_CMD_MODE;
 	pinfo.mipi.dst_format = DSI_CMD_DST_FORMAT_RGB888;
@@ -83,8 +81,8 @@ static int __init mipi_cmd_otm9608a_qhd_pt_init(void)
 	pinfo.mipi.data_lane1 = TRUE;
 	pinfo.mipi.data_lane2 = FALSE;
 	pinfo.mipi.data_lane3 = FALSE;
-	pinfo.mipi.t_clk_post = 0x22;
-	pinfo.mipi.t_clk_pre = 0x3f;
+	pinfo.mipi.t_clk_post = 0x20;
+	pinfo.mipi.t_clk_pre = 0x2F;
 	pinfo.mipi.stream = 0; /* dma_p */
 	pinfo.mipi.mdp_trigger = DSI_CMD_TRIGGER_SW_TE;
 	pinfo.mipi.dma_trigger = DSI_CMD_TRIGGER_SW;

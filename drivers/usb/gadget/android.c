@@ -1605,9 +1605,9 @@ static int android_bind(struct usb_composite_dev *cdev)
 	device_desc.iProduct = id;
 
 	/* Default strings - should be updated by userspace */
-	strlcpy(manufacturer_string, "Android",
+	strlcpy(manufacturer_string, "Geeksphone",
 		sizeof(manufacturer_string) - 1);
-	strlcpy(product_string, "Android", sizeof(product_string) - 1);
+	strlcpy(product_string, "Peak", sizeof(product_string) - 1);
 	strlcpy(serial_string, "0123456789ABCDEF", sizeof(serial_string) - 1);
 
 	//gsh add start
@@ -1615,8 +1615,8 @@ static int android_bind(struct usb_composite_dev *cdev)
 	{
 	    if (1 == bd_addr_info_table->product_name_flag)
 	    {
-			strings_dev[STRING_MANUFACTURER_IDX].s = "Haier";
-		    strings_dev[STRING_PRODUCT_IDX].s = "HW-W820";
+			strings_dev[STRING_MANUFACTURER_IDX].s = "Geeksphone";
+		    strings_dev[STRING_PRODUCT_IDX].s = "Peak";
 	    }
 		else if (2 == bd_addr_info_table->product_name_flag)
 	    {

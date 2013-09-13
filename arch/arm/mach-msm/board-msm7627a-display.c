@@ -1663,15 +1663,27 @@ static int mipi_dsi_panel_c8680_power(int on)
 
 	if (!kernel_booted) {
 		gpio_set_value(GPIO_C8680_LCD_BACKLIGHT_EN, 0);
+		msleep(20);
 		printk("%s: %d\n", __func__, __LINE__);
 	}
 
 	if (on) {
+		printk("%s: kernel_booted = %d\n", __func__, kernel_booted);
+		//Fix white noise issue.
+		if (kernel_booted){
+			gpio_set_value(GPIO_C8680_LCD_BACKLIGHT_EN, 0);
+			msleep(50);
+		}
+
 		//both sharp and truly have the same reset timing
 		gpio_set_value_cansleep(GPIO_C8680_LCD_RESET_N, 0);
-		udelay(50);
+		udelay(75);
 		gpio_set_value_cansleep(GPIO_C8680_LCD_RESET_N, 1);
 		msleep(20);
+
+		//Fix recovery black screen issue.
+		if (!kernel_booted && gpio_get_value(GPIO_C8680_LCD_BACKLIGHT_EN) == 0)
+			gpio_set_value(GPIO_C8680_LCD_BACKLIGHT_EN, 1);
 	}
 	else
 	{	

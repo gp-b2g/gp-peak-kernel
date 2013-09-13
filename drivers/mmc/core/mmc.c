@@ -502,7 +502,7 @@ static int mmc_compare_ext_csds(struct mmc_card *card, unsigned bus_width)
 		goto out;
 
 	/* only compare read only fields */
-	err = !((card->ext_csd.raw_partition_support ==
+	err = (!(card->ext_csd.raw_partition_support ==
 			bw_ext_csd[EXT_CSD_PARTITION_SUPPORT]) &&
 		(card->ext_csd.raw_erased_mem_count ==
 			bw_ext_csd[EXT_CSD_ERASED_MEM_CONT]) &&

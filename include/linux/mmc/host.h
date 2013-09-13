@@ -364,7 +364,7 @@ struct mmc_host {
 #endif
 
 	struct mmc_async_req	*areq;		/* active async req */
-
+	struct workqueue_struct	*workqueue;
 	unsigned long		private[0] ____cacheline_aligned;
 };
 
