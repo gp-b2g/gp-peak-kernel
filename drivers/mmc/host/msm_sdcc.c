@@ -4,6 +4,7 @@
  *  Copyright (C) 2007 Google Inc,
  *  Copyright (C) 2003 Deep Blue Solutions, Ltd, All Rights Reserved.
  *  Copyright (c) 2009-2012, Code Aurora Forum. All rights reserved.
+ *  Copyright (c) 2012 The Linux Foundation. All Rights Reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -62,20 +63,8 @@
 
 #define DRIVER_NAME "msm-sdcc"
 
-//#define MMC1_SDCC_DEBUG_INFO
-#ifdef MMC1_SDCC_DEBUG_INFO
-#define DBG(host, fmt, args...)	\
-	{ if (!strcmp(mmc_hostname(host->mmc),"mmc1")) printk("%s: %s: " fmt "\n", mmc_hostname(host->mmc), __func__ , args);}
-#else
 #define DBG(host, fmt, args...)	\
 	pr_debug("%s: %s: " fmt "\n", mmc_hostname(host->mmc), __func__ , args)
-#endif
-
-#define MSM_SDCC_DEBUG
-#ifdef MSM_SDCC_DEBUG
-#define SDCCDBG(fmt,args...)\
-	printk("###### lzj : %s : " fmt "\n",__func__,args)
-#endif
 
 #define IRQ_DEBUG 0
 #define SPS_SDCC_PRODUCER_PIPE_INDEX	1
@@ -99,6 +88,7 @@ static int msmsdcc_prep_xfer(struct msmsdcc_host *host, struct mmc_data
 
 static u64 dma_mask = DMA_BIT_MASK(32);
 static unsigned int msmsdcc_pwrsave = 1;
+static bool en_runtime_suspend = 1;
 
 static struct mmc_command dummy52cmd;
 static struct mmc_request dummy52mrq = {
@@ -615,7 +605,7 @@ static void msmsdcc_sps_complete_tlet(unsigned long data)
 	struct sps_pipe *sps_pipe_handle;
 	struct msmsdcc_host *host = (struct msmsdcc_host *)data;
 	struct sps_event_notify *notify = &host->sps.notify;
-	SDCCDBG(" begin %d ",1);
+
 	spin_lock_irqsave(&host->lock, flags);
 	if (host->sps.dir == DMA_FROM_DEVICE)
 		sps_pipe_handle = host->sps.prod.pipe_handle;
@@ -3159,14 +3149,16 @@ static int msmsdcc_enable(struct mmc_host *mmc)
 
 	if (dev->power.runtime_status == RPM_SUSPENDING) {
 
-		//if (mmc->suspend_task == current) {
-		if (mmc->suspend_task != NULL) {
+		if (mmc->suspend_task == current) {
 			pr_info("%s: %s: mmc->suspend_task:%d current:%d\n", mmc_hostname(mmc),
 				__func__, mmc->suspend_task->pid, current->pid);
 
 			pm_runtime_get_noresume(dev);
 			goto out;
 		}
+	} else if (dev->power.runtime_status == RPM_RESUMING) {
+		pm_runtime_get_noresume(dev);
+		goto out;
 	}
 
 	rc = pm_runtime_get_sync(dev);
@@ -4713,7 +4705,6 @@ msmsdcc_probe(struct platform_device *pdev)
 	int ret = 0;
 	int i;
 
-	SDCCDBG(" begin %d ",1);
 	if (pdev->dev.of_node) {
 		plat = msmsdcc_populate_pdata(&pdev->dev);
 		of_property_read_u32((&pdev->dev)->of_node,
@@ -4859,9 +4850,8 @@ msmsdcc_probe(struct platform_device *pdev)
 
 	tasklet_init(&host->sps.tlet, msmsdcc_sps_complete_tlet,
 			(unsigned long)host);
-	SDCCDBG("is_dma_mode %d",host->is_dma_mode);
 	if (host->is_dma_mode) {
-		/* Setup DMA */		
+		/* Setup DMA */
 		ret = msmsdcc_init_dma(host);
 		if (ret)
 			goto ioremap_free;
@@ -4869,7 +4859,7 @@ msmsdcc_probe(struct platform_device *pdev)
 		host->dma.channel = -1;
 		host->dma.crci = -1;
 	}
-	SDCCDBG("Setup pclk_src_dfab :  %d",plat->pclk_src_dfab);
+
 	/*
 	 * Setup SDCC clock if derived from Dayatona
 	 * fabric core clock.
@@ -4944,7 +4934,6 @@ msmsdcc_probe(struct platform_device *pdev)
 
 #define MSM_MMC_DEFAULT_CPUDMA_LATENCY 200 /* usecs */
 	/* pm qos request to prevent apps idle power collapse */
-	SDCCDBG("host->plat->cpu_dma_latency :  %d",host->plat->cpu_dma_latency);
 	if (host->plat->cpu_dma_latency)
 		host->cpu_dma_latency = host->plat->cpu_dma_latency;
 	else
@@ -5066,7 +5055,7 @@ msmsdcc_probe(struct platform_device *pdev)
 	 */
 	disable_irq(core_irqres->start);
 	host->sdcc_irq_disabled = 1;
-	SDCCDBG("sdiowakeup_irq : %d ",plat->sdiowakeup_irq);
+
 	if (plat->sdiowakeup_irq) {
 		wake_lock_init(&host->sdio_wlock, WAKE_LOCK_SUSPEND,
 				mmc_hostname(mmc));
@@ -5077,6 +5066,8 @@ msmsdcc_probe(struct platform_device *pdev)
 		if (ret) {
 			pr_err("Unable to get sdio wakeup IRQ %d (%d)\n",
 				plat->sdiowakeup_irq, ret);
+			//if error occur, wake lock should be released 
+        	wake_lock_destroy(&host->sdio_wlock);
 			goto pio_irq_free;
 		} else {
 			spin_lock_irqsave(&host->lock, flags);
@@ -5166,6 +5157,17 @@ msmsdcc_probe(struct platform_device *pdev)
 #endif
 	setup_timer(&host->req_tout_timer, msmsdcc_req_tout_timer_hdlr,
 			(unsigned long)host);
+
+/* ignore pm notify while system resume */
+	if( 2 == host->pdev_id ) {
+		mmc->pm_flags |= MMC_PM_IGNORE_PM_NOTIFY;
+	}
+
+	/*prevent emmc from stepping into pm runtime sleep*/
+    if(plat->disable_runtime_pm && ((1 == host->pdev_id) || (3 == host->pdev_id)))
+    {
+        pm_runtime_disable(&(pdev)->dev);
+    }
 
 	mmc_add_host(mmc);
 
@@ -5446,13 +5448,12 @@ msmsdcc_runtime_suspend(struct device *dev)
 	int rc = 0;
 	unsigned long flags;
 
-	if (strcmp(mmc_hostname(mmc), "mmc1") || host->plat->is_sdio_al_client) {
+	if (host->plat->is_sdio_al_client) {
 		rc = 0;
 		goto out;
 	}
 
-	//pr_debug("%s: %s: start\n", mmc_hostname(mmc), __func__);
-	printk("################################%s: %s: start\n", mmc_hostname(mmc), __func__);
+	pr_debug("%s: %s: start\n", mmc_hostname(mmc), __func__);
 	if (mmc) {
 		host->sdcc_suspending = 1;
 		mmc->suspend_task = current;
@@ -5560,6 +5561,8 @@ msmsdcc_runtime_resume(struct device *dev)
 	return 0;
 }
 
+module_param_named(en_suspend, en_runtime_suspend, bool, S_IRUGO | S_IWUSR);
+
 static int msmsdcc_runtime_idle(struct device *dev)
 {
 	struct mmc_host *mmc = dev_get_drvdata(dev);
@@ -5568,8 +5571,10 @@ static int msmsdcc_runtime_idle(struct device *dev)
 	if (host->plat->is_sdio_al_client)
 		return 0;
 
-	/* Idle timeout is not configurable for now */
-	pm_schedule_suspend(dev, MSM_MMC_IDLE_TIMEOUT);
+    if (likely(en_runtime_suspend)) {
+		/* Idle timeout is not configurable for now */
+		pm_schedule_suspend(dev, MSM_MMC_IDLE_TIMEOUT);
+	}
 
 	return -EAGAIN;
 }
@@ -5628,7 +5633,13 @@ static int msmsdcc_pm_resume(struct device *dev)
 
 	if (mmc->card && mmc_card_sdio(mmc->card))
 		rc = msmsdcc_runtime_resume(dev);
-	else
+	/*
+	 * As runtime PM is enabled before calling the device's platform resume
+	 * callback, we use the pm_runtime_suspended API to know if SDCC is
+	 * really runtime suspended or not and set the pending_resume flag only
+	 * if its not runtime suspended.
+	 */
+	else if (!pm_runtime_suspended(dev))
 		host->pending_resume = true;
 
 	if (host->plat->status_irq) {

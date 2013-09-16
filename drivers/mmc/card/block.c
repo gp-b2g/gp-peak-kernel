@@ -801,6 +801,8 @@ static int mmc_blk_issue_discard_rq(struct mmc_queue *mq, struct request *req)
 	unsigned int from, nr, arg;
 	int err = 0, type = MMC_BLK_DISCARD;
 
+	mmc_claim_host(card->host);
+
 	if (!mmc_can_erase(card)) {
 		err = -EOPNOTSUPP;
 		goto out;
@@ -836,6 +838,8 @@ out:
 	__blk_end_request(req, err, blk_rq_bytes(req));
 	spin_unlock_irq(&md->lock);
 
+	mmc_release_host(card->host);
+
 	return err ? 0 : 1;
 }
 
@@ -846,6 +850,8 @@ static int mmc_blk_issue_secdiscard_rq(struct mmc_queue *mq,
 	struct mmc_card *card = md->queue.card;
 	unsigned int from, nr, arg;
 	int err = 0, type = MMC_BLK_SECDISCARD;
+
+	mmc_claim_host(card->host);
 
 	if (!(mmc_can_secure_erase_trim(card))) {
 		err = -EOPNOTSUPP;
@@ -890,6 +896,8 @@ out:
 	spin_lock_irq(&md->lock);
 	__blk_end_request(req, err, blk_rq_bytes(req));
 	spin_unlock_irq(&md->lock);
+
+	mmc_release_host(card->host);
 
 	return err ? 0 : 1;
 }

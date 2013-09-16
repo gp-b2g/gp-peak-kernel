@@ -171,9 +171,7 @@ static int mipi_dsi_on(struct platform_device *pdev)
 	cont_splash_clk_ctrl(0);
 	mipi_dsi_prepare_clocks();
 
-	//local_bh_disable();
 	mipi_dsi_ahb_ctrl(1);
-	//local_bh_enable();
 
 	clk_rate = mfd->fbi->var.pixclock;
 	clk_rate = min(clk_rate, mfd->panel_info.clk_max);
@@ -185,9 +183,7 @@ static int mipi_dsi_on(struct platform_device *pdev)
 
 	mipi_dsi_phy_init(0, &(mfd->panel_info), target_type);
 
-	//local_bh_disable();
 	mipi_dsi_clk_enable();
-	//local_bh_enable();
 
 	MIPI_OUTP(MIPI_DSI_BASE + 0x114, 1);
 	MIPI_OUTP(MIPI_DSI_BASE + 0x114, 0);

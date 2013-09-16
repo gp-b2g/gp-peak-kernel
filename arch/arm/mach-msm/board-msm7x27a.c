@@ -1142,18 +1142,6 @@ static int __init msm7x27a_init_ar6000pm(void)
 	msm_wlan_ar6000_pm_device.dev.platform_data = &ar600x_wlan_power;
 	return platform_device_register(&msm_wlan_ar6000_pm_device);
 }
-
-static void msm7x27a_ar6000_io_init(void) 
-{
-	gpio_tlmm_config(GPIO_CFG(39, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN,
-				GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-	gpio_tlmm_config(GPIO_CFG(124, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP,
-				GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-	gpio_request(124, "WLAN_DEEP_SLEEP_N");
-	gpio_direction_output(124, 0);
-	gpio_free(124);
-	return;
-}
 #else
 static int __init msm7x27a_init_ar6000pm(void) { return 0; }
 #endif
@@ -1258,7 +1246,6 @@ static void __init msm7x2x_init(void)
 	msm7x27a_add_platform_devices();
 	/* Ensure ar6000pm device is registered before MMC/SDC */
 	msm7x27a_init_ar6000pm();
-	msm7x27a_ar6000_io_init();
 	msm7627a_init_mmc();
 	msm_fb_add_devices();
 	msm7x2x_init_host();

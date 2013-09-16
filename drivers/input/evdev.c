@@ -285,9 +285,6 @@ static unsigned int evdev_compute_buffer_size(struct input_dev *dev)
 	return roundup_pow_of_two(n_events);
 }
 
-static int evdev_enable_suspend_block(struct evdev *evdev,
-				      struct evdev_client *client);
-
 static int evdev_open(struct inode *inode, struct file *file)
 {
 	struct evdev *evdev;
@@ -325,13 +322,8 @@ static int evdev_open(struct inode *inode, struct file *file)
 	snprintf(client->name, sizeof(client->name), "%s-%d",
 			dev_name(&evdev->dev), task_tgid_vnr(current));
 	client->evdev = evdev;
-
-	if (!strcmp(evdev->handle.dev->name, "7k_handset")) {
-		printk("enable evdev wakelock to block suspend\n");
-		evdev_enable_suspend_block(NULL, client);
-	}
-
 	evdev_attach_client(evdev, client);
+
 	error = evdev_open_device(evdev);
 	if (error)
 		goto err_free_client;
@@ -355,7 +347,7 @@ static ssize_t evdev_write(struct file *file, const char __user *buffer,
 	struct evdev_client *client = file->private_data;
 	struct evdev *evdev = client->evdev;
 	struct input_event event;
-	int retval;
+	int retval = 0;
 
 	if (count < input_event_size())
 		return -EINVAL;

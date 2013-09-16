@@ -349,6 +349,7 @@ int suspend_sys_sync_wait(void)
 	return 0;
 }
 
+extern int cpufreq_set_min_freq(int flag);
 static void suspend_backoff(void)
 {
 	pr_info("suspend: too many immediate wakeups, back off\n");
@@ -367,6 +368,8 @@ static void suspend(struct work_struct *work)
 			pr_info("suspend: abort suspend\n");
 		return;
 	}
+
+	cpufreq_set_min_freq(1);
 
 	entry_event_num = current_event_num;
 	suspend_sys_sync_queue();
@@ -401,6 +404,8 @@ static void suspend(struct work_struct *work)
 			pr_info("suspend: pm_suspend returned with no event\n");
 		wake_lock_timeout(&unknown_wakeup, HZ / 2);
 	}
+
+	cpufreq_set_min_freq(0);
 }
 static DECLARE_WORK(suspend_work, suspend);
 

@@ -100,6 +100,7 @@ static int suspend_prepare(void)
 
 	if (!suspend_ops || !suspend_ops->enter)
 		return -EPERM;
+
 	pm_prepare_console();
 
 	error = pm_notifier_call_chain(PM_SUSPEND_PREPARE);

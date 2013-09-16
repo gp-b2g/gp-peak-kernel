@@ -35,6 +35,10 @@ enum {
 };
 static int debug_mask = DEBUG_USER_STATE;
 module_param_named(debug_mask, debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
+void set_sampling_rate(int screen_on);
+void set_up_threshold(int screen_on);
+/* power key detect solution for ANR */
+void del_power_key_timer(void);
 
 static DEFINE_MUTEX(early_suspend_lock);
 static LIST_HEAD(early_suspend_handlers);
@@ -115,6 +119,10 @@ static void early_suspend(struct work_struct *work)
 			pos->suspend(pos);
 		}
 	}
+
+	set_sampling_rate(0);
+	set_up_threshold(0);
+
 	mutex_unlock(&early_suspend_lock);
 
 	suspend_sys_sync_queue();
@@ -126,7 +134,12 @@ abort:
 	if (state == SUSPEND_REQUESTED_AND_SUSPENDED)
 		wake_unlock(&main_wake_lock);
 	spin_unlock_irqrestore(&state_lock, irqflags);
+	/* power key detect solution for ANR */
+	del_power_key_timer();
+
 }
+
+extern int cpufreq_set_min_freq(int flag);
 
 static void late_resume(struct work_struct *work)
 {
@@ -134,7 +147,13 @@ static void late_resume(struct work_struct *work)
 	unsigned long irqflags;
 	int abort = 0;
 
+	cpufreq_set_min_freq(1);//set to max freq
+
 	mutex_lock(&early_suspend_lock);
+
+	set_sampling_rate(1);
+	set_up_threshold(1);
+    
 #ifdef CONFIG_MSM_SM_EVENT
 	sm_set_system_state (SM_STATE_LATERESUME);
 	sm_add_event(SM_POWER_EVENT | SM_POWER_EVENT_LATE_RESUME, SM_EVENT_START, 0, NULL, 0);
@@ -169,6 +188,12 @@ abort:
 	sm_add_event(SM_POWER_EVENT | SM_POWER_EVENT_LATE_RESUME, SM_EVENT_END, 0, NULL, 0);
 #endif
 	mutex_unlock(&early_suspend_lock);
+
+	/* power key detect solution for ANR */
+	del_power_key_timer();
+
+	cpufreq_set_min_freq(0);//set to max freq
+
 }
 
 void request_suspend_state(suspend_state_t new_state)
@@ -194,16 +219,13 @@ void request_suspend_state(suspend_state_t new_state)
 	}
 	if (!old_sleep && new_state != PM_SUSPEND_ON) {
 		state |= SUSPEND_REQUESTED;
-		pr_info("%s: goto late resume.state %d\n",__func__, state);
 		queue_work(suspend_work_queue, &early_suspend_work);
 	} else if (old_sleep && new_state == PM_SUSPEND_ON) {
 		state &= ~SUSPEND_REQUESTED;
-		pr_info("%s: goto late resume.state %d\n",__func__, state);
 		wake_lock(&main_wake_lock);
 		queue_work(suspend_work_queue, &late_resume_work);
 	}
 	requested_suspend_state = new_state;
-	pr_info("%s: end of function. new_state %d, old_state %d, requested_suspend_state %d\n",__func__, new_state, old_sleep, requested_suspend_state);
 	spin_unlock_irqrestore(&state_lock, irqflags);
     mutex_unlock(&early_suspend_lock);
 }

@@ -18,6 +18,7 @@
 #include <linux/platform_device.h>
 #include <linux/input.h>
 #include <linux/switch.h>
+#include <linux/earlysuspend.h>
 
 #include <asm/mach-types.h>
 
@@ -256,6 +257,18 @@ static void update_state(void)
 
 	switch_set_state(&hs->sdev, state);
 }
+static int mod_timer_flags=0;/*avoid timer pending*/
+struct timer_list power_key_detect_timer;
+void del_power_key_timer(void)
+{	
+	/*if timer add,del timer*/
+	if(mod_timer_flags)
+	{
+		del_timer(&power_key_detect_timer);
+		mod_timer_flags=0;
+	}
+}
+EXPORT_SYMBOL(del_power_key_timer);
 
 /*
  * tuple format: (key_code, key_param)
@@ -286,6 +299,10 @@ static void report_hs_key(uint32_t key_code, uint32_t key_parm)
 
 	switch (key) {
 	case KEY_POWER:
+		/* power key detect solution for ANR */
+		del_power_key_timer();
+
+		break;
 	case KEY_END:
 	case KEY_MEDIA:
 	case KEY_VOLUMEUP:
@@ -317,9 +334,6 @@ static void report_hs_key(uint32_t key_code, uint32_t key_parm)
 		return;
 	}
 	input_sync(hs->ipdev);
-	if (key != -1)
-		printk(KERN_INFO "%s: received key event: %d from rpc\n",
-			__func__, key);
 }
 
 static int handle_hs_rpc_call(struct msm_rpc_server *server,
@@ -607,6 +621,22 @@ static ssize_t msm_headset_print_name(struct switch_dev *sdev, char *buf)
 	return -EINVAL;
 }
 
+extern int fastboot_enabled(void);
+
+void hs_rpc_late_resume(struct early_suspend *h)
+{
+	if (fastboot_enabled()) {
+		clear_bit(KEY_POWER, hs->ipdev->key);
+		clear_bit(KEY_END, hs->ipdev->key);
+	}
+}
+
+static struct early_suspend hs_rpc_early_suspend = {
+	.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1,
+	.suspend = NULL,
+	.resume = hs_rpc_late_resume,
+};
+
 static int __devinit hs_probe(struct platform_device *pdev)
 {
 	int rc = 0;
@@ -666,6 +696,8 @@ static int __devinit hs_probe(struct platform_device *pdev)
 		dev_err(&ipdev->dev, "rpc init failure\n");
 		goto err_hs_rpc_init;
 	}
+
+	register_early_suspend(&hs_rpc_early_suspend);
 
 	return 0;
 

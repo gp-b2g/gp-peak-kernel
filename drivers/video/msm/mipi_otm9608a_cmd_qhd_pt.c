@@ -20,16 +20,16 @@ static struct msm_panel_info pinfo;
 
 static struct mipi_dsi_phy_ctrl dsi_cmd_mode_phy_db = {
 	/* regulator */
-	{0x03, 0x0a, 0x04, 0x01, 0x20},
+	{0x03, 0x01, 0x01, 0x00},
 	/* timing   */
-	{0xc1, 0x90, 0x24, 0x00, 0xa0, 0x9f, 0x22, 0x90,
-	0x18, 0x03, 0x04},
+	{0xb6, 0x8b, 0x1c, 0x00, 0xa6, 0xaa, 0x32, 0x96,
+	0x24, 0x03, 0x04},
 	/* phy ctrl */
 	{0x7f, 0x00, 0x00, 0x00},
 	/* strength */
 	{0xbb, 0x02, 0x06, 0x00},
 	/* pll control */
-	{0x40, 0xec, 0x31, 0xd2, 0x02, 0x50, 0x48, 0x63,
+	{0x01, 0xec, 0x31, 0xd2, 0x00, 0x40, 0x37, 0x62,
 	0x01, 0x0f, 0x07,
 	0x05, 0x14, 0x03, 0x0, 0x0, 0x0, 0x20, 0x0, 0x02, 0x0},
 };
@@ -46,7 +46,7 @@ static int __init mipi_cmd_otm9608a_qhd_pt_init(void)
 	pinfo.xres = 540;
 	pinfo.yres = 960;
     pinfo.width = 54;
-    pinfo.height = 95; 
+    pinfo.height = 96; 
 	pinfo.type = MIPI_CMD_PANEL;
 	pinfo.pdest = DISPLAY_1;
 	pinfo.wait_cycle = 0;
@@ -61,7 +61,7 @@ static int __init mipi_cmd_otm9608a_qhd_pt_init(void)
 	pinfo.lcdc.border_clr = 0;	/* blk */
 	pinfo.lcdc.underflow_clr = 0xff;	/* blue */
 	pinfo.lcdc.hsync_skew = 0;
-	pinfo.bl_max = 20;
+	pinfo.bl_max = 32;
 	pinfo.bl_min = 0;
 	pinfo.fb_num = 2;
 
@@ -81,8 +81,8 @@ static int __init mipi_cmd_otm9608a_qhd_pt_init(void)
 	pinfo.mipi.data_lane1 = TRUE;
 	pinfo.mipi.data_lane2 = FALSE;
 	pinfo.mipi.data_lane3 = FALSE;
-	pinfo.mipi.t_clk_post = 0x20;
-	pinfo.mipi.t_clk_pre = 0x2F;
+	pinfo.mipi.t_clk_post = 0x22;
+	pinfo.mipi.t_clk_pre = 0x3F;
 	pinfo.mipi.stream = 0; /* dma_p */
 	pinfo.mipi.mdp_trigger = DSI_CMD_TRIGGER_SW_TE;
 	pinfo.mipi.dma_trigger = DSI_CMD_TRIGGER_SW;

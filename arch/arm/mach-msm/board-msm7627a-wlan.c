@@ -47,11 +47,8 @@ static struct wlan_vreg_info vreg_info[] = {
 	{"wlan1v8",     1800000, 1800000, 0, 0, NULL}
 };
 
-#ifndef CONFIG_CELLON_PRJ_C8681
 int gpio_wlan_sys_rest_en = 124;
-#else
-int gpio_wlan_sys_rest_en = 16;
-#endif
+
 static void gpio_wlan_config(void)
 {
 	if (machine_is_msm7627a_qrd1() || machine_is_msm7627a_evb()
@@ -62,11 +59,8 @@ static void gpio_wlan_config(void)
 					|| machine_is_msm8625_evt()
 					|| machine_is_msm7627a_qrd3()
 					|| machine_is_msm8625_qrd7())
-#ifndef CONFIG_CELLON_PRJ_C8681
-		gpio_wlan_sys_rest_en = 124;
-#else 
-		gpio_wlan_sys_rest_en = 16;
-#endif
+	gpio_wlan_sys_rest_en = 124;
+
 	pr_info("wlan rest gpio - %d\n", gpio_wlan_sys_rest_en);
 }
 
@@ -360,16 +354,12 @@ static unsigned int msm_AR600X_shutdown_power(bool on)
 		}
 		gpio_set_value(gpio_wlan_sys_rest_en, 0);
 	} else {
-		rc = gpio_request(gpio_wlan_sys_rest_en, "WLAN_DEEP_SLEEP_N");
-		if (!rc) {
-			rc = setup_wlan_gpio(on);
-			if (rc) {
-				pr_err("%s: setup_wlan_gpio = %d\n",
-					__func__, rc);
-				goto set_gpio_fail;
-			}
-			gpio_free(gpio_wlan_sys_rest_en);
+		rc = setup_wlan_gpio(on);
+		if (rc) {
+			pr_err("%s: setup_wlan_gpio = %d\n", __func__, rc);
+			goto set_gpio_fail;
 		}
+		gpio_free(gpio_wlan_sys_rest_en);
 	}
 
 	/* GPIO_WLAN_3V3_EN is only required for the QRD7627a */

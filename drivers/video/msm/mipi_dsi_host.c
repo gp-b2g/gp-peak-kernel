@@ -1012,7 +1012,7 @@ void mipi_dsi_mdp_busy_wait(struct msm_fb_data_type *mfd)
 		/* wait until DMA finishes the current job */
 		pr_debug("%s: pending pid=%d\n",
 				__func__, current->pid);
-		if(!wait_for_completion_timeout(&dsi_mdp_comp, 50*HZ))	{
+		if(!wait_for_completion_timeout(&dsi_mdp_comp, 2*HZ))	{
 			printk(KERN_INFO "[DISPLAY] %s: Wait for dsi_mdp_comp timeout\n", __func__);
 			complete(&dsi_mdp_comp);
 		}

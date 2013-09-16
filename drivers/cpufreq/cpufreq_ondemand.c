@@ -610,6 +610,46 @@ static struct attribute_group dbs_attr_group = {
 	.name = "ondemand",
 };
 
+/* set sample rate according to the input parameter screen_on:
+   1: set sample rate to non-idle state value, namely 30ms
+   0: set sample rate to idle state value, namely 50ms
+*/
+void set_sampling_rate(int screen_on)
+{
+    char *buff_on = "30000";
+    char *buff_off= "50000";
+
+    if(1 == screen_on)
+    {
+        store_sampling_rate(NULL, NULL, buff_on, strlen(buff_on));
+    }
+    else
+    {
+        store_sampling_rate(NULL, NULL, buff_off, strlen(buff_off));
+    }
+}
+EXPORT_SYMBOL(set_sampling_rate);
+
+/* set threshold according to the input parameter screen_on:
+   1: set up_threshold to non-idle state value, namely 80%
+   0: set up_threshold to idle state value, namely 95%
+*/
+void set_up_threshold(int screen_on)
+{
+    char *buff_on = "80";
+    char *buff_off= "95";
+
+    if(1 == screen_on)
+    {
+        store_up_threshold(NULL, NULL, buff_on, strlen(buff_on));
+    }
+    else
+    {
+        store_up_threshold(NULL, NULL, buff_off, strlen(buff_off));
+    }
+}
+EXPORT_SYMBOL(set_up_threshold);
+
 /************************** sysfs end ************************/
 
 static void dbs_freq_increase(struct cpufreq_policy *p, unsigned int freq)
