@@ -25,6 +25,14 @@
 
 #define KGSL_NAME "kgsl"
 
+/* The number of memstore arrays limits the number of contexts allowed.
+ * If more contexts are needed, update multiple for MEMSTORE_SIZE
+ */
+#define KGSL_MEMSTORE_SIZE	((int)(PAGE_SIZE * 2))
+#define KGSL_MEMSTORE_GLOBAL	(0)
+#define KGSL_MEMSTORE_MAX	(KGSL_MEMSTORE_SIZE / \
+		sizeof(struct kgsl_devmemstore) - 1)
+
 /* Timestamp window used to detect rollovers (half of integer range) */
 #define KGSL_TIMESTAMP_WINDOW 0x80000000
 
@@ -118,6 +126,8 @@ struct kgsl_memdesc_ops {
 	int (*map_kernel_mem)(struct kgsl_memdesc *);
 };
 
+#define KGSL_MEMDESC_GUARD_PAGE BIT(0)
+
 /* shared memory allocation */
 struct kgsl_memdesc {
 	struct kgsl_pagetable *pagetable;
@@ -129,6 +139,7 @@ struct kgsl_memdesc {
 	struct scatterlist *sg;
 	unsigned int sglen;
 	struct kgsl_memdesc_ops *ops;
+	int flags;
 };
 
 /* List of different memory entry types */
@@ -140,10 +151,15 @@ struct kgsl_memdesc {
 #define KGSL_MEM_ENTRY_ION    4
 #define KGSL_MEM_ENTRY_MAX    5
 
+/* List of flags */
+
+#define KGSL_MEM_ENTRY_FROZEN (1 << 0)
+
 struct kgsl_mem_entry {
 	struct kref refcount;
 	struct kgsl_memdesc memdesc;
 	int memtype;
+	int flags;
 	void *priv_data;
 	struct rb_node node;
 	uint32_t free_timestamp;

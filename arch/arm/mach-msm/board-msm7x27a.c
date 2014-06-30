@@ -60,7 +60,7 @@
 #include "pm-boot.h"
 #include "board-msm7627a.h"
 
-#define PMEM_KERNEL_EBI1_SIZE	0x3A000
+#define PMEM_KERNEL_EBI1_SIZE	0x4A000
 #define MSM_PMEM_AUDIO_SIZE	0x1F4000
 
 #if defined(CONFIG_GPIO_SX150X)
@@ -172,10 +172,10 @@ static struct msm_i2c_platform_data msm_gsbi1_qup_i2c_pdata = {
 };
 
 #ifdef CONFIG_ARCH_MSM7X27A
-#define MSM_PMEM_MDP_SIZE       0x2300000
+#define MSM_PMEM_MDP_SIZE       0x5600000
 #define MSM7x25A_MSM_PMEM_MDP_SIZE       0x1500000
 
-#define MSM_PMEM_ADSP_SIZE      0x1E00000
+#define MSM_PMEM_ADSP_SIZE      0x3800000//0x1100000
 #define MSM7x25A_MSM_PMEM_ADSP_SIZE      0xB91000
 
 #endif

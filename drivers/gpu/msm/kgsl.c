@@ -252,6 +252,16 @@ kgsl_create_context(struct kgsl_device_private *dev_priv)
 		return NULL;
 	}
 
+	/* MAX - 1, there is one memdesc in memstore for device info */
+	if (id >= KGSL_MEMSTORE_MAX) {
+		KGSL_DRV_ERR(dev_priv->device, "cannot have more than %d "
+				"ctxts due to memstore limitation\n",
+				KGSL_MEMSTORE_MAX);
+		idr_remove(&dev_priv->device->context_idr, id);
+		kfree(context);
+		return NULL;
+	}
+
 	context->id = id;
 	context->dev_priv = dev_priv;
 
@@ -1947,7 +1957,7 @@ static long kgsl_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 		if (!func) {
 			KGSL_DRV_INFO(dev_priv->device,
 				      "invalid ioctl code %08x\n", cmd);
-			ret = -EINVAL;
+			ret = -ENOIOCTLCMD;
 			goto done;
 		}
 		lock = 1;

@@ -21,9 +21,9 @@ static struct msm_panel_info pinfo;
 static struct mipi_dsi_phy_ctrl dsi_cmd_mode_phy_db = {
 	/* regulator */
 	{0x03, 0x01, 0x01, 0x00},
-	/* timing   */
-	{0xb6, 0x8b, 0x1c, 0x00, 0xa6, 0xaa, 0x32, 0x96,
-	0x24, 0x03, 0x04},
+	/* timing */ 
+	{0xb9, 0x90, 0xC0, 0x10, 0xab, 0xb1, 0x3e, 0x98,
+	0xF0, 0x03, 0x04},
 	/* phy ctrl */
 	{0x7f, 0x00, 0x00, 0x00},
 	/* strength */
@@ -81,8 +81,8 @@ static int __init mipi_cmd_otm9608a_qhd_pt_init(void)
 	pinfo.mipi.data_lane1 = TRUE;
 	pinfo.mipi.data_lane2 = FALSE;
 	pinfo.mipi.data_lane3 = FALSE;
-	pinfo.mipi.t_clk_post = 0x22;
-	pinfo.mipi.t_clk_pre = 0x3F;
+	pinfo.mipi.t_clk_post = 0xB0;
+	pinfo.mipi.t_clk_pre = 0x2F;
 	pinfo.mipi.stream = 0; /* dma_p */
 	pinfo.mipi.mdp_trigger = DSI_CMD_TRIGGER_SW_TE;
 	pinfo.mipi.dma_trigger = DSI_CMD_TRIGGER_SW;

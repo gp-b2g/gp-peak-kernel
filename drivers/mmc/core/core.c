@@ -2398,7 +2398,13 @@ void mmc_rescan(struct work_struct *work)
 	if (host->ops->get_cd && host->ops->get_cd(host) == 0)
 		goto out;
 
-	mmc_claim_host(host);
+	/*
+	 *avoid deadlock happend on runtime suspend when all want to wait for the work to finish but the work need claim host
+         *when cannot be done in the SUSPENDING state.
+         */
+
+	__mmc_claim_host_rpm(host, NULL, 0);
+	
 	if (!mmc_rescan_try_freq(host, host->f_min))
 		extend_wakelock = true;
 	mmc_release_host(host);
